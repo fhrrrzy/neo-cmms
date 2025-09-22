@@ -35,4 +35,22 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Equipment API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for the external equipment API service that provides
+    | equipment master data and running time information.
+    |
+    */
+
+    'equipment_api' => [
+        'url' => env('EQUIPMENT_API_URL', 'https://api.example.com/v1'),
+        'token' => env('EQUIPMENT_API_TOKEN'),
+        'timeout' => env('EQUIPMENT_API_TIMEOUT', 120),
+        'retry_attempts' => env('EQUIPMENT_API_RETRY_ATTEMPTS', 3),
+        'retry_delay' => env('EQUIPMENT_API_RETRY_DELAY', 1000), // milliseconds
+    ],
+
 ];
