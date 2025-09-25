@@ -57,11 +57,11 @@ class Plant extends Model
     }
 
     /**
-     * Get the equipment running times for the plant.
+     * Get the running times for the plant.
      */
-    public function equipmentRunningTimes(): HasMany
+    public function runningTimes(): HasMany
     {
-        return $this->hasMany(EquipmentRunningTime::class);
+        return $this->hasMany(RunningTime::class);
     }
 
     public function region(): BelongsTo

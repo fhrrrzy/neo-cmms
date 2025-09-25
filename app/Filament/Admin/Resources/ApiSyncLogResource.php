@@ -12,6 +12,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Arr;
+use App\Jobs\ConcurrentSyncJob;
+use App\Models\Plant;
 
 class ApiSyncLogResource extends Resource
 {
@@ -140,6 +143,48 @@ class ApiSyncLogResource extends Resource
             ])
             ->filters([
                 //
+            ])
+            ->headerActions([
+                Tables\Actions\Action::make('run_sync_now')
+                    ->label('Run Sync Now')
+                    ->icon('heroicon-o-rocket-launch')
+                    ->color('primary')
+                    ->form([
+                        Forms\Components\Select::make('plants')
+                            ->label('Plants')
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->options(fn() => Plant::query()->orderBy('plant_code')->pluck('plant_code', 'plant_code'))
+                            ->hint('Optional. Leave empty for all active plants.'),
+                        Forms\Components\DatePicker::make('running_time_start')
+                            ->label('Running Time Start')
+                            ->default(now()->subDay()->toDateString())
+                            ->required(),
+                        Forms\Components\DatePicker::make('running_time_end')
+                            ->label('Running Time End')
+                            ->default(now()->subDay()->toDateString())
+                            ->required(),
+                        Forms\Components\DatePicker::make('work_order_start')
+                            ->label('Work Orders Start')
+                            ->default(now()->subMonthNoOverflow()->startOfMonth()->toDateString())
+                            ->required(),
+                        Forms\Components\DatePicker::make('work_order_end')
+                            ->label('Work Orders End')
+                            ->default(now()->toDateString())
+                            ->required(),
+                    ])
+                    ->action(function (array $data): void {
+                        $plants = $data['plants'] ?? [];
+                        $plantCodes = empty($plants) ? null : array_values($plants);
+                        ConcurrentSyncJob::dispatch(
+                            $plantCodes,
+                            $data['running_time_start'] ?? null,
+                            $data['running_time_end'] ?? null,
+                            $data['work_order_start'] ?? null,
+                            $data['work_order_end'] ?? null
+                        )->onQueue('high');
+                    })
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

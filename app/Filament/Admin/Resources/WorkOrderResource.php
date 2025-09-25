@@ -59,7 +59,6 @@ class WorkOrderResource extends Resource
                             ])
                             ->label('Tipe Order'),
                         Forms\Components\Textarea::make('description')
-                            ->prefixIcon('heroicon-o-document-text')
                             ->label('Deskripsi')
                             ->columnSpanFull(),
                         Forms\Components\Select::make('plant_id')
@@ -87,13 +86,10 @@ class WorkOrderResource extends Resource
                             ])
                             ->label('Status Order'),
                         Forms\Components\DatePicker::make('created_on')
-                            ->prefixIcon('heroicon-o-calendar')
                             ->label('Tanggal Dibuat'),
                         Forms\Components\DatePicker::make('technical_completion')
-                            ->prefixIcon('heroicon-o-check-circle')
                             ->label('Tanggal Penyelesaian Teknis'),
                         Forms\Components\Toggle::make('completed')
-                            ->prefixIcon('heroicon-o-check')
                             ->label('Selesai')
                             ->formatStateUsing(fn($state) => $state === 'X'),
                     ])
@@ -309,5 +305,10 @@ class WorkOrderResource extends Resource
             'create' => Pages\CreateWorkOrder::route('/create'),
             'edit' => Pages\EditWorkOrder::route('/{record}/edit'),
         ];
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['order', 'description', 'company_code'];
     }
 }

@@ -9,6 +9,8 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Filament\Notifications\Notification as FilamentNotification;
+use App\Models\User;
 use Carbon\Carbon;
 use Exception;
 
@@ -136,6 +138,18 @@ class ConcurrentSyncJob implements ShouldQueue
                 'results' => $results,
                 'attempt' => $this->attempts(),
             ]);
+
+            // Notify superadmins via Filament database notifications
+            $recipients = User::superadmin()->get();
+            FilamentNotification::make()
+                ->title('Sync completed')
+                ->body('Equipment: ' . ($results['equipment']['success'] ?? 0)
+                    . ', Running Time: ' . ($results['running_time']['success'] ?? 0)
+                    . ', Work Orders: ' . ($results['work_orders']['success'] ?? 0)
+                    . ' | Duration: ' . $duration . 's')
+                ->icon('heroicon-o-check-circle')
+                ->iconColor('success')
+                ->sendToDatabase($recipients);
         } catch (Exception $e) {
             $duration = now()->diffInSeconds($startTime);
 
@@ -145,6 +159,15 @@ class ConcurrentSyncJob implements ShouldQueue
                 'duration' => $duration,
                 'attempt' => $this->attempts(),
             ]);
+
+            // Notify superadmins via Filament database notifications
+            $recipients = User::superadmin()->get();
+            FilamentNotification::make()
+                ->title('Sync failed')
+                ->body($e->getMessage())
+                ->icon('heroicon-o-x-circle')
+                ->iconColor('danger')
+                ->sendToDatabase($recipients);
 
             // Re-throw the exception to trigger job retry
             throw $e;
@@ -163,5 +186,14 @@ class ConcurrentSyncJob implements ShouldQueue
             'running_time_range' => "{$this->runningTimeStartDate} to {$this->runningTimeEndDate}",
             'work_order_range' => "{$this->workOrderStartDate} to {$this->workOrderEndDate}",
         ]);
+
+        // Notify superadmins via Filament database notifications
+        $recipients = User::superadmin()->get();
+        FilamentNotification::make()
+            ->title('Sync failed permanently')
+            ->body($exception->getMessage())
+            ->icon('heroicon-o-x-circle')
+            ->iconColor('danger')
+            ->sendToDatabase($recipients);
     }
 }

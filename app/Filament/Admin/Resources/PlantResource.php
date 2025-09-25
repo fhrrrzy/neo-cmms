@@ -54,11 +54,9 @@ class PlantResource extends Resource
                     ->maxLength(255)
                     ->label('Nama Pabrik'),
                 Forms\Components\Textarea::make('description')
-                    ->prefixIcon('heroicon-o-document-text')
                     ->columnSpanFull()
                     ->label('Deskripsi'),
                 Forms\Components\Toggle::make('is_active')
-                    ->prefixIcon('heroicon-o-check-circle')
                     ->required()
                     ->label('Status Aktif'),
             ]);
@@ -118,5 +116,10 @@ class PlantResource extends Resource
             'create' => Pages\CreatePlant::route('/create'),
             'edit' => Pages\EditPlant::route('/{record}/edit'),
         ];
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['plant_code', 'name'];
     }
 }

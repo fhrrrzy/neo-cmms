@@ -18,8 +18,6 @@ class Region extends Model
 
     public function plants(): HasMany
     {
-        return $this->hasMany(Plant::class);
+        return $this->hasMany(Plant::class, 'regional_id');
     }
 }
-
-

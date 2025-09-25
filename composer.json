@@ -7,9 +7,12 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "charrafimed/global-search-modal": "^3.7",
         "croustibat/filament-jobs-monitor": "^2.6",
         "filament/filament": "^3.0",
+        "hasnayeen/themes": "^3.0",
         "inertiajs/inertia-laravel": "^2.0",
+        "jeffgreco13/filament-breezy": "^2.6",
         "laravel/fortify": "^1.30",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",

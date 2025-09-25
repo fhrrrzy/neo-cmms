@@ -44,27 +44,34 @@ class EquipmentResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('equipment_number')
+                    ->prefixIcon('heroicon-o-hashtag')
                     ->required()
                     ->maxLength(50)
                     ->label('Nomor Equipment'),
                 Forms\Components\Select::make('plant_id')
+                    ->prefixIcon('heroicon-o-building-office-2')
                     ->relationship('plant', 'name')
                     ->required()
                     ->label('Pabrik'),
                 Forms\Components\Select::make('equipment_group_id')
+                    ->prefixIcon('heroicon-o-rectangle-group')
                     ->relationship('equipmentGroup', 'name')
                     ->required()
                     ->label('Grup Equipment'),
                 Forms\Components\TextInput::make('company_code')
+                    ->prefixIcon('heroicon-o-building-office')
                     ->maxLength(50)
                     ->label('Kode Perusahaan'),
                 Forms\Components\TextInput::make('equipment_description')
+                    ->prefixIcon('heroicon-o-cog-6-tooth')
                     ->maxLength(255)
                     ->label('Deskripsi Equipment'),
                 Forms\Components\TextInput::make('object_number')
+                    ->prefixIcon('heroicon-o-hashtag')
                     ->maxLength(50)
                     ->label('Nomor Objek'),
                 Forms\Components\TextInput::make('point')
+                    ->prefixIcon('heroicon-o-map-pin')
                     ->maxLength(50)
                     ->label('Point'),
                 Forms\Components\DateTimePicker::make('api_created_at')
@@ -198,5 +205,10 @@ class EquipmentResource extends Resource
             'create' => Pages\CreateEquipment::route('/create'),
             'edit' => Pages\EditEquipment::route('/{record}/edit'),
         ];
+    }
+
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['equipment_number', 'equipment_description', 'company_code'];
     }
 }

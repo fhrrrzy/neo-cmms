@@ -11,11 +11,11 @@ Artisan::command('inspire', function () {
 
 /*
 |--------------------------------------------------------------------------
-| Scheduled Tasks (Queue-Based)
+| Task Scheduling (Pure Laravel - No Cron Required)
 |--------------------------------------------------------------------------
 |
-| Here you may define the scheduled tasks for the CMMS synchronization
-| system. These tasks use Laravel's queue system instead of cron.
+| Laravel's schedule:work command eliminates the need for cron entirely!
+| Just run: php artisan schedule:work
 |
 */
 

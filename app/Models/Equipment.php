@@ -59,7 +59,7 @@ class Equipment extends Model
      */
     public function runningTimes(): HasMany
     {
-        return $this->hasMany(EquipmentRunningTime::class);
+        return $this->hasMany(RunningTime::class, 'equipment_number', 'equipment_number');
     }
 
     /**
@@ -67,7 +67,7 @@ class Equipment extends Model
      */
     public function latestRunningTime(): HasMany
     {
-        return $this->hasMany(EquipmentRunningTime::class)->latest('date');
+        return $this->hasMany(RunningTime::class, 'equipment_number', 'equipment_number')->latest('date');
     }
 
     /**

@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\ConcurrentSyncJob;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -39,32 +39,39 @@ class SyncStart extends Command
         $startTime = now();
 
         try {
-            $exitCode = Artisan::call('sync:all-concurrent', [
-                '--plants' => $this->option('plants'),
-                '--running-time-start' => $this->option('running-time-start') ?? Carbon::yesterday()->toDateString(),
-                '--running-time-end' => $this->option('running-time-end') ?? Carbon::yesterday()->toDateString(),
-                '--work-order-start' => $this->option('work-order-start') ?? Carbon::now()->subMonthNoOverflow()->startOfMonth()->toDateString(),
-                '--work-order-end' => $this->option('work-order-end') ?? Carbon::today()->toDateString(),
-            ]);
+            // Get plant codes
+            $plantCodes = $this->getPlantCodes();
 
-            $output = Artisan::output();
-            $this->line($output);
+            // Get date ranges
+            $runningTimeStart = $this->option('running-time-start') ?? Carbon::yesterday()->toDateString();
+            $runningTimeEnd = $this->option('running-time-end') ?? Carbon::yesterday()->toDateString();
+            $workOrderStart = $this->option('work-order-start') ?? Carbon::now()->subMonthNoOverflow()->startOfMonth()->toDateString();
+            $workOrderEnd = $this->option('work-order-end') ?? Carbon::today()->toDateString();
+
+            $this->info("Plants: " . count($plantCodes) . " (" . implode(', ', array_slice($plantCodes, 0, 5)) . (count($plantCodes) > 5 ? '...' : '') . ")");
+            $this->info("Running Time: {$runningTimeStart} to {$runningTimeEnd}");
+            $this->info("Work Orders: {$workOrderStart} to {$workOrderEnd}");
+
+            // Dispatch the concurrent sync job
+            ConcurrentSyncJob::dispatch(
+                $plantCodes,
+                $runningTimeStart,
+                $runningTimeEnd,
+                $workOrderStart,
+                $workOrderEnd
+            )->onQueue('high');
 
             $duration = now()->diffInSeconds($startTime);
 
-            if ($exitCode === 0) {
-                $this->info("✅ Synchronization completed successfully in {$duration} seconds");
+            $this->info("✅ Sync job dispatched successfully in {$duration} seconds");
+            $this->info("💡 Process the job with: php artisan queue:work --queue=high");
 
-                Log::info('Master sync command completed successfully', [
-                    'duration' => $duration,
-                    'plants' => $this->option('plants'),
-                ]);
+            Log::info('Master sync command completed successfully', [
+                'duration' => $duration,
+                'plants' => $plantCodes,
+            ]);
 
-                return self::SUCCESS;
-            } else {
-                $this->error("❌ Synchronization failed after {$duration} seconds");
-                return self::FAILURE;
-            }
+            return self::SUCCESS;
         } catch (\Exception $e) {
             $duration = now()->diffInSeconds($startTime);
             $this->error("❌ Synchronization failed: " . $e->getMessage());
@@ -76,5 +83,23 @@ class SyncStart extends Command
 
             return self::FAILURE;
         }
+    }
+
+    /**
+     * Get plant codes to sync
+     */
+    private function getPlantCodes(): array
+    {
+        $plantsOption = $this->option('plants');
+
+        if ($plantsOption) {
+            // Use specified plants
+            return array_map('trim', explode(',', $plantsOption));
+        }
+
+        // Use all active plants
+        return \App\Models\Plant::where('is_active', true)
+            ->pluck('plant_code')
+            ->toArray();
     }
 }
