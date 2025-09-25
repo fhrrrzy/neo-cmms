@@ -29,22 +29,36 @@ class PlantResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::query()->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getModel()::query()->exists() ? 'primary' : 'gray';
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('plant_code')
+                    ->prefixIcon('heroicon-o-hashtag')
                     ->required()
                     ->maxLength(255)
                     ->label('Kode Pabrik'),
                 Forms\Components\TextInput::make('name')
+                    ->prefixIcon('heroicon-o-building-office-2')
                     ->required()
                     ->maxLength(255)
                     ->label('Nama Pabrik'),
                 Forms\Components\Textarea::make('description')
+                    ->prefixIcon('heroicon-o-document-text')
                     ->columnSpanFull()
                     ->label('Deskripsi'),
                 Forms\Components\Toggle::make('is_active')
+                    ->prefixIcon('heroicon-o-check-circle')
                     ->required()
                     ->label('Status Aktif'),
             ]);

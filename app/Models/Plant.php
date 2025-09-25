@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Plant extends Model
 {
@@ -17,8 +18,19 @@ class Plant extends Model
      */
     protected $fillable = [
         'plant_code',
+        'regional_id',
         'name',
-        'description',
+        'kaps_terpasang',
+        'faktor_koreksi_kaps',
+        'faktor_koreksi_utilitas',
+        'unit',
+        'instalasi_bunch_press',
+        'pln_isasi',
+        'cofiring',
+        'hidden_pica_cost',
+        'hidden_pica_cpo',
+        'jenis',
+        'kaps_terpasang_sf',
         'is_active',
     ];
 
@@ -29,6 +41,11 @@ class Plant extends Model
      */
     protected $casts = [
         'is_active' => 'boolean',
+        'instalasi_bunch_press' => 'boolean',
+        'pln_isasi' => 'boolean',
+        'cofiring' => 'boolean',
+        'hidden_pica_cost' => 'boolean',
+        'hidden_pica_cpo' => 'boolean',
     ];
 
     /**
@@ -45,6 +62,11 @@ class Plant extends Model
     public function equipmentRunningTimes(): HasMany
     {
         return $this->hasMany(EquipmentRunningTime::class);
+    }
+
+    public function region(): BelongsTo
+    {
+        return $this->belongsTo(Region::class, 'regional_id');
     }
 
     /**
@@ -64,8 +86,19 @@ class Plant extends Model
     {
         return [
             'plant_code' => 'required|string|max:50|unique:plants,plant_code',
+            'regional_id' => 'required|exists:regions,id',
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'kaps_terpasang' => 'required|integer',
+            'faktor_koreksi_kaps' => 'required|integer',
+            'faktor_koreksi_utilitas' => 'required|integer',
+            'unit' => 'required|integer',
+            'instalasi_bunch_press' => 'required|boolean',
+            'pln_isasi' => 'required|boolean',
+            'cofiring' => 'required|boolean',
+            'hidden_pica_cost' => 'required|boolean',
+            'hidden_pica_cpo' => 'required|boolean',
+            'jenis' => 'required|integer',
+            'kaps_terpasang_sf' => 'required|integer',
             'is_active' => 'boolean',
         ];
     }

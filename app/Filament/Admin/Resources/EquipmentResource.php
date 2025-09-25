@@ -29,6 +29,16 @@ class EquipmentResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::query()->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getModel()::query()->exists() ? 'primary' : 'gray';
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -81,16 +91,20 @@ class EquipmentResource extends Resource
                 Tables\Columns\TextColumn::make('equipment_description')
                     ->searchable()
                     ->label('Deskripsi')
-                    ->limit(30),
+                    ->limit(30)
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('company_code')
                     ->searchable()
-                    ->label('Kode Perusahaan'),
+                    ->label('Kode Perusahaan')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('object_number')
                     ->searchable()
-                    ->label('Nomor Objek'),
+                    ->label('Nomor Objek')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('point')
                     ->searchable()
-                    ->label('Point'),
+                    ->label('Point')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
                     ->label('Status Aktif'),
@@ -109,7 +123,35 @@ class EquipmentResource extends Resource
                     ->label('Diperbarui'),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('plant_id')
+                    ->relationship('plant', 'name')
+                    ->label('Pabrik'),
+                Tables\Filters\SelectFilter::make('equipment_group_id')
+                    ->relationship('equipmentGroup', 'name')
+                    ->label('Grup Equipment'),
+                Tables\Filters\TernaryFilter::make('is_active')
+                    ->label('Aktif')
+                    ->boolean(),
+                Tables\Filters\Filter::make('created_at')
+                    ->form([
+                        Forms\Components\DatePicker::make('from')->label('Dari'),
+                        Forms\Components\DatePicker::make('until')->label('Sampai'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['from'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['until'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['from'] ?? null) {
+                            $indicators[] = 'Dari ' . $data['from'];
+                        }
+                        if ($data['until'] ?? null) {
+                            $indicators[] = 'Sampai ' . $data['until'];
+                        }
+                        return $indicators;
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -118,7 +160,28 @@ class EquipmentResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->groups([
+                Tables\Grouping\Group::make('plant.name')
+                    ->label('Pabrik')
+                    ->collapsible(),
+                Tables\Grouping\Group::make('equipmentGroup.name')
+                    ->label('Grup Equipment')
+                    ->collapsible(),
+                Tables\Grouping\Group::make('is_active')
+                    ->label('Status Aktif')
+                    ->getTitleFromRecordUsing(fn($record) => $record->is_active ? 'Aktif' : 'Nonaktif')
+                    ->collapsible(),
+            ])
+            ->emptyStateHeading('Belum ada data equipment')
+            ->emptyStateDescription('Mulai dengan menambahkan equipment baru ke dalam sistem.')
+            ->emptyStateIcon('heroicon-o-cog-6-tooth')
+            ->emptyStateActions([
+                Tables\Actions\CreateAction::make()
+                    ->label('Tambah Equipment'),
+            ])
+            ->paginated([25, 50, 100])
+            ->defaultPaginationPageOption(25);
     }
 
     public static function getRelations(): array

@@ -29,6 +29,16 @@ class UserResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::query()->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getModel()::query()->exists() ? 'primary' : 'gray';
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -36,15 +46,18 @@ class UserResource extends Resource
                 Forms\Components\Section::make('Informasi Pengguna')
                     ->schema([
                         Forms\Components\TextInput::make('name')
+                            ->prefixIcon('heroicon-o-user')
                             ->required()
                             ->maxLength(255)
                             ->label('Nama Lengkap'),
                         Forms\Components\TextInput::make('email')
+                            ->prefixIcon('heroicon-o-envelope')
                             ->email()
                             ->required()
                             ->maxLength(255)
                             ->label('Email'),
                         Forms\Components\TextInput::make('password')
+                            ->prefixIcon('heroicon-o-key')
                             ->password()
                             ->required()
                             ->maxLength(255)
@@ -57,6 +70,7 @@ class UserResource extends Resource
                 Forms\Components\Section::make('Role dan Plant')
                     ->schema([
                         Forms\Components\Select::make('role')
+                            ->prefixIcon('heroicon-o-shield-check')
                             ->options([
                                 'superadmin' => 'Super Admin',
                                 'pks' => 'PKS (Plant Khusus)',
@@ -65,6 +79,7 @@ class UserResource extends Resource
                             ->reactive()
                             ->label('Role'),
                         Forms\Components\Select::make('plant_id')
+                            ->prefixIcon('heroicon-o-building-office-2')
                             ->relationship('plant', 'name')
                             ->searchable()
                             ->preload()

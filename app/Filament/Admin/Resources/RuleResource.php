@@ -34,31 +34,34 @@ class RuleResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
+                    ->prefixIcon('heroicon-o-document-check')
                     ->required()
                     ->maxLength(255)
                     ->label('Nama Aturan'),
-                
+
                 Forms\Components\Section::make('Target Aturan')
                     ->schema([
                         Forms\Components\Select::make('equipment_group_id')
+                            ->prefixIcon('heroicon-o-squares-2x2')
                             ->relationship('equipmentGroup', 'name')
                             ->label('Grup Equipment')
                             ->searchable()
                             ->preload()
                             ->reactive()
-                            ->afterStateUpdated(fn (callable $set) => $set('equipment_id', null)),
-                        
+                            ->afterStateUpdated(fn(callable $set) => $set('equipment_id', null)),
+
                         Forms\Components\Select::make('equipment_id')
+                            ->prefixIcon('heroicon-o-cog-6-tooth')
                             ->relationship('equipment', 'equipment_number')
                             ->label('Equipment Spesifik')
                             ->searchable()
                             ->preload()
                             ->reactive()
-                            ->afterStateUpdated(fn (callable $set) => $set('equipment_group_id', null)),
+                            ->afterStateUpdated(fn(callable $set) => $set('equipment_group_id', null)),
                     ])
                     ->columns(2)
                     ->description('Pilih salah satu: Grup Equipment atau Equipment Spesifik'),
-                
+
                 Forms\Components\Section::make('Konfigurasi Aturan')
                     ->schema([
                         Forms\Components\Repeater::make('rules')
@@ -80,7 +83,7 @@ class RuleResource extends Resource
                             ->addActionLabel('Tambah Aturan')
                             ->label('Daftar Aturan'),
                     ]),
-                
+
                 Forms\Components\Toggle::make('is_active')
                     ->required()
                     ->default(true)
@@ -96,39 +99,39 @@ class RuleResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->label('Nama Aturan'),
-                
+
                 Tables\Columns\TextColumn::make('target_name')
                     ->label('Target')
-                    ->getStateUsing(fn (Rule $record): string => $record->target_name),
-                
+                    ->getStateUsing(fn(Rule $record): string => $record->target_name),
+
                 Tables\Columns\TextColumn::make('rules_count')
                     ->label('Jumlah Aturan')
-                    ->getStateUsing(fn (Rule $record): int => count($record->rules ?? [])),
-                
+                    ->getStateUsing(fn(Rule $record): int => count($record->rules ?? [])),
+
                 Tables\Columns\TextColumn::make('rules_preview')
                     ->label('Preview Aturan')
                     ->getStateUsing(function (Rule $record): string {
                         $rules = $record->rules ?? [];
                         if (empty($rules)) return 'Tidak ada aturan';
-                        
+
                         $preview = collect($rules)->take(2)->map(function ($rule) {
                             return $rule['number'] . ' → ' . $rule['action'];
                         })->join(', ');
-                        
+
                         return count($rules) > 2 ? $preview . '...' : $preview;
                     })
                     ->limit(50),
-                
+
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
                     ->label('Status Aktif'),
-                
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->label('Dibuat'),
-                
+
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()

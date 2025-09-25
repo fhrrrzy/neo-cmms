@@ -29,6 +29,16 @@ class EquipmentGroupResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::query()->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return static::getModel()::query()->exists() ? 'primary' : 'gray';
+    }
+
     public static function form(Form $form): Form
     {
         return $form
