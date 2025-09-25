@@ -20,4 +20,12 @@ class Region extends Model
     {
         return $this->hasMany(Plant::class, 'regional_id');
     }
+
+    /**
+     * Get the users that belong to the region.
+     */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class, 'regional_id');
+    }
 }

@@ -6,6 +6,7 @@ use App\Models\Plant;
 use App\Models\ApiSyncLog;
 use App\Models\Equipment;
 use App\Models\EquipmentGroup;
+use App\Models\Station;
 use App\Models\RunningTime;
 use App\Models\WorkOrder;
 use Illuminate\Http\Client\Pool;
@@ -34,9 +35,9 @@ class ConcurrentApiSyncService
         // Store allowed plant codes for filtering
         $this->allowedPlantCodes = $plantCodes;
 
-        // Set default dates
-        $runningTimeStartDate = $runningTimeStartDate ?? Carbon::yesterday()->toDateString();
-        $runningTimeEndDate = $runningTimeEndDate ?? Carbon::yesterday()->toDateString();
+        // Set default dates (running time: previous month to today; work orders: previous month to today)
+        $runningTimeStartDate = $runningTimeStartDate ?? Carbon::now()->subMonthNoOverflow()->startOfMonth()->toDateString();
+        $runningTimeEndDate = $runningTimeEndDate ?? Carbon::today()->toDateString();
         $workOrderStartDate = $workOrderStartDate ?? Carbon::now()->subMonthNoOverflow()->startOfMonth()->toDateString();
         $workOrderEndDate = $workOrderEndDate ?? Carbon::today()->toDateString();
 
@@ -71,39 +72,60 @@ class ConcurrentApiSyncService
         $baseUrl = rtrim(config('ims.base_url'), '/');
         $token = config('ims.token');
 
-        $this->info("🔄 Making 3 concurrent API requests...");
+        $this->info("🔄 Making concurrent API requests (equipment & work orders)...");
 
-        $responses = Http::pool(function (Pool $pool) use ($baseUrl, $token, $plantCodes, $runningTimeStartDate, $runningTimeEndDate, $workOrderStartDate, $workOrderEndDate) {
+        // Batch 1: equipment + work orders (single requests with all plants)
+        $batch1 = Http::pool(function (Pool $pool) use ($baseUrl, $token, $plantCodes, $workOrderStartDate, $workOrderEndDate) {
+            $equipmentsQuery = http_build_query(['plant' => array_values($plantCodes)]);
+            $workOrdersQuery = http_build_query([
+                'start_date' => $workOrderStartDate,
+                'end_date' => $workOrderEndDate,
+                'plant' => array_values($plantCodes),
+            ]);
+
+            $equipmentsUrl = $baseUrl . '/equipments?' . $equipmentsQuery;
+            $workOrdersUrl = $baseUrl . '/work-order?' . $workOrdersQuery;
+
+            $this->info("GET " . $equipmentsUrl);
+            $this->info("GET " . $workOrdersUrl);
+
             return [
                 $pool->withHeaders(['Authorization' => $token])
                     ->timeout($this->timeoutSeconds)
-                    ->get($baseUrl . '/equipments', ['plant' => $plantCodes]),
+                    ->get($equipmentsUrl),
 
                 $pool->withHeaders(['Authorization' => $token])
                     ->timeout($this->timeoutSeconds)
-                    ->get($baseUrl . '/equipments/jam-jalan', [
-                        'plant' => $plantCodes,
-                        'start_date' => $runningTimeStartDate,
-                        'end_date' => $runningTimeEndDate,
-                    ]),
-
-                $pool->withHeaders(['Authorization' => $token])
-                    ->timeout($this->timeoutSeconds)
-                    ->get($baseUrl . '/work-order', [
-                        'plant' => $plantCodes,
-                        'start_date' => $workOrderStartDate,
-                        'end_date' => $workOrderEndDate,
-                    ]),
+                    ->get($workOrdersUrl),
             ];
+        });
+
+        $this->info("🔄 Making concurrent API requests (running time per plant): " . count($plantCodes) . " requests...");
+
+        // Batch 2: running time per plant (one request per plant)
+        $runningTimeResponses = Http::pool(function (Pool $pool) use ($baseUrl, $token, $plantCodes, $runningTimeStartDate, $runningTimeEndDate) {
+            $requests = [];
+            foreach (array_values($plantCodes) as $index => $plant) {
+                $query = http_build_query([
+                    'start_date' => $runningTimeStartDate,
+                    'end_date' => $runningTimeEndDate,
+                    'plant' => [$plant],
+                ]);
+                $url = $baseUrl . '/equipments/jam-jalan?' . $query;
+                $this->info("GET " . $url);
+                $requests[] = $pool->withHeaders(['Authorization' => $token])
+                    ->timeout($this->timeoutSeconds)
+                    ->get($url);
+            }
+            return $requests;
         });
 
         $this->info("✅ All API requests completed");
 
-        // Http::pool returns a numerically-indexed array; remap to explicit API keys
         return [
-            'equipment' => $responses[0] ?? null,
-            'running_time' => $responses[1] ?? null,
-            'work_orders' => $responses[2] ?? null,
+            'equipment' => $batch1[0] ?? null,
+            'work_orders' => $batch1[1] ?? null,
+            'running_time_batches' => $runningTimeResponses,
         ];
     }
 
@@ -118,8 +140,9 @@ class ConcurrentApiSyncService
             'work_orders' => ['processed' => 0, 'success' => 0, 'failed' => 0],
         ];
 
-        // Process each API response
-        foreach ($responses as $apiType => $response) {
+        // Process equipment and work orders responses
+        foreach (['equipment', 'work_orders'] as $apiType) {
+            $response = $responses[$apiType] ?? null;
             $this->info("🔄 Processing {$apiType} data...");
 
             try {
@@ -150,6 +173,34 @@ class ConcurrentApiSyncService
                 $this->error("❌ {$apiType}: " . $e->getMessage());
                 $results[$apiType] = ['processed' => 0, 'success' => 0, 'failed' => 0, 'error' => $e->getMessage()];
             }
+        }
+
+        // Process running time batch responses (aggregate items across plants)
+        $this->info("🔄 Processing running_time data (batched by plant)...");
+        $allRtItems = [];
+        $rtResponses = $responses['running_time_batches'] ?? [];
+        foreach ($rtResponses as $rtResponse) {
+            try {
+                if ($rtResponse->successful()) {
+                    $data = $rtResponse->json() ?? [];
+                    $items = $data['data'] ?? $data;
+                    if (!empty($items) && is_array($items)) {
+                        $allRtItems = array_merge($allRtItems, $items);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // continue; individual failures shouldn't break the whole batch
+            }
+        }
+
+        $this->info("running_time aggregated items: " . count($allRtItems));
+        if (!empty($allRtItems)) {
+            $rtResult = $this->processApiData('running_time', $allRtItems);
+            $results['running_time'] = $rtResult;
+            $this->info("✅ running_time: processed={$rtResult['processed']}, success={$rtResult['success']}, failed={$rtResult['failed']}");
+        } else {
+            $this->info("ℹ️ running_time: No data returned");
+            $results['running_time'] = ['processed' => 0, 'success' => 0, 'failed' => 0];
         }
 
         return $results;
@@ -243,10 +294,19 @@ class ConcurrentApiSyncService
             ]);
         }
 
+        $station = null;
+        $kostl = Arr::get($item, 'cost_center') ?? Arr::get($item, 'KOSTL');
+        if ($kostl) {
+            $station = Station::where('plant_id', $plant->id)
+                ->where('cost_center', $kostl)
+                ->first();
+        }
+
         Equipment::updateOrCreate(
             ['equipment_number' => Arr::get($item, 'equipment_number') ?? Arr::get($item, 'EQUNR')],
             [
                 'plant_id' => $plant->id,
+                'station_id' => $station?->id,
                 'equipment_group_id' => $equipmentGroup?->id,
                 'company_code' => Arr::get($item, 'company_code') ?? Arr::get($item, 'BUKRS'),
                 'equipment_description' => Arr::get($item, 'equipment_description') ?? Arr::get($item, 'description') ?? Arr::get($item, 'EQKTU'),
@@ -339,6 +399,13 @@ class ConcurrentApiSyncService
             $plant = Plant::where('plant_code', $plantCode)->first();
         }
 
+        $stationId = null;
+        $woCostCenter = Arr::get($item, 'cost_center');
+        if ($plant && $woCostCenter) {
+            $s = Station::where('plant_id', $plant->id)->where('cost_center', $woCostCenter)->first();
+            $stationId = $s?->id;
+        }
+
         WorkOrder::updateOrCreate(
             ['order' => Arr::get($item, 'order')],
             [
@@ -351,6 +418,7 @@ class ConcurrentApiSyncService
                 'company_code' => Arr::get($item, 'company_code'),
                 'plant_id' => $plant?->id,
                 'plant_code' => $plantCode,
+                'station_id' => $stationId,
                 'responsible_cctr' => Arr::get($item, 'responsible_cctr'),
                 'order_status' => Arr::get($item, 'order_status'),
                 'technical_completion' => Arr::get($item, 'technical_completion') ? Carbon::parse(Arr::get($item, 'technical_completion')) : null,

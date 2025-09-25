@@ -53,6 +53,12 @@ class EquipmentResource extends Resource
                     ->relationship('plant', 'name')
                     ->required()
                     ->label('Pabrik'),
+                Forms\Components\Select::make('station_id')
+                    ->prefixIcon('heroicon-o-building-library')
+                    ->relationship('station', 'description')
+                    ->searchable()
+                    ->preload()
+                    ->label('Station'),
                 Forms\Components\Select::make('equipment_group_id')
                     ->prefixIcon('heroicon-o-rectangle-group')
                     ->relationship('equipmentGroup', 'name')
@@ -92,9 +98,12 @@ class EquipmentResource extends Resource
                 Tables\Columns\TextColumn::make('plant.name')
                     ->sortable()
                     ->label('Pabrik'),
-                Tables\Columns\TextColumn::make('equipmentGroup.name')
+                Tables\Columns\TextColumn::make('station.cost_center')
                     ->sortable()
-                    ->label('Grup Equipment'),
+                    ->label('Cost Center'),
+                // Tables\Columns\TextColumn::make('equipmentGroup.name')
+                //     ->sortable()
+                //     ->label('Grup Equipment'),
                 Tables\Columns\TextColumn::make('equipment_description')
                     ->searchable()
                     ->label('Deskripsi')
@@ -194,7 +203,8 @@ class EquipmentResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\RulesRelationManager::class,
+            RelationManagers\RunningTimesRelationManager::class,
         ];
     }
 

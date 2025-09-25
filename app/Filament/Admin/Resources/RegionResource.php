@@ -74,6 +74,13 @@ class RegionResource extends Resource
             ->filters([]);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            \App\Filament\Admin\Resources\RegionResource\RelationManagers\UsersRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [

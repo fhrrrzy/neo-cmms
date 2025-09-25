@@ -67,6 +67,12 @@ class WorkOrderResource extends Resource
                             ->searchable()
                             ->preload()
                             ->label('Pabrik'),
+                        Forms\Components\Select::make('station_id')
+                            ->prefixIcon('heroicon-o-building-library')
+                            ->relationship('station', 'description')
+                            ->searchable()
+                            ->preload()
+                            ->label('Station'),
                         Forms\Components\TextInput::make('plant_code')
                             ->prefixIcon('heroicon-o-map-pin')
                             ->maxLength(20)
@@ -157,6 +163,9 @@ class WorkOrderResource extends Resource
                 Tables\Columns\TextColumn::make('plant.name')
                     ->sortable()
                     ->label('Pabrik'),
+                Tables\Columns\TextColumn::make('station.cost_center')
+                    ->sortable()
+                    ->label('Cost Center'),
                 Tables\Columns\TextColumn::make('order_status')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {

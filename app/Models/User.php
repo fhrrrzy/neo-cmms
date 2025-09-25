@@ -25,6 +25,7 @@ class User extends Authenticatable
         'password',
         'role',
         'plant_id',
+        'regional_id',
     ];
 
     /**
@@ -56,6 +57,14 @@ class User extends Authenticatable
     public function plant(): BelongsTo
     {
         return $this->belongsTo(Plant::class);
+    }
+
+    /**
+     * Get the region that the user belongs to.
+     */
+    public function region(): BelongsTo
+    {
+        return $this->belongsTo(Region::class, 'regional_id');
     }
 
     /**

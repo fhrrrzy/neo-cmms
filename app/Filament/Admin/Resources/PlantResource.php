@@ -105,7 +105,9 @@ class PlantResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\EquipmentRelationManager::class,
+            RelationManagers\UsersRelationManager::class,
+            RelationManagers\StationsRelationManager::class,
         ];
     }
 

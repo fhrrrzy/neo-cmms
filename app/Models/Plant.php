@@ -70,6 +70,22 @@ class Plant extends Model
     }
 
     /**
+     * Get the stations for the plant.
+     */
+    public function stations(): HasMany
+    {
+        return $this->hasMany(Station::class);
+    }
+
+    /**
+     * Get the users that belong to the plant.
+     */
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
+    /**
      * Scope a query to only include active plants.
      */
     public function scopeActive($query)

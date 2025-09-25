@@ -39,6 +39,14 @@ class EquipmentGroup extends Model
     }
 
     /**
+     * Get the rules associated with the equipment group.
+     */
+    public function rules(): HasMany
+    {
+        return $this->hasMany(Rule::class);
+    }
+
+    /**
      * Scope a query to only include active equipment groups.
      */
     public function scopeActive($query)

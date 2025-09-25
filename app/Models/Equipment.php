@@ -19,6 +19,7 @@ class Equipment extends Model
     protected $fillable = [
         'equipment_number',
         'plant_id',
+        'station_id',
         'equipment_group_id',
         'company_code',
         'equipment_description',
@@ -55,11 +56,27 @@ class Equipment extends Model
     }
 
     /**
+     * Get the station that the equipment belongs to.
+     */
+    public function station(): BelongsTo
+    {
+        return $this->belongsTo(Station::class);
+    }
+
+    /**
      * Get the running times for the equipment.
      */
     public function runningTimes(): HasMany
     {
         return $this->hasMany(RunningTime::class, 'equipment_number', 'equipment_number');
+    }
+
+    /**
+     * Get the rules associated with the equipment.
+     */
+    public function rules(): HasMany
+    {
+        return $this->hasMany(Rule::class);
     }
 
     /**

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->enum('role', ['superadmin', 'pks'])->default('pks');
             $table->foreignId('plant_id')->nullable()->constrained('plants')->onDelete('set null');
+            $table->foreignId('regional_id')->nullable()->constrained('regions')->onDelete('set null');
         });
     }
 
@@ -24,7 +25,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->dropForeign(['plant_id']);
-            $table->dropColumn(['role', 'plant_id']);
+            $table->dropForeign(['regional_id']);
+            $table->dropColumn(['role', 'plant_id', 'regional_id']);
         });
     }
 };

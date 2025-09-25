@@ -20,6 +20,7 @@ class WorkOrder extends Model
         'description',
         'company_code',
         'plant_id',
+        'station_id',
         'plant_code',
         'responsible_cctr',
         'order_status',
@@ -66,6 +67,14 @@ class WorkOrder extends Model
     public function plant(): BelongsTo
     {
         return $this->belongsTo(Plant::class);
+    }
+
+    /**
+     * Get the station associated with the work order.
+     */
+    public function station(): BelongsTo
+    {
+        return $this->belongsTo(Station::class);
     }
 
     /**
