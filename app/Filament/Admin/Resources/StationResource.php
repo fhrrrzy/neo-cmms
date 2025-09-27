@@ -82,4 +82,12 @@ class StationResource extends Resource
             'edit' => Pages\EditStation::route('/{record}/edit'),
         ];
     }
+
+    public static function getRelations(): array
+    {
+        return [
+            \App\Filament\Admin\Resources\StationResource\RelationManagers\EquipmentRelationManager::class,
+            \App\Filament\Admin\Resources\StationResource\RelationManagers\WorkOrdersRelationManager::class,
+        ];
+    }
 }

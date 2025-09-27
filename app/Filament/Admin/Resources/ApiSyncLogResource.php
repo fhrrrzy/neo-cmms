@@ -88,7 +88,9 @@ class ApiSyncLogResource extends Resource
                     ->color(fn(string $state): string => match ($state) {
                         'equipment' => 'info',
                         'running_time' => 'warning',
+                        'work_order' => 'primary',
                         'full' => 'success',
+                        default => 'gray',
                     })
                     ->label('Tipe Sinkronisasi'),
                 Tables\Columns\TextColumn::make('status')
@@ -146,43 +148,29 @@ class ApiSyncLogResource extends Resource
             ])
             ->headerActions([
                 Tables\Actions\Action::make('run_sync_now')
-                    ->label('Run Sync Now')
+                    ->label('Run Full Sync Now')
                     ->icon('heroicon-o-rocket-launch')
                     ->color('primary')
                     ->form([
-                        Forms\Components\Select::make('plants')
-                            ->label('Plants')
-                            ->multiple()
-                            ->searchable()
-                            ->preload()
-                            ->options(fn() => Plant::query()->orderBy('plant_code')->pluck('plant_code', 'plant_code'))
-                            ->hint('Optional. Leave empty for all active plants.'),
-                        Forms\Components\DatePicker::make('running_time_start')
-                            ->label('Running Time Start')
-                            ->default(now()->subDay()->toDateString())
-                            ->required(),
-                        Forms\Components\DatePicker::make('running_time_end')
-                            ->label('Running Time End')
-                            ->default(now()->subDay()->toDateString())
-                            ->required(),
-                        Forms\Components\DatePicker::make('work_order_start')
-                            ->label('Work Orders Start')
+                        Forms\Components\DatePicker::make('start_date')
+                            ->label('Start Date')
                             ->default(now()->subMonthNoOverflow()->startOfMonth()->toDateString())
                             ->required(),
-                        Forms\Components\DatePicker::make('work_order_end')
-                            ->label('Work Orders End')
+                        Forms\Components\DatePicker::make('end_date')
+                            ->label('End Date')
                             ->default(now()->toDateString())
                             ->required(),
                     ])
                     ->action(function (array $data): void {
-                        $plants = $data['plants'] ?? [];
-                        $plantCodes = empty($plants) ? null : array_values($plants);
+                        $start = $data['start_date'] ?? null;
+                        $end = $data['end_date'] ?? null;
+                        // Null plant list means: sync all active plants
                         ConcurrentSyncJob::dispatch(
-                            $plantCodes,
-                            $data['running_time_start'] ?? null,
-                            $data['running_time_end'] ?? null,
-                            $data['work_order_start'] ?? null,
-                            $data['work_order_end'] ?? null
+                            null,
+                            $start,
+                            $end,
+                            $start,
+                            $end
                         )->onQueue('high');
                     })
             ])

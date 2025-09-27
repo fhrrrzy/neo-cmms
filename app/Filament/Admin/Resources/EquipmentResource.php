@@ -2,16 +2,17 @@
 
 namespace App\Filament\Admin\Resources;
 
-use App\Filament\Admin\Resources\EquipmentResource\Pages;
-use App\Filament\Admin\Resources\EquipmentResource\RelationManagers;
-use App\Models\Equipment;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Forms\Form;
+use App\Models\Equipment;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
+use Filament\Tables\Enums\FiltersLayout;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Admin\Resources\EquipmentResource\Pages;
+use CodeWithKyrian\FilamentDateRange\Forms\Components\DateRangePicker;
+use App\Filament\Admin\Resources\EquipmentResource\RelationManagers;
 
 class EquipmentResource extends Resource
 {
@@ -98,17 +99,47 @@ class EquipmentResource extends Resource
                 Tables\Columns\TextColumn::make('plant.name')
                     ->sortable()
                     ->label('Pabrik'),
-                Tables\Columns\TextColumn::make('station.cost_center')
+                Tables\Columns\TextColumn::make('station.description')
                     ->sortable()
-                    ->label('Cost Center'),
+                    ->label('Stasiun'),
                 // Tables\Columns\TextColumn::make('equipmentGroup.name')
                 //     ->sortable()
                 //     ->label('Grup Equipment'),
                 Tables\Columns\TextColumn::make('equipment_description')
                     ->searchable()
-                    ->label('Deskripsi')
+                    ->label('Nama Equipment')
                     ->limit(30)
                     ->toggleable(),
+                Tables\Columns\TextColumn::make('summed_jam_jalan')
+                    ->label('Jam Jalan (Periode)')
+                    ->getStateUsing(function ($record) {
+                        $filters = request()->input('tableFilters') ?? [];
+                        // Support CodeWithKyrian state shape
+                        $byLocation = $filters['by_location'] ?? [];
+                        $data = is_array($byLocation) ? ($byLocation['data'] ?? $byLocation) : [];
+                        $range = $data['date_range'] ?? null;
+                        $from = is_array($range) && !empty($range['start']) ? $range['start'] : now()->subWeek()->toDateString();
+                        $until = is_array($range) && !empty($range['end']) ? $range['end'] : now()->toDateString();
+                        $sum = $record->runningTimes()
+                            ->whereBetween('date', [$from, $until])
+                            ->sum('running_hours');
+
+                        return number_format((float) $sum, 2);
+                    })
+                    ->sortable(query: function (Builder $query, string $direction) {
+                        $filters = request()->input('tableFilters') ?? [];
+                        $byLocation = $filters['by_location'] ?? [];
+                        $data = is_array($byLocation) ? ($byLocation['data'] ?? $byLocation) : [];
+                        $range = $data['date_range'] ?? null;
+                        $from = is_array($range) && !empty($range['start']) ? $range['start'] : now()->subWeek()->toDateString();
+                        $until = is_array($range) && !empty($range['end']) ? $range['end'] : now()->toDateString();
+
+                        $query->orderByRaw(
+                            "(select coalesce(sum(rt.running_hours),0) from running_times rt where rt.equipment_number = equipment.equipment_number and rt.date between ? and ?) " . ($direction === 'asc' ? 'asc' : 'desc'),
+                            [$from, $until]
+                        );
+                    })
+                    ->alignRight(),
                 Tables\Columns\TextColumn::make('company_code')
                     ->searchable()
                     ->label('Kode Perusahaan')
@@ -121,12 +152,31 @@ class EquipmentResource extends Resource
                     ->searchable()
                     ->label('Point')
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\IconColumn::make('is_active')
-                    ->boolean()
-                    ->label('Status Aktif'),
                 Tables\Columns\TextColumn::make('running_times_count')
-                    ->counts('runningTimes')
-                    ->label('Data Running Time'),
+                    ->label('Data Jam Jalan (Periode)')
+                    ->getStateUsing(function ($record) {
+                        $filters = request()->input('tableFilters') ?? [];
+                        $byLocation = $filters['by_location'] ?? [];
+                        $data = is_array($byLocation) ? ($byLocation['data'] ?? $byLocation) : [];
+                        $range = $data['date_range'] ?? null;
+                        $from = is_array($range) && !empty($range['start']) ? $range['start'] : now()->subWeek()->toDateString();
+                        $until = is_array($range) && !empty($range['end']) ? $range['end'] : now()->toDateString();
+                        return (string) $record->runningTimes()
+                            ->whereBetween('date', [$from, $until])
+                            ->count();
+                    })
+                    ->sortable(query: function (Builder $query, string $direction) {
+                        $filters = request()->input('tableFilters') ?? [];
+                        $byLocation = $filters['by_location'] ?? [];
+                        $data = is_array($byLocation) ? ($byLocation['data'] ?? $byLocation) : [];
+                        $range = $data['date_range'] ?? null;
+                        $from = is_array($range) && !empty($range['start']) ? $range['start'] : now()->subWeek()->toDateString();
+                        $until = is_array($range) && !empty($range['end']) ? $range['end'] : now()->toDateString();
+                        $query->orderByRaw(
+                            "(select count(*) from running_times rt where rt.equipment_number = equipment.equipment_number and rt.date between ? and ?) " . ($direction === 'asc' ? 'asc' : 'desc'),
+                            [$from, $until]
+                        );
+                    }),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -139,44 +189,85 @@ class EquipmentResource extends Resource
                     ->label('Diperbarui'),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('plant_id')
-                    ->relationship('plant', 'name')
-                    ->label('Pabrik'),
-                Tables\Filters\SelectFilter::make('equipment_group_id')
-                    ->relationship('equipmentGroup', 'name')
-                    ->label('Grup Equipment'),
-                Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('Aktif')
-                    ->boolean(),
-                Tables\Filters\Filter::make('created_at')
+                Tables\Filters\Filter::make('by_location')
                     ->form([
-                        Forms\Components\DatePicker::make('from')->label('Dari'),
-                        Forms\Components\DatePicker::make('until')->label('Sampai'),
+                        Forms\Components\Select::make('regional_id')
+                            ->label('Regional')
+                            ->options(fn() => \App\Models\Region::query()->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->preload()
+                            ->reactive()
+                            ->afterStateUpdated(function (callable $set) {
+                                $set('plant_id', null);
+                                $set('station_id', null);
+                            }),
+                        Forms\Components\Select::make('plant_id')
+                            ->label('Pabrik')
+                            ->options(function (callable $get) {
+                                $regionalId = $get('regional_id');
+                                if (!$regionalId) {
+                                    return [];
+                                }
+                                return \App\Models\Plant::query()
+                                    ->where('regional_id', $regionalId)
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->reactive()
+                            ->disabled(fn(callable $get): bool => empty($get('regional_id')))
+                            ->afterStateUpdated(function (callable $set) {
+                                $set('station_id', null);
+                            }),
+                        Forms\Components\Select::make('station_id')
+                            ->label('Stasiun')
+                            ->options(function (callable $get) {
+                                $plantId = $get('plant_id');
+                                if (!$plantId) {
+                                    return [];
+                                }
+                                return \App\Models\Station::query()
+                                    ->where('plant_id', $plantId)
+                                    ->orderBy('description')
+                                    ->pluck('description', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->disabled(fn(callable $get): bool => empty($get('plant_id'))),
+                        DateRangePicker::make('date_range')
+                            ->label('Periode Jam Jalan')
+                            ->default([
+                                'start' => now()->subWeek()->toDateString(),
+                                'end' => now()->toDateString(),
+                            ])
+                            ->displayFormat('Y-m-d')
+                            ->format('Y-m-d')
+                            ->columnSpan(2)
+                            ->separator(' sampai '),
                     ])
+                    ->columns(5)
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when($data['from'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
-                            ->when($data['until'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
-                    })
-                    ->indicateUsing(function (array $data): array {
-                        $indicators = [];
-                        if ($data['from'] ?? null) {
-                            $indicators[] = 'Dari ' . $data['from'];
+                        // Do not filter equipment by date range; range only affects sum/count columns
+                        if (!empty($data['station_id'])) {
+                            return $query->where('station_id', $data['station_id']);
                         }
-                        if ($data['until'] ?? null) {
-                            $indicators[] = 'Sampai ' . $data['until'];
+                        if (!empty($data['plant_id'])) {
+                            return $query->where('plant_id', $data['plant_id']);
                         }
-                        return $indicators;
+                        if (!empty($data['regional_id'])) {
+                            return $query->whereHas('plant', function (Builder $q) use ($data) {
+                                $q->where('regional_id', $data['regional_id']);
+                            });
+                        }
+                        return $query;
                     }),
-            ])
+            ], layout: FiltersLayout::AboveContent)
+            ->filtersFormColumns(1)
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ])
+            ->bulkActions([])
             ->groups([
                 Tables\Grouping\Group::make('plant.name')
                     ->label('Pabrik')
@@ -192,12 +283,9 @@ class EquipmentResource extends Resource
             ->emptyStateHeading('Belum ada data equipment')
             ->emptyStateDescription('Mulai dengan menambahkan equipment baru ke dalam sistem.')
             ->emptyStateIcon('heroicon-o-cog-6-tooth')
-            ->emptyStateActions([
-                Tables\Actions\CreateAction::make()
-                    ->label('Tambah Equipment'),
-            ])
-            ->paginated([25, 50, 100])
-            ->defaultPaginationPageOption(25);
+            ->emptyStateActions([])
+            ->paginated([15, 25, 50, 100])
+            ->defaultPaginationPageOption(15);
     }
 
     public static function getRelations(): array
@@ -212,8 +300,7 @@ class EquipmentResource extends Resource
     {
         return [
             'index' => Pages\ListEquipment::route('/'),
-            'create' => Pages\CreateEquipment::route('/create'),
-            'edit' => Pages\EditEquipment::route('/{record}/edit'),
+            'view' => Pages\ViewEquipment::route('/{record}'),
         ];
     }
 

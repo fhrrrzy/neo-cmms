@@ -8,8 +8,8 @@
     "require": {
         "php": "^8.2",
         "charrafimed/global-search-modal": "^3.7",
+        "codewithkyrian/filament-date-range": "^1.1",
         "croustibat/filament-jobs-monitor": "^2.6",
-        "filament/filament": "^3.0",
         "hasnayeen/themes": "^3.0",
         "inertiajs/inertia-laravel": "^2.0",
         "jeffgreco13/filament-breezy": "^2.6",
@@ -19,6 +19,7 @@
         "laravel/wayfinder": "^0.1.9"
     },
     "require-dev": {
+        "barryvdh/laravel-ide-helper": "^3.6",
         "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.18",

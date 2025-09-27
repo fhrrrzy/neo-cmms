@@ -108,6 +108,7 @@ class PlantResource extends Resource
             RelationManagers\EquipmentRelationManager::class,
             RelationManagers\UsersRelationManager::class,
             RelationManagers\StationsRelationManager::class,
+            RelationManagers\WorkOrdersRelationManager::class,
         ];
     }
 

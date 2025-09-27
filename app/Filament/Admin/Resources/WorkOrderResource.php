@@ -282,20 +282,13 @@ class WorkOrderResource extends Resource
                     ->collapsible(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ])
+            ->bulkActions([])
             ->emptyStateHeading('Belum ada data work order')
             ->emptyStateDescription('Mulai dengan menambahkan work order baru ke dalam sistem.')
             ->emptyStateIcon('heroicon-o-rectangle-stack')
-            ->emptyStateActions([
-                Tables\Actions\CreateAction::make()
-                    ->label('Tambah Work Order'),
-            ])
+            ->emptyStateActions([])
             ->paginated([25, 50, 100])
             ->defaultPaginationPageOption(25);
     }
@@ -311,8 +304,7 @@ class WorkOrderResource extends Resource
     {
         return [
             'index' => Pages\ListWorkOrders::route('/'),
-            'create' => Pages\CreateWorkOrder::route('/create'),
-            'edit' => Pages\EditWorkOrder::route('/{record}/edit'),
+            'view' => Pages\ViewWorkOrder::route('/{record}'),
         ];
     }
 

@@ -3,6 +3,13 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Gate;
+use App\Models\Equipment;
+use App\Policies\EquipmentPolicy;
+use App\Models\WorkOrder;
+use App\Policies\WorkOrderPolicy;
+use App\Models\RunningTime;
+use App\Policies\RunningTimePolicy;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(Equipment::class, EquipmentPolicy::class);
+        Gate::policy(WorkOrder::class, WorkOrderPolicy::class);
+        Gate::policy(RunningTime::class, RunningTimePolicy::class);
     }
 }

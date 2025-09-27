@@ -192,14 +192,9 @@ class RunningTimeResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ])
+            ->bulkActions([])
             ->defaultSort('date', 'desc')
             ->groups([
                 Tables\Grouping\Group::make('plant.name')
@@ -209,9 +204,7 @@ class RunningTimeResource extends Resource
                     ->label('Date')
                     ->collapsible(),
             ])
-            ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
-            ])
+            ->emptyStateActions([])
             ->emptyStateHeading('No running time records found')
             ->emptyStateDescription('Start by creating a new running time record.')
             ->emptyStateIcon('heroicon-o-clock');
@@ -228,8 +221,7 @@ class RunningTimeResource extends Resource
     {
         return [
             'index' => Pages\ListRunningTimes::route('/'),
-            'create' => Pages\CreateRunningTime::route('/create'),
-            'edit' => Pages\EditRunningTime::route('/{record}/edit'),
+            'view' => Pages\ViewRunningTime::route('/{record}'),
         ];
     }
 

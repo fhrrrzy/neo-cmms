@@ -78,6 +78,14 @@ class Plant extends Model
     }
 
     /**
+     * Get the work orders for the plant.
+     */
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
+
+    /**
      * Get the users that belong to the plant.
      */
     public function users(): HasMany
