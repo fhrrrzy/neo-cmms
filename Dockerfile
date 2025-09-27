@@ -29,6 +29,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy Nginx configuration
 COPY docker/nginx/default.conf /etc/nginx/sites-available/default
 
+# Copy PHP-FPM configuration
+COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+
 # Remove default Nginx site and enable our config
 RUN rm -f /etc/nginx/sites-enabled/default \
     && ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
