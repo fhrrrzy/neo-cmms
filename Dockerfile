@@ -39,19 +39,31 @@ RUN rm -f /etc/nginx/sites-enabled/default \
 # Copy supervisor configuration
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Copy composer files first for better layer caching
+COPY composer.json composer.lock ./
+
+# Install PHP dependencies (this layer will be cached if composer files don't change)
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-autoloader
+
+# Copy package.json files for Node.js
+COPY package*.json ./
+
+# Install Node.js dependencies
+RUN npm ci --only=production
+
 # Copy application files
 COPY . /var/www/html
+
+# Complete Composer autoloader
+RUN composer dump-autoload --optimize
+
+# Build assets
+RUN npm run build
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
-
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
-
-# Install Node.js dependencies and build assets
-RUN npm install && npm run build
 
 # Create Laravel environment file if it doesn't exist
 RUN if [ ! -f .env ]; then cp .env.example .env; fi
@@ -67,5 +79,5 @@ RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions sto
 # Expose port 80
 EXPOSE 80
 
-# Start supervisor to manage Apache and other services
+# Start supervisor to manage Nginx, PHP-FPM and other services
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

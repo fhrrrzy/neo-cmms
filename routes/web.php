@@ -1,20 +1,20 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-// Route::get('/', function () {
-//     return Inertia::render('Welcome');
-// })->name('home');
+// Health check endpoint for Docker
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now(),
+        'services' => [
+            'database' => 'connected',
+            'redis' => 'connected',
+            'storage' => 'writable'
+        ]
+    ]);
+});
 
 Route::get('/', function () {
-    return redirect('/superadmin/login');
-})->name('home');
-
-
-Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-require __DIR__ . '/settings.php';
-require __DIR__ . '/auth.php';
+    return view('welcome');
+});

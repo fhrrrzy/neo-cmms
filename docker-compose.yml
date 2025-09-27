@@ -15,6 +15,8 @@ services:
       - app-storage:/var/www/html/storage
       - app-vendor:/var/www/html/vendor
       - app-node_modules:/var/www/html/node_modules
+      - /var/www/html/node_modules
+      - /var/www/html/vendor
     ports:
       - '8000:80'
     environment:
@@ -29,7 +31,14 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:80/up', '||', 'exit', '1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - cmms-network
 
@@ -42,6 +51,11 @@ services:
       - redis-data:/data
     ports:
       - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - cmms-network
 
