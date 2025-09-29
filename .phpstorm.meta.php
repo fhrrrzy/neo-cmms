@@ -47,3 +47,5 @@ namespace PHPSTORM_META {
         '' => '@|static',
     ]));
 }
+
+
