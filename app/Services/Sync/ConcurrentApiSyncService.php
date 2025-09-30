@@ -82,13 +82,6 @@ class ConcurrentApiSyncService
 
         // Batch 1: dynamically include requests based on selected types
         $batch1 = Http::pool(function (Pool $pool) use ($baseUrl, $token, $plantCodes, $workOrderStartDate, $workOrderEndDate, $selected) {
-            $equipmentsQuery = http_build_query(['plant' => array_values($plantCodes)]);
-            $workOrdersQuery = http_build_query([
-                'start_date' => $workOrderStartDate,
-                'end_date' => $workOrderEndDate,
-                'plant' => array_values($plantCodes),
-            ]);
-
             $equipmentsUrl = $baseUrl . '/equipments';
             $materialsUrl = $baseUrl . '/equipments/material?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
             $eqWorkOrdersUrl = $baseUrl . '/equipments/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
