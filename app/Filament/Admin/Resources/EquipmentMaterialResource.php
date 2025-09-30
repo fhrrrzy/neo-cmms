@@ -15,7 +15,7 @@ class EquipmentMaterialResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-archive-box';
 
-    protected static ?string $navigationGroup = 'Sinkronisasi';
+    protected static ?string $navigationGroup = 'Equipment';
 
     protected static ?string $navigationLabel = 'Equipment Material';
 

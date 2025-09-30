@@ -71,7 +71,7 @@ class ConcurrentSyncJob implements ShouldQueue
      * Selected types to sync (null = all).
      * @var array|null
      */
-    protected ?array $types;
+    protected ?array $types = null;
 
     /**
      * Calculate the number of seconds to wait before retrying the job.

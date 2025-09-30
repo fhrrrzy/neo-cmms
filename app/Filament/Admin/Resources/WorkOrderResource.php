@@ -19,7 +19,7 @@ class WorkOrderResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    protected static ?string $navigationGroup = 'Manajemen Equipment';
+    protected static ?string $navigationGroup = 'Equipment';
 
     protected static ?string $navigationLabel = 'Work Order';
 

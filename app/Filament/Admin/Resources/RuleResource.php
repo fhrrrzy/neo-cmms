@@ -19,7 +19,7 @@ class RuleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-8-tooth';
 
-    protected static ?string $navigationGroup = 'Manajemen Equipment';
+    protected static ?string $navigationGroup = 'Master Data';
 
     protected static ?string $navigationLabel = 'Aturan';
 

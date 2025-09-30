@@ -19,7 +19,7 @@ class RunningTimeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?string $navigationGroup = 'Equipment Management';
+    protected static ?string $navigationGroup = 'Equipment';
 
     protected static ?string $navigationLabel = 'Running Time';
 

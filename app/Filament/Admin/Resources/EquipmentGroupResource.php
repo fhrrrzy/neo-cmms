@@ -19,7 +19,7 @@ class EquipmentGroupResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
 
-    protected static ?string $navigationGroup = 'Manajemen Equipment';
+    protected static ?string $navigationGroup = 'Equipment';
 
     protected static ?string $navigationLabel = 'Grup Equipment';
 
