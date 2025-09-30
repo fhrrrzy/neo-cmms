@@ -89,37 +89,57 @@ class ConcurrentApiSyncService
                 'plant' => array_values($plantCodes),
             ]);
 
-            $equipmentsUrl = $baseUrl . '/equipments?' . $equipmentsQuery;
-            $materialsUrl = $baseUrl . '/equipments/material';
-            $eqWorkOrdersUrl = $baseUrl . '/equipments/work-order';
-            $workOrdersUrl = $baseUrl . '/work-order?' . $workOrdersQuery;
+            $equipmentsUrl = $baseUrl . '/equipments';
+            $materialsUrl = $baseUrl . '/equipments/material?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
+            $eqWorkOrdersUrl = $baseUrl . '/equipments/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
+            $workOrdersUrl = $baseUrl . '/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
 
             $requests = [];
             if ($selected->has('equipment')) {
-                $this->info("GET " . $equipmentsUrl);
-                $requests[] = $pool->withHeaders(['Authorization' => $token])->timeout($this->timeoutSeconds)->get($equipmentsUrl);
+                $this->info("GET {$equipmentsUrl} (JSON body)");
+                $requests[] = $pool->withHeaders(['Authorization' => $token])
+                    ->timeout($this->timeoutSeconds)
+                    ->asJson()
+                    ->send('GET', $equipmentsUrl, [
+                        'json' => [
+                            'plant' => array_values($plantCodes),
+                        ],
+                    ]);
             }
             if ($selected->has('equipment_material')) {
-                $this->info("POST " . $materialsUrl . " (JSON body)");
-                $requests[] = $pool->withHeaders(['Authorization' => $token])->timeout($this->timeoutSeconds)->asJson()->post($materialsUrl, [
-                    'plant' => array_values($plantCodes),
-                    'material_number' => '000000',
-                    'start_date' => $workOrderStartDate,
-                    'end_date' => $workOrderEndDate,
-                ]);
+                $this->info("GET {$materialsUrl} (JSON body)");
+                $requests[] = $pool->withHeaders(['Authorization' => $token])
+                    ->timeout($this->timeoutSeconds)
+                    ->asJson()
+                    ->send('GET', $materialsUrl, [
+                        'json' => [
+                            'plant' => array_values($plantCodes),
+                            'material_number' => '000000',
+                        ],
+                    ]);
             }
             if ($selected->has('equipment_work_orders')) {
-                $this->info("POST " . $eqWorkOrdersUrl . " (JSON body)");
-                $requests[] = $pool->withHeaders(['Authorization' => $token])->timeout($this->timeoutSeconds)->asJson()->post($eqWorkOrdersUrl, [
-                    'plant' => array_values($plantCodes),
-                    'material_number' => '000000',
-                    'start_date' => $workOrderStartDate,
-                    'end_date' => $workOrderEndDate,
-                ]);
+                $this->info("GET {$eqWorkOrdersUrl} (JSON body)");
+                $requests[] = $pool->withHeaders(['Authorization' => $token])
+                    ->timeout($this->timeoutSeconds)
+                    ->asJson()
+                    ->send('GET', $eqWorkOrdersUrl, [
+                        'json' => [
+                            'plant' => array_values($plantCodes),
+                            'material_number' => '000000',
+                        ],
+                    ]);
             }
             if ($selected->has('work_orders')) {
-                $this->info("GET " . $workOrdersUrl);
-                $requests[] = $pool->withHeaders(['Authorization' => $token])->timeout($this->timeoutSeconds)->get($workOrdersUrl);
+                $this->info("GET {$workOrdersUrl} (JSON body)");
+                $requests[] = $pool->withHeaders(['Authorization' => $token])
+                    ->timeout($this->timeoutSeconds)
+                    ->asJson()
+                    ->send('GET', $workOrdersUrl, [
+                        'json' => [
+                            'plant' => array_values($plantCodes),
+                        ],
+                    ]);
             }
 
             return $requests;
@@ -134,13 +154,17 @@ class ConcurrentApiSyncService
                 $query = http_build_query([
                     'start_date' => $runningTimeStartDate,
                     'end_date' => $runningTimeEndDate,
-                    'plant' => [$plant],
                 ]);
                 $url = $baseUrl . '/equipments/jam-jalan?' . $query;
-                $this->info("GET " . $url);
+                $this->info("GET {$url} (JSON body)");
                 $requests[] = $pool->withHeaders(['Authorization' => $token])
                     ->timeout($this->timeoutSeconds)
-                    ->get($url);
+                    ->asJson()
+                    ->send('GET', $url, [
+                        'json' => [
+                            'plant' => [$plant],
+                        ],
+                    ]);
             }
             return $requests;
         });

@@ -44,6 +44,8 @@ class ApiSyncLog extends Model
     public const SYNC_TYPE_EQUIPMENT = 'equipment';
     public const SYNC_TYPE_RUNNING_TIME = 'running_time';
     public const SYNC_TYPE_WORK_ORDER = 'work_order';
+    public const SYNC_TYPE_EQUIPMENT_MATERIAL = 'equipment_material';
+    public const SYNC_TYPE_EQUIPMENT_WORK_ORDERS = 'equipment_work_orders';
     public const SYNC_TYPE_FULL = 'full';
 
     /**
@@ -168,7 +170,7 @@ class ApiSyncLog extends Model
     public static function validationRules(): array
     {
         return [
-            'sync_type' => 'required|in:equipment,running_time,work_order,full',
+            'sync_type' => 'required|in:equipment,equipment_material,equipment_work_orders,running_time,work_order,full',
             'status' => 'required|in:pending,running,completed,failed,cancelled',
             'records_processed' => 'integer|min:0',
             'records_success' => 'integer|min:0',
