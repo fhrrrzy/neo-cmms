@@ -19,18 +19,29 @@ Artisan::command('inspire', function () {
 |
 */
 
-// Schedule concurrent synchronization daily at midnight using queue
+// Schedule concurrent synchronization every 12 hours using queue
 Schedule::job(new ConcurrentSyncJob())
-    ->daily()
-    ->at('00:00')
-    ->name('daily-concurrent-sync-job')
-    ->description('Daily concurrent synchronization of all APIs (equipment, running time, work orders) via queue')
+    ->cron('0 */12 * * *')
+    ->name('concurrent-sync-job-12h')
+    ->description('Concurrent synchronization of all APIs (equipment, running time, work orders, equipment material) every 12 hours')
     ->onFailure(function () {
         \Illuminate\Support\Facades\Log::critical('Scheduled concurrent sync job failed');
     })
     ->onSuccess(function () {
         \Illuminate\Support\Facades\Log::info('Scheduled concurrent sync job completed successfully');
     });
+
+// Additionally, dispatch per-plant jobs asynchronously every 12 hours to spread load
+Schedule::call(function () {
+    $plants = \App\Models\Plant::where('is_active', true)->pluck('plant_code')->toArray();
+    foreach ($plants as $plantCode) {
+        dispatch(new ConcurrentSyncJob([$plantCode]));
+    }
+    \Illuminate\Support\Facades\Log::info('Dispatched per-plant concurrent sync jobs');
+})
+    ->cron('5 */12 * * *')
+    ->name('per-plant-concurrent-sync-12h')
+    ->description('Dispatch concurrent sync jobs per plant every 12 hours for async by plant');
 
 // Schedule cleanup of old sync logs (keep last 30 days)
 Schedule::call(function () {

@@ -26,6 +26,7 @@ class User extends Authenticatable
         'role',
         'plant_id',
         'regional_id',
+        'subholding_id',
     ];
 
     /**
@@ -65,6 +66,14 @@ class User extends Authenticatable
     public function region(): BelongsTo
     {
         return $this->belongsTo(Region::class, 'regional_id');
+    }
+
+    /**
+     * Get the subholding that the user belongs to.
+     */
+    public function subholding(): BelongsTo
+    {
+        return $this->belongsTo(Region::class, 'subholding_id');
     }
 
     /**

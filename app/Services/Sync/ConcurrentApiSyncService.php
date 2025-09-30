@@ -25,7 +25,7 @@ class ConcurrentApiSyncService
     /**
      * Sync all data types concurrently using Http::pool()
      */
-    public function syncAllConcurrently(array $plantCodes = [], ?string $runningTimeStartDate = null, ?string $runningTimeEndDate = null, ?string $workOrderStartDate = null, ?string $workOrderEndDate = null): array
+    public function syncAllConcurrently(array $plantCodes = [], ?string $runningTimeStartDate = null, ?string $runningTimeEndDate = null, ?string $workOrderStartDate = null, ?string $workOrderEndDate = null, ?array $types = null): array
     {
         // Get plant codes if not provided
         if (empty($plantCodes)) {
@@ -48,7 +48,7 @@ class ConcurrentApiSyncService
 
         try {
             // Make concurrent API requests using Http::pool()
-            $responses = $this->makeConcurrentApiRequests($plantCodes, $runningTimeStartDate, $runningTimeEndDate, $workOrderStartDate, $workOrderEndDate);
+            $responses = $this->makeConcurrentApiRequests($plantCodes, $runningTimeStartDate, $runningTimeEndDate, $workOrderStartDate, $workOrderEndDate, $types);
 
             // Process responses
             $results = $this->processApiResponses($responses);
@@ -67,15 +67,16 @@ class ConcurrentApiSyncService
     /**
      * Make concurrent API requests using Http::pool()
      */
-    protected function makeConcurrentApiRequests(array $plantCodes, string $runningTimeStartDate, string $runningTimeEndDate, string $workOrderStartDate, string $workOrderEndDate): array
+    protected function makeConcurrentApiRequests(array $plantCodes, string $runningTimeStartDate, string $runningTimeEndDate, string $workOrderStartDate, string $workOrderEndDate, ?array $types = null): array
     {
         $baseUrl = rtrim(config('ims.base_url'), '/');
         $token = config('ims.token');
 
-        $this->info("🔄 Making concurrent API requests (equipment & work orders)...");
+        $this->info("🔄 Making concurrent API requests (equipment, materials & work orders)...");
+        $selected = collect($types ?? ['equipment', 'equipment_material', 'equipment_work_orders', 'work_orders'])->keyBy(fn($v) => $v);
 
-        // Batch 1: equipment + work orders (single requests with all plants)
-        $batch1 = Http::pool(function (Pool $pool) use ($baseUrl, $token, $plantCodes, $workOrderStartDate, $workOrderEndDate) {
+        // Batch 1: dynamically include requests based on selected types
+        $batch1 = Http::pool(function (Pool $pool) use ($baseUrl, $token, $plantCodes, $workOrderStartDate, $workOrderEndDate, $selected) {
             $equipmentsQuery = http_build_query(['plant' => array_values($plantCodes)]);
             $workOrdersQuery = http_build_query([
                 'start_date' => $workOrderStartDate,
@@ -84,20 +85,39 @@ class ConcurrentApiSyncService
             ]);
 
             $equipmentsUrl = $baseUrl . '/equipments?' . $equipmentsQuery;
+            $materialsUrl = $baseUrl . '/equipments/material';
+            $eqWorkOrdersUrl = $baseUrl . '/equipments/work-order';
             $workOrdersUrl = $baseUrl . '/work-order?' . $workOrdersQuery;
 
-            $this->info("GET " . $equipmentsUrl);
-            $this->info("GET " . $workOrdersUrl);
+            $requests = [];
+            if ($selected->has('equipment')) {
+                $this->info("GET " . $equipmentsUrl);
+                $requests[] = $pool->withHeaders(['Authorization' => $token])->timeout($this->timeoutSeconds)->get($equipmentsUrl);
+            }
+            if ($selected->has('equipment_material')) {
+                $this->info("POST " . $materialsUrl . " (JSON body)");
+                $requests[] = $pool->withHeaders(['Authorization' => $token])->timeout($this->timeoutSeconds)->asJson()->post($materialsUrl, [
+                    'plant' => array_values($plantCodes),
+                    'material_number' => '000000',
+                    'start_date' => $workOrderStartDate,
+                    'end_date' => $workOrderEndDate,
+                ]);
+            }
+            if ($selected->has('equipment_work_orders')) {
+                $this->info("POST " . $eqWorkOrdersUrl . " (JSON body)");
+                $requests[] = $pool->withHeaders(['Authorization' => $token])->timeout($this->timeoutSeconds)->asJson()->post($eqWorkOrdersUrl, [
+                    'plant' => array_values($plantCodes),
+                    'material_number' => '000000',
+                    'start_date' => $workOrderStartDate,
+                    'end_date' => $workOrderEndDate,
+                ]);
+            }
+            if ($selected->has('work_orders')) {
+                $this->info("GET " . $workOrdersUrl);
+                $requests[] = $pool->withHeaders(['Authorization' => $token])->timeout($this->timeoutSeconds)->get($workOrdersUrl);
+            }
 
-            return [
-                $pool->withHeaders(['Authorization' => $token])
-                    ->timeout($this->timeoutSeconds)
-                    ->get($equipmentsUrl),
-
-                $pool->withHeaders(['Authorization' => $token])
-                    ->timeout($this->timeoutSeconds)
-                    ->get($workOrdersUrl),
-            ];
+            return $requests;
         });
 
         $this->info("🔄 Making concurrent API requests (running time per plant): " . count($plantCodes) . " requests...");
@@ -122,11 +142,18 @@ class ConcurrentApiSyncService
 
         $this->info("✅ All API requests completed");
 
-        return [
-            'equipment' => $batch1[0] ?? null,
-            'work_orders' => $batch1[1] ?? null,
-            'running_time_batches' => $runningTimeResponses,
-        ];
+        $mapped = [];
+        $i = 0;
+        foreach (['equipment', 'equipment_material', 'equipment_work_orders', 'work_orders'] as $key) {
+            if ($selected->has($key)) {
+                $mapped[$key] = $batch1[$i] ?? null;
+                $i++;
+            } else {
+                $mapped[$key] = null;
+            }
+        }
+        $mapped['running_time_batches'] = $runningTimeResponses;
+        return $mapped;
     }
 
     /**
@@ -136,12 +163,14 @@ class ConcurrentApiSyncService
     {
         $results = [
             'equipment' => ['processed' => 0, 'success' => 0, 'failed' => 0],
+            'equipment_material' => ['processed' => 0, 'success' => 0, 'failed' => 0],
+            'equipment_work_orders' => ['processed' => 0, 'success' => 0, 'failed' => 0],
             'running_time' => ['processed' => 0, 'success' => 0, 'failed' => 0],
             'work_orders' => ['processed' => 0, 'success' => 0, 'failed' => 0],
         ];
 
-        // Process equipment and work orders responses
-        foreach (['equipment', 'work_orders'] as $apiType) {
+        // Process equipment, equipment_material, equipment_work_orders and work orders responses
+        foreach (['equipment', 'equipment_material', 'equipment_work_orders', 'work_orders'] as $apiType) {
             $response = $responses[$apiType] ?? null;
             $this->info("🔄 Processing {$apiType} data...");
 
@@ -232,6 +261,12 @@ class ConcurrentApiSyncService
                         switch ($apiType) {
                             case 'equipment':
                                 $this->processEquipmentItem($item);
+                                break;
+                            case 'equipment_material':
+                                $this->processEquipmentMaterialItem($item);
+                                break;
+                            case 'equipment_work_orders':
+                                $this->processEquipmentWorkOrderItem($item);
                                 break;
                             case 'running_time':
                                 $this->processRunningTimeItem($item);
@@ -351,10 +386,10 @@ class ConcurrentApiSyncService
 
         $apiId = Arr::get($item, 'api_id') ?? Arr::get($item, 'ID');
 
-        // Prefer matching by api_id when present. If not present in DB yet, fall back to equipment_number+date
+        // Prefer matching by ims_id when present. If not present in DB yet, fall back to equipment_number+date
         $runningTime = null;
         if ($apiId) {
-            $runningTime = RunningTime::where('api_id', $apiId)->first();
+            $runningTime = RunningTime::where('ims_id', $apiId)->first();
         }
         if (!$runningTime) {
             $runningTime = RunningTime::where('equipment_number', $equipmentNumber)
@@ -376,7 +411,7 @@ class ConcurrentApiSyncService
             'api_created_at' => ($ts = Arr::get($item, 'api_created_at') ?? Arr::get($item, 'CREATED_AT')) ? Carbon::parse($ts) : null,
         ];
         if ($apiId) {
-            $attributes['api_id'] = (string) $apiId;
+            $attributes['ims_id'] = (string) $apiId;
         }
 
         if ($runningTime) {
@@ -441,6 +476,200 @@ class ConcurrentApiSyncService
                 'release' => Arr::get($item, 'release') ? Carbon::parse(Arr::get($item, 'release')) : null,
                 'close' => Arr::get($item, 'close') ? Carbon::parse(Arr::get($item, 'close')) : null,
                 'api_updated_at' => Arr::get($item, 'updated_at') ? Carbon::parse(Arr::get($item, 'updated_at')) : null,
+            ]
+        );
+    }
+
+    /**
+     * Process equipment work order item
+     */
+    protected function processEquipmentWorkOrderItem(array $item): void
+    {
+        $plantCode = Arr::get($item, 'plant');
+        if (!$plantCode) {
+            throw new Exception('Missing plant in equipment_work_orders item');
+        }
+        if (!empty($this->allowedPlantCodes) && !in_array($plantCode, $this->allowedPlantCodes, true)) {
+            return;
+        }
+
+        $plant = Plant::where('plant_code', $plantCode)->first();
+        if (!$plant) {
+            throw new Exception('Plant not found for equipment_work_orders: ' . (string) $plantCode);
+        }
+
+        $equipmentNumber = trim((string) (Arr::get($item, 'equipment_number') ?? ''));
+        if ($equipmentNumber !== '') {
+            // Ensure equipment exists and is bound to the plant
+            $existingEq = Equipment::where('equipment_number', $equipmentNumber)->first();
+            if ($existingEq) {
+                if ($existingEq->plant_id !== $plant->id) {
+                    $existingEq->plant_id = $plant->id;
+                    $existingEq->is_active = true;
+                    $existingEq->save();
+                }
+            } else {
+                Equipment::updateOrCreate(
+                    ['equipment_number' => $equipmentNumber],
+                    [
+                        'plant_id' => $plant->id,
+                        'equipment_group_id' => null,
+                        'company_code' => null,
+                        'equipment_description' => null,
+                        'object_number' => null,
+                        'point' => null,
+                        'api_created_at' => now(),
+                        'is_active' => true,
+                    ]
+                );
+            }
+        }
+
+        // Upsert equipment work order record by ims_id
+        \App\Models\EquipmentWorkOrder::updateOrCreate(
+            ['ims_id' => (string) (Arr::get($item, 'id') ?? '')],
+            [
+                'reservation' => Arr::get($item, 'reservation'),
+                'requirement_type' => Arr::get($item, 'requirement_type'),
+                'reservation_status' => Arr::get($item, 'reservation_status'),
+                'item_deleted' => Arr::get($item, 'item_deleted'),
+                'movement_allowed' => Arr::get($item, 'movement_allowed'),
+                'final_issue' => Arr::get($item, 'final_issue'),
+                'missing_part' => Arr::get($item, 'missing_part'),
+                'material' => Arr::get($item, 'material'),
+                'plant_id' => $plant->id,
+                'storage_location' => Arr::get($item, 'storage_location'),
+                'requirements_date' => Arr::get($item, 'requirements_date'),
+                'requirement_quantity' => is_numeric(str_replace([','], [''], (string) Arr::get($item, 'requirement_quantity'))) ? (float) str_replace([','], [''], (string) Arr::get($item, 'requirement_quantity')) : null,
+                'base_unit_of_measure' => Arr::get($item, 'base_unit_of_measure'),
+                'debit_credit_ind' => Arr::get($item, 'debit_credit_ind'),
+                'quantity_is_fixed' => Arr::get($item, 'quantity_is_fixed'),
+                'quantity_withdrawn' => is_numeric(str_replace([','], [''], (string) Arr::get($item, 'quantity_withdrawn'))) ? (float) str_replace([','], [''], (string) Arr::get($item, 'quantity_withdrawn')) : null,
+                'value_withdrawn' => is_numeric(str_replace([','], [''], (string) Arr::get($item, 'value_withdrawn'))) ? (float) str_replace([','], [''], (string) Arr::get($item, 'value_withdrawn')) : null,
+                'currency' => Arr::get($item, 'currency'),
+                'qty_in_unit_of_entry' => is_numeric(str_replace([','], [''], (string) Arr::get($item, 'qty_in_unit_of_entry'))) ? (float) str_replace([','], [''], (string) Arr::get($item, 'qty_in_unit_of_entry')) : null,
+                'unit_of_entry' => Arr::get($item, 'unit_of_entry'),
+                'movement_type' => Arr::get($item, 'movement_type'),
+                'gl_account' => Arr::get($item, 'gl_account'),
+                'receiving_plant' => Arr::get($item, 'receiving_plant'),
+                'receiving_storage_location' => Arr::get($item, 'receiving_storage_location'),
+                'qty_for_avail_check' => is_numeric(str_replace([','], [''], (string) Arr::get($item, 'qty_for_avail_check'))) ? (float) str_replace([','], [''], (string) Arr::get($item, 'qty_for_avail_check')) : null,
+                'goods_recipient' => Arr::get($item, 'goods_recipient'),
+                'material_group' => Arr::get($item, 'material_group'),
+                'acct_manually' => Arr::get($item, 'acct_manually'),
+                'commitment_item_1' => Arr::get($item, 'commitment_item_1'),
+                'funds_center' => Arr::get($item, 'funds_center'),
+                'start_time' => Arr::get($item, 'start_time'),
+                'end_time' => Arr::get($item, 'end_time'),
+                'service_duration' => Arr::get($item, 'service_duration'),
+                'service_dur_unit' => Arr::get($item, 'service_dur_unit'),
+                'api_updated_at' => Arr::get($item, 'updated_at') ? \Carbon\Carbon::parse(Arr::get($item, 'updated_at')) : null,
+                'commitment_item_2' => Arr::get($item, 'commitment_item_2'),
+                'order_number' => Arr::get($item, 'order_number'),
+                'equipment_number' => $equipmentNumber,
+            ]
+        );
+    }
+
+    /**
+     * Process equipment material item
+     * - Bind `plant` and `production_order` to Equipment (production_order as equipment_number)
+     */
+    protected function processEquipmentMaterialItem(array $item): void
+    {
+        // Plant code may be under 'plant'
+        $plantCode = Arr::get($item, 'plant');
+        if (!$plantCode) {
+            throw new Exception('Missing plant in equipment_material item');
+        }
+
+        // Skip items outside requested plants when filtering
+        if (!empty($this->allowedPlantCodes) && !in_array($plantCode, $this->allowedPlantCodes, true)) {
+            return;
+        }
+
+        $plant = Plant::where('plant_code', $plantCode)->first();
+        if (!$plant) {
+            throw new Exception('Plant not found for equipment_material: ' . (string) $plantCode);
+        }
+
+        // Use production_order as equipment number per requirement
+        $equipmentNumber = (string) (Arr::get($item, 'production_order') ?? '');
+        $equipmentNumber = trim($equipmentNumber);
+
+        // Some API may send '-' or empty when not applicable; skip
+        if ($equipmentNumber === '' || $equipmentNumber === '-') {
+            return;
+        }
+
+        // Ensure an Equipment record exists for this production_order under the plant
+        $existing = Equipment::where('equipment_number', $equipmentNumber)->first();
+        if ($existing) {
+            // Ensure plant is set if missing; otherwise leave as-is
+            if ($existing->plant_id !== $plant->id) {
+                $existing->plant_id = $plant->id;
+                $existing->is_active = true;
+                $existing->save();
+            }
+            return;
+        }
+
+        Equipment::updateOrCreate(
+            ['equipment_number' => $equipmentNumber],
+            [
+                'plant_id' => $plant->id,
+                'equipment_group_id' => null,
+                'company_code' => Arr::get($item, 'currency') ? null : null,
+                'equipment_description' => null,
+                'object_number' => null,
+                'point' => null,
+                'api_created_at' => now(),
+                'is_active' => true,
+            ]
+        );
+
+        // Upsert equipment material row as well
+        \App\Models\EquipmentMaterial::updateOrCreate(
+            [
+                'ims_id' => (string) (Arr::get($item, 'id') ?? ''),
+            ],
+            [
+                'plant_id' => $plant->id,
+                'equipment_number' => $equipmentNumber,
+                'material_number' => Arr::get($item, 'material_number') ?? Arr::get($item, 'material'),
+                'reservation_number' => Arr::get($item, 'reservation_number') ?? Arr::get($item, 'reservation'),
+                'reservation_item' => Arr::get($item, 'reservation_item') ?? Arr::get($item, 'reservation_item'),
+                'reservation_type' => Arr::get($item, 'reservation_type'),
+                'requirement_type' => Arr::get($item, 'requirement_type') ?? Arr::get($item, 'requirement_type'),
+                'reservation_status' => Arr::get($item, 'reservation_status'),
+                'deletion_flag' => Arr::get($item, 'deletion_flag') ?? Arr::get($item, 'item_deleted'),
+                'goods_receipt_flag' => Arr::get($item, 'goods_receipt_flag') ?? Arr::get($item, 'movement_allowed'),
+                'final_issue_flag' => Arr::get($item, 'final_issue_flag') ?? Arr::get($item, 'final_issue'),
+                'error_flag' => Arr::get($item, 'error_flag') ?? Arr::get($item, 'missing_part'),
+                'storage_location' => Arr::get($item, 'storage_location'),
+                'production_supply_area' => Arr::get($item, 'production_supply_area'),
+                'batch_number' => Arr::get($item, 'batch_number'),
+                'storage_bin' => Arr::get($item, 'storage_bin'),
+                'special_stock_indicator' => Arr::get($item, 'special_stock_indicator'),
+                'requirement_date' => Arr::get($item, 'requirement_date') ?? Arr::get($item, 'requirements_date'),
+                'requirement_qty' => is_numeric(str_replace([','], [''], (string) (Arr::get($item, 'requirement_qty') ?? Arr::get($item, 'requirement_quantity')))) ? (float) str_replace([','], [''], (string) (Arr::get($item, 'requirement_qty') ?? Arr::get($item, 'requirement_quantity'))) : null,
+                'unit_of_measure' => Arr::get($item, 'unit_of_measure') ?? Arr::get($item, 'base_unit_of_measure'),
+                'debit_credit_indicator' => Arr::get($item, 'debit_credit_indicator') ?? Arr::get($item, 'debit_credit_ind'),
+                'issued_qty' => is_numeric(str_replace([','], [''], (string) Arr::get($item, 'issued_qty'))) ? (float) str_replace([','], [''], (string) Arr::get($item, 'issued_qty')) : null,
+                'withdrawn_qty' => is_numeric(str_replace([','], [''], (string) Arr::get($item, 'withdrawn_qty'))) ? (float) str_replace([','], [''], (string) Arr::get($item, 'withdrawn_qty')) : null,
+                'withdrawn_value' => is_numeric(str_replace([','], [''], (string) Arr::get($item, 'withdrawn_value'))) ? (float) str_replace([','], [''], (string) Arr::get($item, 'withdrawn_value')) : null,
+                'currency' => Arr::get($item, 'currency'),
+                'entry_qty' => is_numeric(str_replace([','], [''], (string) Arr::get($item, 'entry_qty'))) ? (float) str_replace([','], [''], (string) Arr::get($item, 'entry_qty')) : null,
+                'entry_uom' => Arr::get($item, 'entry_uom') ?? Arr::get($item, 'unit_of_entry'),
+                'planned_order' => Arr::get($item, 'planned_order'),
+                'purchase_requisition' => Arr::get($item, 'purchase_requisition'),
+                'purchase_requisition_item' => Arr::get($item, 'purchase_requisition_item'),
+                'production_order' => Arr::get($item, 'production_order'),
+                'movement_type' => Arr::get($item, 'movement_type'),
+                'gl_account' => Arr::get($item, 'gl_account'),
+                'receiving_storage_loc' => Arr::get($item, 'receiving_storage_loc') ?? Arr::get($item, 'receiving_storage_location'),
+                'receiving_plant' => Arr::get($item, 'receiving_plant'),
+                'api_created_at' => Arr::get($item, 'api_created_at') ? \Carbon\Carbon::parse(Arr::get($item, 'api_created_at')) : null,
             ]
         );
     }

@@ -68,6 +68,12 @@ class ConcurrentSyncJob implements ShouldQueue
     protected string $workOrderEndDate;
 
     /**
+     * Selected types to sync (null = all).
+     * @var array|null
+     */
+    protected ?array $types;
+
+    /**
      * Calculate the number of seconds to wait before retrying the job.
      *
      * @return int
@@ -91,13 +97,15 @@ class ConcurrentSyncJob implements ShouldQueue
         ?string $runningTimeStartDate = null,
         ?string $runningTimeEndDate = null,
         ?string $workOrderStartDate = null,
-        ?string $workOrderEndDate = null
+        ?string $workOrderEndDate = null,
+        ?array $types = null
     ) {
         $this->plantCodes = $plantCodes;
         $this->runningTimeStartDate = $runningTimeStartDate ?? Carbon::yesterday()->toDateString();
         $this->runningTimeEndDate = $runningTimeEndDate ?? Carbon::yesterday()->toDateString();
         $this->workOrderStartDate = $workOrderStartDate ?? Carbon::now()->subMonthNoOverflow()->startOfMonth()->toDateString();
         $this->workOrderEndDate = $workOrderEndDate ?? Carbon::today()->toDateString();
+        $this->types = $types;
 
         // Set job to high priority queue
         $this->onQueue('high');
@@ -128,7 +136,8 @@ class ConcurrentSyncJob implements ShouldQueue
                 $this->runningTimeStartDate,
                 $this->runningTimeEndDate,
                 $this->workOrderStartDate,
-                $this->workOrderEndDate
+                $this->workOrderEndDate,
+                $this->types
             );
 
             $duration = now()->diffInSeconds($startTime);
@@ -144,6 +153,8 @@ class ConcurrentSyncJob implements ShouldQueue
             FilamentNotification::make()
                 ->title('Sync completed')
                 ->body('Equipment: ' . ($results['equipment']['success'] ?? 0)
+                    . ', Equipment Material: ' . ($results['equipment_material']['success'] ?? 0)
+                    . ', Equipment Work Orders: ' . ($results['equipment_work_orders']['success'] ?? 0)
                     . ', Running Time: ' . ($results['running_time']['success'] ?? 0)
                     . ', Work Orders: ' . ($results['work_orders']['success'] ?? 0)
                     . ' | Duration: ' . $duration . 's')

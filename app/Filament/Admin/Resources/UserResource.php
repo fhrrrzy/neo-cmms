@@ -67,16 +67,16 @@ class UserResource extends Resource
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Role dan Plant')
+                Forms\Components\Section::make('Role, Plant, Regional, Subholding')
                     ->schema([
                         Forms\Components\Select::make('role')
                             ->prefixIcon('heroicon-o-shield-check')
                             ->options([
                                 'superadmin' => 'Super Admin',
                                 'pks' => 'PKS (Plant Khusus)',
+                                'viewer' => 'Viewer',
                             ])
                             ->required()
-                            ->reactive()
                             ->label('Role'),
                         Forms\Components\Select::make('plant_id')
                             ->prefixIcon('heroicon-o-building-office-2')
@@ -86,9 +86,23 @@ class UserResource extends Resource
                             ->label('Plant')
                             ->visible(fn(callable $get): bool => $get('role') === 'pks')
                             ->required(fn(callable $get): bool => $get('role') === 'pks'),
+                        Forms\Components\Select::make('regional_id')
+                            ->prefixIcon('heroicon-o-map')
+                            ->relationship('region', 'name', fn($query) => $query->where('category', 'palmco'))
+                            ->searchable()
+                            ->preload()
+                            ->label('Regional')
+                            ->visible(fn(callable $get): bool => in_array($get('role'), ['viewer', 'superadmin', 'pks'], true)),
+                        Forms\Components\Select::make('subholding_id')
+                            ->prefixIcon('heroicon-o-building-library')
+                            ->relationship('subholding', 'name', fn($query) => $query->where('category', 'supporting_co'))
+                            ->searchable()
+                            ->preload()
+                            ->label('Subholding')
+                            ->visible(fn(callable $get): bool => in_array($get('role'), ['viewer', 'superadmin', 'pks'], true)),
                     ])
                     ->columns(2)
-                    ->description('PKS harus memiliki plant yang ditetapkan, Super Admin tidak perlu plant'),
+                    ->description('PKS harus memiliki plant; Viewer bisa diberi Regional/Subholding'),
 
                 Forms\Components\Section::make('Verifikasi Email')
                     ->schema([

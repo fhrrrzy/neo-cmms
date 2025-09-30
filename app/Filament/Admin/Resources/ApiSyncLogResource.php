@@ -32,52 +32,7 @@ class ApiSyncLogResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('sync_type')
-                    ->required()
-                    ->options([
-                        'equipment' => 'Equipment',
-                        'running_time' => 'Running Time',
-                        'full' => 'Full Sync',
-                    ])
-                    ->label('Tipe Sinkronisasi'),
-                Forms\Components\Select::make('status')
-                    ->required()
-                    ->options([
-                        'pending' => 'Pending',
-                        'running' => 'Running',
-                        'completed' => 'Completed',
-                        'failed' => 'Failed',
-                        'cancelled' => 'Cancelled',
-                    ])
-                    ->label('Status'),
-                Forms\Components\TextInput::make('records_processed')
-                    ->required()
-                    ->numeric()
-                    ->default(0)
-                    ->label('Record Diproses'),
-                Forms\Components\TextInput::make('records_success')
-                    ->required()
-                    ->numeric()
-                    ->default(0)
-                    ->label('Record Berhasil'),
-                Forms\Components\TextInput::make('records_failed')
-                    ->required()
-                    ->numeric()
-                    ->default(0)
-                    ->label('Record Gagal'),
-                Forms\Components\Textarea::make('error_message')
-                    ->columnSpanFull()
-                    ->label('Pesan Error'),
-                Forms\Components\DateTimePicker::make('sync_started_at')
-                    ->label('Mulai Sinkronisasi'),
-                Forms\Components\DateTimePicker::make('sync_completed_at')
-                    ->label('Selesai Sinkronisasi'),
-            ]);
-    }
+    // This resource is read-only via table; no create/edit form needed.
 
     public static function table(Table $table): Table
     {
@@ -87,6 +42,8 @@ class ApiSyncLogResource extends Resource
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'equipment' => 'info',
+                        'equipment_material' => 'info',
+                        'equipment_work_orders' => 'info',
                         'running_time' => 'warning',
                         'work_order' => 'primary',
                         'full' => 'success',
@@ -147,41 +104,78 @@ class ApiSyncLogResource extends Resource
                 //
             ])
             ->headerActions([
-                Tables\Actions\Action::make('run_sync_now')
-                    ->label('Run Full Sync Now')
+                Tables\Actions\Action::make('run_sync')
+                    ->label('Run Sync')
                     ->icon('heroicon-o-rocket-launch')
                     ->color('primary')
                     ->form([
+                        Forms\Components\Toggle::make('all_plants')
+                            ->inline(false)
+                            ->accepted()
+                            ->helperText('Centang untuk sinkron semua plant aktif'),
+                        Forms\Components\Select::make('plants')
+                            ->multiple()
+                            ->searchable()
+                            ->options(fn() => Plant::where('is_active', true)->pluck('name', 'plant_code')),
+                        Forms\Components\CheckboxList::make('types')
+                            ->options([
+                                'equipment' => 'Equipment',
+                                'equipment_material' => 'Equipment Material',
+                                'equipment_work_orders' => 'Equipment Work Orders',
+                                'running_time' => 'Running Time',
+                                'work_orders' => 'Work Orders',
+                            ]),
                         Forms\Components\DatePicker::make('start_date')
-                            ->label('Start Date')
-                            ->default(now()->subMonthNoOverflow()->startOfMonth()->toDateString())
+                            ->native(false)
                             ->required(),
                         Forms\Components\DatePicker::make('end_date')
-                            ->label('End Date')
-                            ->default(now()->toDateString())
+                            ->native(false)
                             ->required(),
                     ])
                     ->action(function (array $data): void {
                         $start = $data['start_date'] ?? null;
                         $end = $data['end_date'] ?? null;
-                        // Null plant list means: sync all active plants
-                        ConcurrentSyncJob::dispatch(
-                            null,
-                            $start,
-                            $end,
-                            $start,
-                            $end
-                        )->onQueue('high');
+                        $all = (bool) ($data['all_plants'] ?? false);
+                        $plants = $data['plants'] ?? null; // array of plant_code
+
+                        $types = array_values($data['types'] ?? []);
+                        if ($all || empty($plants)) {
+                            // all plants
+                            ConcurrentSyncJob::dispatch(
+                                null,
+                                $start,
+                                $end,
+                                $start,
+                                $end,
+                                $types ?: null
+                            )->onQueue('high');
+                            \Filament\Notifications\Notification::make()
+                                ->title('Sync started')
+                                ->body('Job created for all plants. We\'ll notify you once it\'s done.')
+                                ->success()
+                                ->send();
+                        } else {
+                            // selected plants (single job with selected list)
+                            ConcurrentSyncJob::dispatch(
+                                array_values($plants),
+                                $start,
+                                $end,
+                                $start,
+                                $end,
+                                $types ?: null
+                            )->onQueue('high');
+                            \Filament\Notifications\Notification::make()
+                                ->title('Sync started')
+                                ->body('Job created for selected plants. We\'ll notify you once it\'s done.')
+                                ->success()
+                                ->send();
+                        }
                     })
+                    ->modalSubmitActionLabel('Run Sync')
+                    ->modalWidth('lg')
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->actions([])
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array

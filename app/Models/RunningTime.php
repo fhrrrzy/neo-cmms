@@ -11,7 +11,7 @@ class RunningTime extends Model
     use HasFactory;
 
     protected $fillable = [
-        'api_id',
+        'ims_id',
         'equipment_number',
         'date',
         'plant_id',
