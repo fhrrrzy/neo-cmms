@@ -29,9 +29,8 @@
                         </PopoverTrigger>
                         <PopoverContent class="w-auto p-0">
                             <RangeCalendar
-                                v-model="uiRange"
+                                v-model="rangeValue"
                                 :number-of-months="2"
-                                @update:model-value="handleUiRangeChange"
                             />
                         </PopoverContent>
                     </Popover>
@@ -260,6 +259,7 @@ import {
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
+import { parseDate } from '@internationalized/date';
 import Highcharts from 'highcharts';
 import {
     ArrowLeft,
@@ -307,18 +307,21 @@ const dateRange = ref({
         new Date().toISOString().split('T')[0],
 });
 const popoverOpen = ref(false);
-const uiRange = ref({
-    from: dateRange.value.start ? new Date(dateRange.value.start) : null,
-    to: dateRange.value.end ? new Date(dateRange.value.end) : null,
+const rangeValue = ref({
+    start: dateRange.value.start ? parseDate(dateRange.value.start) : undefined,
+    end: dateRange.value.end ? parseDate(dateRange.value.end) : undefined,
 });
 
-const isRangeEmpty = computed(() => !uiRange.value.from && !uiRange.value.to);
+const isRangeEmpty = computed(
+    () => !rangeValue.value.start && !rangeValue.value.end,
+);
 const rangeDisplay = computed(() => {
-    if (!uiRange.value.from && !uiRange.value.to) return 'Select date range';
-    const formatStr = (d) => d.toISOString().split('T')[0];
-    const fromStr = uiRange.value.from ? formatStr(uiRange.value.from) : '';
-    const toStr = uiRange.value.to ? formatStr(uiRange.value.to) : '';
-    return `${fromStr} - ${toStr}`;
+    if (!rangeValue.value.start && !rangeValue.value.end)
+        return 'Select date range';
+    if (rangeValue.value.start && rangeValue.value.end)
+        return `${rangeValue.value.start.toString()} - ${rangeValue.value.end.toString()}`;
+    if (rangeValue.value.start) return rangeValue.value.start.toString();
+    return 'Select date range';
 });
 
 const goBack = () => {
@@ -342,23 +345,22 @@ const formatNumber = (value) => {
     }).format(value);
 };
 
-const handleUiRangeChange = (newRange) => {
-    uiRange.value = newRange;
-    const start = newRange.from ? new Date(newRange.from) : null;
-    const end = newRange.to ? new Date(newRange.to) : null;
-    const toStr = (d) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const startStr = start ? toStr(start) : null;
-    const endStr = end ? toStr(end) : null;
-    if (startStr && endStr) {
-        dateRange.value = { start: startStr, end: endStr };
-        popoverOpen.value = false;
-        router.visit(`/equipment/${props.equipmentNumber}`, {
-            data: { date_start: startStr, date_end: endStr },
-            preserveState: false,
-        });
-    }
-};
+watch(
+    rangeValue,
+    (val) => {
+        const startStr = val?.start?.toString?.();
+        const endStr = val?.end?.toString?.();
+        if (startStr && endStr) {
+            dateRange.value = { start: startStr, end: endStr };
+            popoverOpen.value = false;
+            router.visit(`/equipment/${props.equipmentNumber}`, {
+                data: { date_start: startStr, date_end: endStr },
+                preserveState: false,
+            });
+        }
+    },
+    { deep: true },
+);
 
 const createChart = () => {
     if (!chartContainer.value || !props.equipment.recent_running_times?.length)

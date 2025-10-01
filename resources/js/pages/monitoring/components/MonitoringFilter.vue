@@ -18,8 +18,8 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { RangeCalendar } from '@/components/ui/range-calendar';
-import { loadDateRange, saveDateRange } from '@/lib/dateRangeStorage';
-import { dateRangeStore } from '@/stores/dateRangeStore';
+import { useDateRangeStore } from '@/stores/useDateRangeStore';
+import { getLocalTimeZone, parseDate } from '@internationalized/date';
 import axios from 'axios';
 import {
     Calendar as CalendarIcon,
@@ -48,25 +48,18 @@ const loadingStations = ref(false);
 const localFilters = ref({ ...props.filters });
 
 // Initialize from localStorage if available
-const stored = loadDateRange();
-if (stored?.start && stored?.end) {
-    localFilters.value.date_range = { start: stored.start, end: stored.end };
-    uiDateRange.value = {
-        from: new Date(stored.start),
-        to: new Date(stored.end),
-    };
-}
+const dateRange = useDateRangeStore();
 
-// sync from global store into local on mount
+// sync from pinia store into local on mount
 onMounted(() => {
-    if (dateRangeStore.start.value && dateRangeStore.end.value) {
+    if (dateRange.start && dateRange.end) {
         localFilters.value.date_range = {
-            start: dateRangeStore.start.value,
-            end: dateRangeStore.end.value,
+            start: dateRange.start,
+            end: dateRange.end,
         };
-        uiDateRange.value = {
-            from: new Date(dateRangeStore.start.value),
-            to: new Date(dateRangeStore.end.value),
+        rangeValue.value = {
+            start: parseDate(dateRange.start),
+            end: parseDate(dateRange.end),
         };
     }
 });
@@ -75,15 +68,15 @@ onMounted(() => {
 const regionalOpen = ref(false);
 const plantOpen = ref(false);
 const stationOpen = ref(false);
-// Date range state for popover calendar
+// Date range state for popover calendar (CalendarDate model like Reka example)
 const datePopoverOpen = ref(false);
-const uiDateRange = ref({
-    from: props.filters?.date_range?.start
-        ? new Date(props.filters.date_range.start)
-        : null,
-    to: props.filters?.date_range?.end
-        ? new Date(props.filters.date_range.end)
-        : null,
+const rangeValue = ref({
+    start: props.filters?.date_range?.start
+        ? parseDate(props.filters.date_range.start)
+        : undefined,
+    end: props.filters?.date_range?.end
+        ? parseDate(props.filters.date_range.end)
+        : undefined,
 });
 const lastRangeEvent = ref(null);
 const normalizeRange = (range) => {
@@ -94,30 +87,41 @@ const normalizeRange = (range) => {
         to: to ? new Date(to) : null,
     };
 };
-const isRangeEmpty = () => !uiDateRange.value.from && !uiDateRange.value.to;
+const isRangeEmpty = () => !rangeValue.value.start && !rangeValue.value.end;
+const formatIndo = (d) => {
+    if (!d) return '';
+    const dd = new Date(d);
+    const day = String(dd.getDate()).padStart(2, '0');
+    const month = String(dd.getMonth() + 1).padStart(2, '0');
+    const year = dd.getFullYear();
+    return `${day}-${month}-${year}`;
+};
+const tz = getLocalTimeZone();
 const rangeDisplay = () => {
-    if (!uiDateRange.value.from && !uiDateRange.value.to)
-        return 'Pilih periode';
-    const toStr = (d) => d.toISOString().split('T')[0];
-    const fromStr = uiDateRange.value.from ? toStr(uiDateRange.value.from) : '';
-    const toDateStr = uiDateRange.value.to ? toStr(uiDateRange.value.to) : '';
-    return `${fromStr} - ${toDateStr}`;
-};
-const handleUiDateRangeChange = (newRange) => {
-    lastRangeEvent.value = newRange;
-    const normalized = normalizeRange(newRange);
-    uiDateRange.value = normalized;
-    const toStr = (d) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const startStr = normalized.from ? toStr(new Date(normalized.from)) : null;
-    const endStr = normalized.to ? toStr(new Date(normalized.to)) : null;
-    if (startStr && endStr) {
-        localFilters.value.date_range = { start: startStr, end: endStr };
-        saveDateRange(localFilters.value.date_range);
-        dateRangeStore.setRange(localFilters.value.date_range);
-        datePopoverOpen.value = false;
+    if (!rangeValue.value.start && !rangeValue.value.end) return 'Pick a date';
+    if (rangeValue.value.start && rangeValue.value.end) {
+        return `${rangeValue.value.start.toString()} - ${rangeValue.value.end.toString()}`;
     }
+    if (rangeValue.value.start) return rangeValue.value.start.toString();
+    return 'Pick a date';
 };
+const handleRangeUpdate = (val) => {
+    lastRangeEvent.value = val;
+};
+
+// Sync localFilters when rangeValue (v-model) changes
+watch(
+    rangeValue,
+    (val) => {
+        const startStr = val?.start?.toString?.();
+        const endStr = val?.end?.toString?.();
+        if (startStr && endStr) {
+            localFilters.value.date_range = { start: startStr, end: endStr };
+            datePopoverOpen.value = false;
+        }
+    },
+    { deep: true },
+);
 
 // Watch for prop changes
 watch(
@@ -137,8 +141,7 @@ const applyFilters = async () => {
         localFilters.value?.date_range?.start &&
         localFilters.value?.date_range?.end
     ) {
-        saveDateRange(localFilters.value.date_range);
-        dateRangeStore.setRange(localFilters.value.date_range);
+        dateRange.setRange(localFilters.value.date_range);
     }
     emit('filter-change', { ...localFilters.value });
 };
@@ -547,9 +550,9 @@ onMounted(async () => {
                     </PopoverTrigger>
                     <PopoverContent class="w-auto p-0">
                         <RangeCalendar
-                            v-model="uiDateRange"
+                            v-model="rangeValue"
                             :number-of-months="2"
-                            @update:model-value="handleUiDateRangeChange"
+                            @update:value="handleRangeUpdate"
                         />
                     </PopoverContent>
                 </Popover>
@@ -569,17 +572,19 @@ onMounted(async () => {
             <div class="grid grid-cols-1 gap-1">
                 <div>datePopoverOpen: {{ String(datePopoverOpen) }}</div>
                 <div>
-                    uiDateRange.from:
+                    rangeValue.start:
                     {{
-                        uiDateRange?.from?.toISOString?.() ??
-                        String(uiDateRange?.from)
+                        rangeValue?.start
+                            ? rangeValue.start.toString()
+                            : 'undefined'
                     }}
                 </div>
                 <div>
-                    uiDateRange.to:
+                    rangeValue.end:
                     {{
-                        uiDateRange?.to?.toISOString?.() ??
-                        String(uiDateRange?.to)
+                        rangeValue?.end
+                            ? rangeValue.end.toString()
+                            : 'undefined'
                     }}
                 </div>
                 <div>
