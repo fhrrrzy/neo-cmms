@@ -11,10 +11,22 @@ import {
     ComboboxList,
     ComboboxTrigger,
 } from '@/components/ui/combobox';
-import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { RangeCalendar } from '@/components/ui/range-calendar';
+import { loadDateRange, saveDateRange } from '@/lib/dateRangeStorage';
+import { dateRangeStore } from '@/stores/dateRangeStore';
 import axios from 'axios';
-import { Check, ChevronsUpDown, Search } from 'lucide-vue-next';
+import {
+    Calendar as CalendarIcon,
+    Check,
+    ChevronsUpDown,
+    Search,
+} from 'lucide-vue-next';
 import { nextTick, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
@@ -35,11 +47,77 @@ const loadingStations = ref(false);
 
 const localFilters = ref({ ...props.filters });
 
+// Initialize from localStorage if available
+const stored = loadDateRange();
+if (stored?.start && stored?.end) {
+    localFilters.value.date_range = { start: stored.start, end: stored.end };
+    uiDateRange.value = {
+        from: new Date(stored.start),
+        to: new Date(stored.end),
+    };
+}
+
+// sync from global store into local on mount
+onMounted(() => {
+    if (dateRangeStore.start.value && dateRangeStore.end.value) {
+        localFilters.value.date_range = {
+            start: dateRangeStore.start.value,
+            end: dateRangeStore.end.value,
+        };
+        uiDateRange.value = {
+            from: new Date(dateRangeStore.start.value),
+            to: new Date(dateRangeStore.end.value),
+        };
+    }
+});
+
 // Combobox states
 const regionalOpen = ref(false);
 const plantOpen = ref(false);
 const stationOpen = ref(false);
-// Date range is now handled by the custom DateRangePicker component
+// Date range state for popover calendar
+const datePopoverOpen = ref(false);
+const uiDateRange = ref({
+    from: props.filters?.date_range?.start
+        ? new Date(props.filters.date_range.start)
+        : null,
+    to: props.filters?.date_range?.end
+        ? new Date(props.filters.date_range.end)
+        : null,
+});
+const lastRangeEvent = ref(null);
+const normalizeRange = (range) => {
+    const from = range?.from ?? range?.start ?? null;
+    const to = range?.to ?? range?.end ?? null;
+    return {
+        from: from ? new Date(from) : null,
+        to: to ? new Date(to) : null,
+    };
+};
+const isRangeEmpty = () => !uiDateRange.value.from && !uiDateRange.value.to;
+const rangeDisplay = () => {
+    if (!uiDateRange.value.from && !uiDateRange.value.to)
+        return 'Pilih periode';
+    const toStr = (d) => d.toISOString().split('T')[0];
+    const fromStr = uiDateRange.value.from ? toStr(uiDateRange.value.from) : '';
+    const toDateStr = uiDateRange.value.to ? toStr(uiDateRange.value.to) : '';
+    return `${fromStr} - ${toDateStr}`;
+};
+const handleUiDateRangeChange = (newRange) => {
+    lastRangeEvent.value = newRange;
+    const normalized = normalizeRange(newRange);
+    uiDateRange.value = normalized;
+    const toStr = (d) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const startStr = normalized.from ? toStr(new Date(normalized.from)) : null;
+    const endStr = normalized.to ? toStr(new Date(normalized.to)) : null;
+    if (startStr && endStr) {
+        localFilters.value.date_range = { start: startStr, end: endStr };
+        saveDateRange(localFilters.value.date_range);
+        dateRangeStore.setRange(localFilters.value.date_range);
+        datePopoverOpen.value = false;
+    }
+};
 
 // Watch for prop changes
 watch(
@@ -52,15 +130,18 @@ watch(
     { deep: true },
 );
 
-// Watch for local filter changes
-watch(
-    localFilters,
-    async (newFilters) => {
-        await nextTick();
-        emit('filter-change', { ...newFilters });
-    },
-    { deep: true },
-);
+// Apply filters on demand via button
+const applyFilters = async () => {
+    await nextTick();
+    if (
+        localFilters.value?.date_range?.start &&
+        localFilters.value?.date_range?.end
+    ) {
+        saveDateRange(localFilters.value.date_range);
+        dateRangeStore.setRange(localFilters.value.date_range);
+    }
+    emit('filter-change', { ...localFilters.value });
+};
 
 // Date range changes are now handled by the custom DateRangePicker component
 
@@ -276,9 +357,9 @@ onMounted(async () => {
                         </ComboboxTrigger>
                     </ComboboxAnchor>
                     <ComboboxList>
-                        <div class="relative w-full max-w-sm items-center">
+                        <div class="relative flex w-full items-center">
                             <ComboboxInput
-                                class="h-10 rounded-none border-0 border-b pl-9 focus-visible:ring-0"
+                                class="h-10 rounded-none border-0 border-b focus-visible:ring-0"
                                 placeholder="Cari Regional..."
                             />
                             <span
@@ -342,9 +423,9 @@ onMounted(async () => {
                         </ComboboxTrigger>
                     </ComboboxAnchor>
                     <ComboboxList>
-                        <div class="relative w-full max-w-sm items-center">
+                        <div class="relative flex w-full items-center">
                             <ComboboxInput
-                                class="h-10 rounded-none border-0 border-b pl-9 focus-visible:ring-0"
+                                class="h-10 rounded-none border-0 border-b focus-visible:ring-0"
                                 placeholder="Cari Pabrik..."
                             />
                             <span
@@ -409,9 +490,9 @@ onMounted(async () => {
                         </ComboboxTrigger>
                     </ComboboxAnchor>
                     <ComboboxList>
-                        <div class="relative w-full max-w-sm items-center">
+                        <div class="relative flex w-full items-center">
                             <ComboboxInput
-                                class="h-10 rounded-none border-0 border-b pl-9 focus-visible:ring-0"
+                                class="h-10 rounded-none border-0 border-b focus-visible:ring-0"
                                 placeholder="Cari Stasiun..."
                             />
                             <span
@@ -451,12 +532,65 @@ onMounted(async () => {
             <!-- Date Range Filter -->
             <div class="min-w-[300px] space-y-2">
                 <Label>Periode Jam Jalan</Label>
-                <DateRangePicker
-                    v-model="localFilters.date_range"
-                    placeholder="Pilih periode"
-                    :close-on-select="true"
-                    :number-of-months="2"
-                />
+                <Popover v-model:open="datePopoverOpen">
+                    <PopoverTrigger as-child>
+                        <Button
+                            variant="outline"
+                            :class="[
+                                'w-[300px] justify-start text-left font-normal',
+                                isRangeEmpty() ? 'text-muted-foreground' : '',
+                            ]"
+                        >
+                            <CalendarIcon class="mr-2 h-4 w-4" />
+                            {{ rangeDisplay() }}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent class="w-auto p-0">
+                        <RangeCalendar
+                            v-model="uiDateRange"
+                            :number-of-months="2"
+                            @update:model-value="handleUiDateRangeChange"
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
+
+            <!-- Process Button -->
+            <div class="space-y-2">
+                <Label class="opacity-0 select-none">Proses</Label>
+                <Button variant="default" class="w-full" @click="applyFilters">
+                    Proses
+                </Button>
+            </div>
+        </div>
+        <!-- Debug Panel -->
+        <div class="mt-4 rounded-md border p-3 text-xs">
+            <div class="mb-2 font-semibold">Debug</div>
+            <div class="grid grid-cols-1 gap-1">
+                <div>datePopoverOpen: {{ String(datePopoverOpen) }}</div>
+                <div>
+                    uiDateRange.from:
+                    {{
+                        uiDateRange?.from?.toISOString?.() ??
+                        String(uiDateRange?.from)
+                    }}
+                </div>
+                <div>
+                    uiDateRange.to:
+                    {{
+                        uiDateRange?.to?.toISOString?.() ??
+                        String(uiDateRange?.to)
+                    }}
+                </div>
+                <div>
+                    localFilters.date_range.start:
+                    {{ localFilters?.date_range?.start }}
+                </div>
+                <div>
+                    localFilters.date_range.end:
+                    {{ localFilters?.date_range?.end }}
+                </div>
+                <div>lastRangeEvent: {{ JSON.stringify(lastRangeEvent) }}</div>
             </div>
         </div>
     </div>

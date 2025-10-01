@@ -26,7 +26,6 @@ class Equipment extends Model
         'object_number',
         'point',
         'api_created_at',
-        'is_active',
     ];
 
     /**
@@ -35,7 +34,6 @@ class Equipment extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'is_active' => 'boolean',
         'api_created_at' => 'datetime',
     ];
 
@@ -87,13 +85,6 @@ class Equipment extends Model
         return $this->hasMany(RunningTime::class, 'equipment_number', 'equipment_number')->latest('date');
     }
 
-    /**
-     * Scope a query to only include active equipment.
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
 
     /**
      * Scope a query to filter by plant.
@@ -127,7 +118,6 @@ class Equipment extends Model
             'object_number' => 'nullable|string|max:50',
             'point' => 'nullable|string|max:50',
             'api_created_at' => 'nullable|date',
-            'is_active' => 'boolean',
         ];
     }
 }

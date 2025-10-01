@@ -51,7 +51,7 @@ const handlePageChange = (page) => {
                     :model-value="`${pagination.per_page}`"
                     @update:model-value="handlePageSizeChange"
                 >
-                    <SelectTrigger class="h-8 w-[70px]">
+                    <SelectTrigger class="h-8 w-[100px]">
                         <SelectValue :placeholder="`${pagination.per_page}`" />
                     </SelectTrigger>
                     <SelectContent side="top">

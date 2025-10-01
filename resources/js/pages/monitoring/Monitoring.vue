@@ -3,7 +3,7 @@ import DataTable from '@/components/monitoring/DataTable.vue';
 import DataTableViewOptions from '@/components/monitoring/DataTableViewOptions.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { monitoring } from '@/routes';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { onMounted, ref } from 'vue';
 import MonitoringFilter from './components/MonitoringFilter.vue';
@@ -22,6 +22,12 @@ const pagination = ref({
     from: 0,
     to: 0,
     has_more_pages: false,
+});
+
+// Sorting state
+const sorting = ref({
+    sort_by: 'equipment_number',
+    sort_direction: 'asc',
 });
 
 const breadcrumbs = [
@@ -50,6 +56,10 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
         // Add pagination parameters
         params.append('page', page.toString());
         params.append('per_page', perPage.toString());
+
+        // Add sorting parameters
+        params.append('sort_by', sorting.value.sort_by);
+        params.append('sort_direction', sorting.value.sort_direction);
 
         // Add filter parameters
         if (filters.value.regional_id) {
@@ -101,7 +111,20 @@ const handlePageChange = (page) => {
 };
 
 const handlePageSizeChange = (perPage) => {
+    pagination.value.per_page = perPage;
     fetchEquipment(1, perPage);
+};
+
+const handleSortChange = (sortBy, sortDirection) => {
+    sorting.value.sort_by = sortBy;
+    sorting.value.sort_direction = sortDirection;
+    // Reset to first page when sorting changes
+    fetchEquipment(1, pagination.value.per_page);
+};
+
+const handleRowClick = (equipment) => {
+    // Navigate to equipment detail page
+    router.visit(`/equipment/${equipment.equipment_number}`);
 };
 
 onMounted(() => {
@@ -113,7 +136,7 @@ onMounted(() => {
     <Head title="Monitoring Equipment" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="space-y-6 p-4">
+        <div class="space-y-6">
             <!-- Filter and View Toggle -->
             <div class="pb-4">
                 <div class="flex items-end justify-between gap-4">
@@ -133,8 +156,11 @@ onMounted(() => {
                     :loading="loading"
                     :error="error"
                     :pagination="pagination"
+                    :sorting="sorting"
                     @page-change="handlePageChange"
                     @page-size-change="handlePageSizeChange"
+                    @sort-change="handleSortChange"
+                    @row-click="handleRowClick"
                 />
             </div>
         </div>

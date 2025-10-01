@@ -12,7 +12,6 @@ import {
 import {
     getCoreRowModel,
     getFilteredRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
     useVueTable,
 } from '@tanstack/vue-table';
@@ -46,11 +45,23 @@ const props = defineProps({
             has_more_pages: false,
         }),
     },
+    sorting: {
+        type: Object,
+        default: () => ({
+            sort_by: 'equipment_number',
+            sort_direction: 'asc',
+        }),
+    },
 });
 
-const emit = defineEmits(['page-change', 'page-size-change']);
+const emit = defineEmits([
+    'page-change',
+    'page-size-change',
+    'sort-change',
+    'row-click',
+]);
 
-const sorting = ref([]);
+const tableSorting = ref([]);
 const columnFilters = ref([]);
 const columnVisibility = ref({});
 const rowSelection = ref({});
@@ -61,9 +72,9 @@ const table = useVueTable({
     },
     columns,
     onSortingChange: (updaterOrValue) => {
-        sorting.value =
+        tableSorting.value =
             typeof updaterOrValue === 'function'
-                ? updaterOrValue(sorting.value)
+                ? updaterOrValue(tableSorting.value)
                 : updaterOrValue;
     },
     onColumnFiltersChange: (updaterOrValue) => {
@@ -85,17 +96,22 @@ const table = useVueTable({
                 : updaterOrValue;
     },
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     meta: {
         get pagination() {
             return props.pagination;
         },
+        get sorting() {
+            return props.sorting;
+        },
+        onSortChange: (sortBy, sortDirection) => {
+            emit('sort-change', sortBy, sortDirection);
+        },
     },
     state: {
         get sorting() {
-            return sorting.value;
+            return tableSorting.value;
         },
         get columnFilters() {
             return columnFilters.value;
@@ -112,6 +128,10 @@ const table = useVueTable({
 const isLoading = computed(() => props.loading);
 const hasError = computed(() => props.error);
 const hasData = computed(() => props.data.length > 0);
+
+const handleRowClick = (equipment) => {
+    emit('row-click', equipment);
+};
 
 // Expose table instance for parent components
 defineExpose({
@@ -171,6 +191,8 @@ defineExpose({
                             v-for="row in table.getRowModel().rows"
                             :key="row.id"
                             :data-state="row.getIsSelected() && 'selected'"
+                            class="cursor-pointer hover:bg-muted/50"
+                            @click="handleRowClick(row.original)"
                         >
                             <TableCell
                                 v-for="cell in row.getVisibleCells()"

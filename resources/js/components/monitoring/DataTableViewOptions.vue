@@ -40,7 +40,7 @@ const columns = computed(() =>
                 View
             </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" class="w-[150px]">
+        <DropdownMenuContent align="end" class="">
             <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuCheckboxItem

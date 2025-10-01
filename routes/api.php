@@ -13,6 +13,8 @@ Route::prefix('monitoring')->group(function () {
     Route::get('/equipment', [MonitoringController::class, 'equipment']);
 });
 
+// Equipment API routes - removed, now using Inertia data passing
+
 // Reference data for filters
 Route::get('/regions', [MonitoringController::class, 'regions']);
 Route::get('/plants', [MonitoringController::class, 'plants']);

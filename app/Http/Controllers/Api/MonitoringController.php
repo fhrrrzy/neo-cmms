@@ -39,17 +39,50 @@ class MonitoringController extends Controller
         $dateStart = $request->get('date_start', now()->subWeek()->toDateString());
         $dateEnd = $request->get('date_end', now()->toDateString());
 
+        // Handle sorting
+        $sortBy = $request->get('sort_by', 'equipment_number');
+        $sortDirection = $request->get('sort_direction', 'asc');
+
+        // Validate sort direction
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'asc';
+        }
+
         // Add running hours calculation
         $query->addSelect([
-            'summed_jam_jalan' => DB::table('running_times')
-                ->selectRaw('COALESCE(SUM(running_hours), 0)')
-                ->whereColumn('running_times.equipment_number', 'equipment.equipment_number')
-                ->whereBetween('date', [$dateStart, $dateEnd]),
             'running_times_count' => DB::table('running_times')
                 ->selectRaw('COUNT(*)')
                 ->whereColumn('running_times.equipment_number', 'equipment.equipment_number')
-                ->whereBetween('date', [$dateStart, $dateEnd])
+                ->whereBetween('date', [$dateStart, $dateEnd]),
+            'cumulative_jam_jalan' => DB::table('running_times')
+                ->selectRaw('COALESCE(MAX(counter_reading), 0)')
+                ->whereColumn('running_times.equipment_number', 'equipment.equipment_number')
         ]);
+
+        // Apply sorting
+        switch ($sortBy) {
+            case 'equipment_number':
+                $query->orderBy('equipment.equipment_number', $sortDirection);
+                break;
+            case 'equipment_description':
+                $query->orderBy('equipment.equipment_description', $sortDirection);
+                break;
+            case 'plant_name':
+                $query->orderBy('plants.name', $sortDirection);
+                break;
+            case 'station_description':
+                $query->orderBy('stations.description', $sortDirection);
+                break;
+            case 'cumulative_jam_jalan':
+                $query->orderBy('cumulative_jam_jalan', $sortDirection);
+                break;
+            case 'running_times_count':
+                $query->orderBy('running_times_count', $sortDirection);
+                break;
+            default:
+                $query->orderBy('equipment.equipment_number', 'asc');
+                break;
+        }
 
         // Use Laravel's built-in pagination
         $perPage = $request->get('per_page', 15);
@@ -65,7 +98,6 @@ class MonitoringController extends Controller
                 'company_code' => $item->company_code,
                 'object_number' => $item->object_number,
                 'point' => $item->point,
-                'is_active' => $item->is_active,
                 'plant' => $item->plant ? [
                     'id' => $item->plant->id,
                     'name' => $item->plant->name,
@@ -74,8 +106,8 @@ class MonitoringController extends Controller
                     'id' => $item->station->id,
                     'description' => $item->station->description,
                 ] : null,
-                'summed_jam_jalan' => (float) $item->summed_jam_jalan,
                 'running_times_count' => (int) $item->running_times_count,
+                'cumulative_jam_jalan' => (float) $item->cumulative_jam_jalan,
             ];
         });
 
@@ -123,4 +155,6 @@ class MonitoringController extends Controller
 
         return response()->json($stations);
     }
+
+    // equipmentDetail method removed - now handled in web routes with Inertia
 }
