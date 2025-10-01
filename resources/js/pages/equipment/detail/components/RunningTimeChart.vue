@@ -66,7 +66,7 @@ const createChart = () => {
 
     const theme = getTheme();
     chart = Highcharts.chart(container.value, {
-        chart: { type: 'line', height: 400 },
+        chart: { type: 'line', height: 400, backgroundColor: 'transparent' },
         title: { text: 'Running Time Analysis', style: { color: theme.text } },
         subtitle: { text: props.subtitle, style: { color: theme.mutedText } },
         xAxis: {
@@ -148,7 +148,7 @@ const createChart = () => {
             ],
         },
         credits: { enabled: false },
-        chart: { backgroundColor: 'transparent' },
+        accessibility: { enabled: false },
     });
 };
 

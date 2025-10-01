@@ -59,7 +59,7 @@ const props = withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 });
 
-const page = usePage<PageProps>();
+const page = usePage();
 const auth = computed(() => page.props.auth);
 
 const isCurrentRoute = computed(

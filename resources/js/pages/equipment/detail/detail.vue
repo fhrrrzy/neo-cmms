@@ -88,64 +88,10 @@
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div
-                                v-if="
-                                    equipment.recent_running_times?.length > 0
-                                "
-                            >
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead class="text-right"
-                                                >Counter Reading</TableHead
-                                            >
-                                            <TableHead class="text-right"
-                                                >Running Hours</TableHead
-                                            >
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow
-                                            v-for="(
-                                                time, index
-                                            ) in equipment.recent_running_times"
-                                            :key="index"
-                                        >
-                                            <TableCell class="font-medium">
-                                                {{ formatDate(time.date) }}
-                                            </TableCell>
-                                            <TableCell
-                                                class="text-right font-mono"
-                                            >
-                                                {{
-                                                    formatNumber(
-                                                        time.counter_reading,
-                                                    )
-                                                }}
-                                            </TableCell>
-                                            <TableCell
-                                                class="text-right font-mono"
-                                            >
-                                                {{
-                                                    formatNumber(
-                                                        time.running_hours,
-                                                    )
-                                                }}
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <div
-                                v-else
-                                class="py-8 text-center text-muted-foreground"
-                            >
-                                <Calendar
-                                    class="mx-auto mb-4 h-12 w-12 opacity-50"
-                                />
-                                <p>No running times data available</p>
-                            </div>
+                            <RunningTimeTable
+                                :equipment-number="props.equipmentNumber"
+                                :date-range="dateRange"
+                            />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -187,6 +133,7 @@
 </template>
 
 <script setup>
+import RunningTimeTable from '@/components/tables/running-time/RunningTimeTable.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -195,14 +142,6 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { RangeCalendar } from '@/components/ui/range-calendar';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { useDateRangeStore } from '@/stores/useDateRangeStore';
@@ -263,6 +202,10 @@ const breadcrumbs = computed(() => [
     {
         title: 'Monitoring',
         href: '/monitoring',
+    },
+    {
+        title: 'Equipment',
+        href: '/equipment',
     },
     {
         title: equipment.value.equipment_number || props.equipmentNumber,
