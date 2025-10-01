@@ -24,9 +24,6 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->name('dashboard')->middleware('auth');
 
-Route::get('/components', function () {
-    return Inertia::render('Components');
-})->name('components')->middleware('auth');
 
 include __DIR__ . '/auth.php';
 include __DIR__ . '/settings.php';

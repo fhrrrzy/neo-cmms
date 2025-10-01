@@ -37,6 +37,21 @@ import { InertiaLinkProps, Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next';
 import { computed } from 'vue';
 
+interface PageProps {
+    auth: {
+        user: {
+            id: number;
+            name: string;
+            email: string;
+            email_verified_at: string | null;
+            avatar?: string;
+            created_at: string;
+            updated_at: string;
+        };
+    };
+    [key: string]: any;
+}
+
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
 }
@@ -45,7 +60,7 @@ const props = withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 });
 
-const page = usePage();
+const page = usePage<PageProps>();
 const auth = computed(() => page.props.auth);
 
 const isCurrentRoute = computed(
