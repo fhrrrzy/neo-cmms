@@ -3,9 +3,11 @@ import DataTable from '@/components/monitoring/DataTable.vue';
 import DataTableViewOptions from '@/components/monitoring/DataTableViewOptions.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { monitoring } from '@/routes';
+import { useMonitoringFilterStore } from '@/stores/monitoringFilterStore';
+import { useDateRangeStore } from '@/stores/useDateRangeStore';
 import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { onMounted, ref } from 'vue';
+import { nextTick, onMounted, ref } from 'vue';
 import MonitoringFilter from './components/MonitoringFilter.vue';
 
 const loading = ref(false);
@@ -37,13 +39,19 @@ const breadcrumbs = [
     },
 ];
 
+const dateRangeStore = useDateRangeStore();
+const monitoringFilterStore = useMonitoringFilterStore();
+monitoringFilterStore.load();
+
 const filters = ref({
     date_range: {
-        start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split('T')[0],
-        end: new Date().toISOString().split('T')[0],
+        start: dateRangeStore.start,
+        end: dateRangeStore.end,
     },
+    regional_id: monitoringFilterStore.regional_id,
+    plant_id: monitoringFilterStore.plant_id,
+    station_id: monitoringFilterStore.station_id,
+    search: monitoringFilterStore.search,
 });
 
 const fetchEquipment = async (page = 1, perPage = 15) => {
@@ -77,6 +85,9 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
         if (filters.value.date_range.end) {
             params.append('date_end', filters.value.date_range.end);
         }
+        if (filters.value.search) {
+            params.append('search', filters.value.search);
+        }
 
         const response = await axios.get(`/api/monitoring/equipment?${params}`);
 
@@ -101,9 +112,31 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
 };
 
 const handleFilterChange = (newFilters) => {
-    filters.value = { ...newFilters };
+    filters.value = { ...filters.value, ...newFilters };
+    monitoringFilterStore.setFilters({
+        regional_id: filters.value.regional_id,
+        plant_id: filters.value.plant_id,
+        station_id: filters.value.station_id,
+        search: filters.value.search,
+    });
+    if (newFilters?.date_range?.start && newFilters?.date_range?.end) {
+        dateRangeStore.setRange(newFilters.date_range);
+    }
     // Reset to first page when filters change
     fetchEquipment(1, pagination.value.per_page);
+};
+
+// Debounced search handler
+let searchTimer;
+const handleSearchInput = (event) => {
+    const value = event?.target?.value ?? '';
+    filters.value.search = value;
+    monitoringFilterStore.setSearch(value);
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(async () => {
+        await nextTick();
+        fetchEquipment(1, pagination.value.per_page);
+    }, 300);
 };
 
 const handlePageChange = (page) => {
@@ -138,13 +171,23 @@ onMounted(() => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-6">
             <!-- Filter and View Toggle -->
-            <div class="pb-4">
+            <div class="">
                 <div class="flex items-end justify-between gap-4">
                     <MonitoringFilter
                         :filters="filters"
                         @filter-change="handleFilterChange"
                     />
-                    <DataTableViewOptions :table="dataTableRef?.table" />
+                    <div class="flex items-center gap-3">
+                        <input
+                            type="text"
+                            class="h-9 w-48 rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+                            :value="filters.search"
+                            @input="handleSearchInput"
+                            placeholder="Search..."
+                            aria-label="Search equipment"
+                        />
+                        <DataTableViewOptions :table="dataTableRef?.table" />
+                    </div>
                 </div>
             </div>
 

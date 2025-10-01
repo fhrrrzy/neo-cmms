@@ -566,37 +566,5 @@ onMounted(async () => {
                 </Button>
             </div>
         </div>
-        <!-- Debug Panel -->
-        <div class="mt-4 rounded-md border p-3 text-xs">
-            <div class="mb-2 font-semibold">Debug</div>
-            <div class="grid grid-cols-1 gap-1">
-                <div>datePopoverOpen: {{ String(datePopoverOpen) }}</div>
-                <div>
-                    rangeValue.start:
-                    {{
-                        rangeValue?.start
-                            ? rangeValue.start.toString()
-                            : 'undefined'
-                    }}
-                </div>
-                <div>
-                    rangeValue.end:
-                    {{
-                        rangeValue?.end
-                            ? rangeValue.end.toString()
-                            : 'undefined'
-                    }}
-                </div>
-                <div>
-                    localFilters.date_range.start:
-                    {{ localFilters?.date_range?.start }}
-                </div>
-                <div>
-                    localFilters.date_range.end:
-                    {{ localFilters?.date_range?.end }}
-                </div>
-                <div>lastRangeEvent: {{ JSON.stringify(lastRangeEvent) }}</div>
-            </div>
-        </div>
     </div>
 </template>

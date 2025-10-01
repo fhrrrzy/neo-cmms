@@ -35,6 +35,18 @@ class MonitoringController extends Controller
             });
         }
 
+        // Apply search across key fields
+        if ($request->filled('search')) {
+            $search = trim($request->get('search'));
+            $query->where(function (Builder $q) use ($search) {
+                $like = "%{$search}%";
+                $q->where('equipment.equipment_number', 'like', $like)
+                    ->orWhere('equipment.equipment_description', 'like', $like)
+                    ->orWhere('plants.name', 'like', $like)
+                    ->orWhere('stations.description', 'like', $like);
+            });
+        }
+
         // Get date range for running hours calculation
         $dateStart = $request->get('date_start', now()->subWeek()->toDateString());
         $dateEnd = $request->get('date_end', now()->toDateString());
@@ -120,6 +132,16 @@ class MonitoringController extends Controller
             'from' => $paginatedEquipment->firstItem(),
             'to' => $paginatedEquipment->lastItem(),
             'has_more_pages' => $paginatedEquipment->hasMorePages(),
+            'filters' => [
+                'regional_id' => $request->get('regional_id'),
+                'plant_id' => $request->get('plant_id'),
+                'station_id' => $request->get('station_id'),
+                'date_start' => $dateStart,
+                'date_end' => $dateEnd,
+                'search' => $request->get('search'),
+                'sort_by' => $sortBy,
+                'sort_direction' => $sortDirection,
+            ],
         ]);
     }
 

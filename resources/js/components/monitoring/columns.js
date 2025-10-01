@@ -2,6 +2,16 @@ import { Button } from '@/components/ui/button';
 import { ArrowUpDown } from 'lucide-vue-next';
 import { h } from 'vue';
 
+function renderValueOrNA(value, extraClass = '') {
+    const str = typeof value === 'string' ? value : value ?? '';
+    const lowered = String(str).toLowerCase();
+    const isEmpty = !str || lowered === '-' || lowered === 'n/a' || lowered === 'no data';
+    if (isEmpty) {
+        return h('span', { class: `text-muted-foreground ${extraClass}`.trim() }, 'N/A');
+    }
+    return h('span', { class: extraClass }, value);
+}
+
 export const columns = [
     {
         id: 'number',
@@ -61,7 +71,7 @@ export const columns = [
         header: () => 'Pabrik',
         cell: ({ row }) => {
             const plant = row.original.plant;
-            return h('div', plant?.name || '-');
+            return h('div', null, renderValueOrNA(plant?.name));
         },
     },
     {
@@ -69,7 +79,7 @@ export const columns = [
         header: () => 'Stasiun',
         cell: ({ row }) => {
             const station = row.original.station;
-            return h('div', station?.description || '-');
+            return h('div', null, renderValueOrNA(station?.description));
         },
     },
     {
@@ -77,14 +87,9 @@ export const columns = [
         header: () => 'Nama Equipment',
         cell: ({ row }) => {
             const description = row.getValue('equipment_description');
-            return h(
-                'div',
-                {
-                    class: 'max-w-[200px] truncate',
-                    title: description,
-                },
-                description || '-',
-            );
+            const content = renderValueOrNA(description, 'max-w-[200px] truncate');
+            content.props = { ...(content.props || {}), title: description };
+            return content;
         },
     },
     {
@@ -112,14 +117,14 @@ export const columns = [
         },
         cell: ({ row }) => {
             const amount = Number.parseFloat(row.getValue('cumulative_jam_jalan'));
-            if (amount === 0) {
-                return h('div', { class: 'text-right' }, 'No data');
+            if (!amount || amount === 0) {
+                return h('div', { class: 'text-right text-muted-foreground' }, 'N/A');
             }
             const formatted = new Intl.NumberFormat('id-ID', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
             }).format(amount);
-            return h('div', { class: 'text-right font-mono' }, formatted);
+            return h('div', { class: 'text-right font-mono' }, `${formatted} Jam`);
         },
     },
     {
@@ -146,12 +151,11 @@ export const columns = [
             );
         },
         cell: ({ row }) => {
-            const count = row.getValue('running_times_count');
-            return h(
-                'div',
-                { class: 'text-right' },
-                count > 0 ? count : 'No data',
-            );
+            const count = Number(row.getValue('running_times_count'));
+            if (!count || count <= 0) {
+                return h('div', { class: 'text-right text-muted-foreground' }, 'N/A');
+            }
+            return h('div', { class: 'text-right' }, `${count} Jam`);
         },
     },
 ];

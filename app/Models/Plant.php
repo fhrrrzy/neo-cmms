@@ -70,6 +70,14 @@ class Plant extends Model
     }
 
     /**
+     * Alias for region relation to support `plant.regional` usage.
+     */
+    public function regional(): BelongsTo
+    {
+        return $this->belongsTo(Region::class, 'regional_id');
+    }
+
+    /**
      * Get the stations for the plant.
      */
     public function stations(): HasMany
