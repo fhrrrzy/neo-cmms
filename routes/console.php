@@ -99,17 +99,16 @@ Artisan::command('ims:test:equipment {plant* : One or more plant codes}', functi
     $this->line('items: ' . (is_array($items) ? count($items) : 0));
 })->purpose('Probe IMS Equipments API');
 
-Artisan::command('ims:test:material {plant*} {--start=} {--end=} {--material=000000}', function () {
+Artisan::command('ims:test:material {plant*} {--start=} {--end=}', function () {
     $baseUrl = rtrim(config('ims.base_url'), '/');
     $token = config('ims.token');
     $plants = (array) $this->argument('plant');
     $start = $this->option('start') ?: now()->toDateString();
     $end = $this->option('end') ?: now()->toDateString();
-    $material = $this->option('material') ?: '000000';
     $url = $baseUrl . '/equipments/material?start_date=' . urlencode($start) . '&end_date=' . urlencode($end);
     $this->info("GET {$url} (JSON body)");
     $res = Http::withHeaders(['Authorization' => $token])->asJson()->send('GET', $url, [
-        'json' => ['plant' => array_values($plants), 'material_number' => $material],
+        'json' => ['plant' => array_values($plants)],
     ]);
     $this->line('HTTP ' . $res->status());
     $data = $res->json();

@@ -1,0 +1,506 @@
+// CMMS Database Schema
+// Generated from Laravel migrations
+
+Project cmms {
+  database_type: 'MySQL'
+  Note: 'Computerized Maintenance Management System Database Schema'
+}
+
+// Core System Tables
+Table users {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  email varchar(255) [unique, not null]
+  email_verified_at timestamp [null]
+  password varchar(255) [not null]
+  two_factor_secret text [null]
+  two_factor_recovery_codes text [null]
+  two_factor_confirmed_at timestamp [null]
+  role enum('superadmin', 'pks') [default: 'pks']
+  plant_id bigint [null]
+  regional_id bigint [null]
+  theme varchar(255) [null, default: 'default']
+  theme_color varchar(255) [null]
+  remember_token varchar(100) [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    email [unique]
+    plant_id
+    regional_id
+  }
+}
+
+Table password_reset_tokens {
+  email varchar(255) [pk]
+  token varchar(255) [not null]
+  created_at timestamp [null]
+}
+
+Table sessions {
+  id varchar(255) [pk]
+  user_id bigint [null]
+  ip_address varchar(45) [null]
+  user_agent text [null]
+  payload longtext [not null]
+  last_activity int [not null]
+
+  indexes {
+    user_id
+    last_activity
+  }
+}
+
+Table breezy_sessions {
+  id bigint [pk, increment]
+  authenticatable_type varchar(255) [not null]
+  authenticatable_id bigint [not null]
+  panel_id varchar(255) [null]
+  guard varchar(255) [null]
+  ip_address varchar(45) [null]
+  user_agent text [null]
+  expires_at timestamp [null]
+  two_factor_secret text [null]
+  two_factor_recovery_codes text [null]
+  two_factor_confirmed_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (authenticatable_type, authenticatable_id)
+  }
+}
+
+// Regional and Plant Management
+Table regions {
+  id bigint [pk, increment]
+  no int unsigned [not null]
+  name varchar(255) [not null]
+  category varchar(255) [not null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table plants {
+  id bigint [pk, increment]
+  plant_code varchar(255) [unique, not null]
+  regional_id bigint [not null]
+  name varchar(255) [not null]
+  kaps_terpasang int unsigned [not null]
+  faktor_koreksi_kaps int unsigned [not null]
+  faktor_koreksi_utilitas int unsigned [not null]
+  unit tinyint unsigned [not null]
+  instalasi_bunch_press boolean [not null]
+  pln_isasi boolean [not null]
+  cofiring boolean [not null]
+  hidden_pica_cost boolean [not null]
+  hidden_pica_cpo boolean [not null]
+  jenis tinyint unsigned [not null]
+  kaps_terpasang_sf int unsigned [not null]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    plant_code [unique]
+    regional_id
+  }
+}
+
+Table stations {
+  id bigint [pk, increment]
+  plant_id bigint [not null]
+  cost_center varchar(50) [not null]
+  description varchar(255) [not null]
+  keterangan varchar(50) [default: 'OBJEK']
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (plant_id, cost_center) [unique]
+    (plant_id, cost_center)
+  }
+}
+
+// Equipment Management
+Table equipment_groups {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  description text [null]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table equipment {
+  id bigint [pk, increment]
+  equipment_number varchar(50) [unique, not null]
+  plant_id bigint [not null]
+  station_id bigint [null]
+  equipment_group_id bigint [null]
+  company_code varchar(50) [null]
+  equipment_description varchar(255) [null]
+  object_number varchar(50) [null]
+  point varchar(50) [null]
+  api_created_at timestamp [null]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    equipment_number [unique]
+    (plant_id, equipment_group_id)
+    (plant_id, station_id)
+  }
+}
+
+// Running Times and Maintenance Data
+Table equipment_running_times {
+  id bigint [pk, increment]
+  equipment_id bigint [not null]
+  plant_id bigint [not null]
+  point varchar(50) [null]
+  date date [not null]
+  date_time timestamp [null]
+  description text [null]
+  running_hours decimal(10,2) [default: 0]
+  cumulative_hours decimal(12,2) [default: 0]
+  company_code varchar(50) [null]
+  equipment_description varchar(255) [null]
+  object_number varchar(50) [null]
+  api_created_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (equipment_id, date) [unique]
+    (plant_id, date)
+    date
+  }
+}
+
+Table running_times {
+  id bigint [pk, increment]
+  ims_id varchar(50) [unique, null]
+  equipment_number varchar(50) [not null]
+  date date [not null]
+  plant_id bigint [null]
+  date_time datetime [null]
+  running_hours decimal(10,2) [null]
+  counter_reading decimal(15,2) [null]
+  maintenance_text text [null]
+  company_code varchar(50) [null]
+  equipment_description varchar(255) [null]
+  object_number varchar(50) [null]
+  api_created_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    ims_id [unique]
+    (equipment_number, date) [unique]
+    (plant_id, date)
+    (equipment_number, date)
+  }
+}
+
+// Work Orders and Maintenance
+Table work_orders {
+  id bigint [pk, increment]
+  ims_id varchar(50) [unique, not null]
+  mandt varchar(10) [null]
+  order varchar(50) [unique, not null]
+  order_type varchar(10) [null]
+  created_on date [null]
+  change_date_for_order_master date [null]
+  description text [null]
+  company_code varchar(10) [null]
+  plant_id bigint [null]
+  station_id bigint [null]
+  plant_code varchar(20) [null]
+  responsible_cctr varchar(50) [null]
+  order_status varchar(10) [null]
+  technical_completion date [null]
+  cost_center varchar(50) [null]
+  profit_center varchar(50) [null]
+  object_class varchar(10) [null]
+  main_work_center varchar(50) [null]
+  notification varchar(50) [null]
+  cause varchar(50) [null]
+  cause_text text [null]
+  code_group_problem varchar(50) [null]
+  item_text text [null]
+  created timestamp [null]
+  released timestamp [null]
+  completed varchar(10) [null]
+  closed timestamp [null]
+  planned_release timestamp [null]
+  planned_completion timestamp [null]
+  planned_closing_date timestamp [null]
+  release timestamp [null]
+  close timestamp [null]
+  api_updated_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    ims_id [unique]
+    order [unique]
+    (plant_id, order_status)
+    (created_on, order_type)
+    (plant_id, station_id)
+  }
+}
+
+Table equipment_work_orders {
+  id bigint [pk, increment]
+  ims_id varchar(50) [unique, not null]
+  reservation varchar(50) [null]
+  requirement_type varchar(10) [null]
+  reservation_status varchar(5) [null]
+  item_deleted varchar(5) [null]
+  movement_allowed varchar(5) [null]
+  final_issue varchar(5) [null]
+  missing_part varchar(5) [null]
+  material varchar(50) [null]
+  plant_id bigint [null]
+  equipment_id bigint [null]
+  storage_location varchar(50) [null]
+  requirements_date date [null]
+  requirement_quantity decimal(18,3) [null]
+  base_unit_of_measure varchar(20) [null]
+  debit_credit_ind varchar(5) [null]
+  quantity_is_fixed varchar(5) [null]
+  quantity_withdrawn decimal(18,3) [null]
+  value_withdrawn decimal(18,2) [null]
+  currency varchar(10) [null]
+  qty_in_unit_of_entry decimal(18,3) [null]
+  unit_of_entry varchar(20) [null]
+  movement_type varchar(10) [null]
+  gl_account varchar(50) [null]
+  receiving_plant varchar(50) [null]
+  receiving_storage_location varchar(50) [null]
+  qty_for_avail_check decimal(18,3) [null]
+  goods_recipient varchar(100) [null]
+  material_group varchar(50) [null]
+  acct_manually varchar(5) [null]
+  commitment_item_1 varchar(50) [null]
+  funds_center varchar(50) [null]
+  start_time varchar(10) [null]
+  end_time varchar(10) [null]
+  service_duration decimal(10,2) [null]
+  service_dur_unit varchar(10) [null]
+  api_updated_at timestamp [null]
+  commitment_item_2 varchar(50) [null]
+  order_number varchar(50) [null]
+  equipment_number varchar(50) [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    ims_id [unique]
+    (plant_id, requirements_date)
+    equipment_number
+    equipment_id
+  }
+}
+
+Table equipment_materials {
+  id bigint [pk, increment]
+  ims_id varchar(50) [unique, null]
+  plant_id bigint [null]
+  equipment_number varchar(50) [null]
+  material_number varchar(50) [null]
+  reservation_number varchar(50) [null]
+  reservation_item varchar(10) [null]
+  reservation_type varchar(10) [null]
+  requirement_type varchar(10) [null]
+  reservation_status varchar(5) [null]
+  deletion_flag varchar(5) [null]
+  goods_receipt_flag varchar(5) [null]
+  final_issue_flag varchar(5) [null]
+  error_flag varchar(5) [null]
+  storage_location varchar(50) [null]
+  production_supply_area varchar(50) [null]
+  batch_number varchar(50) [null]
+  storage_bin varchar(50) [null]
+  special_stock_indicator varchar(10) [null]
+  requirement_date date [null]
+  requirement_qty decimal(18,3) [null]
+  unit_of_measure varchar(20) [null]
+  debit_credit_indicator varchar(5) [null]
+  issued_qty decimal(18,3) [null]
+  withdrawn_qty decimal(18,3) [null]
+  withdrawn_value decimal(18,2) [null]
+  currency varchar(10) [null]
+  entry_qty decimal(18,3) [null]
+  entry_uom varchar(20) [null]
+  planned_order varchar(50) [null]
+  purchase_requisition varchar(50) [null]
+  purchase_requisition_item varchar(10) [null]
+  production_order varchar(50) [null]
+  movement_type varchar(10) [null]
+  gl_account varchar(50) [null]
+  receiving_storage_loc varchar(50) [null]
+  receiving_plant varchar(50) [null]
+  api_created_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    ims_id [unique]
+    (plant_id, requirement_date)
+    equipment_number
+    material_number
+    production_order
+  }
+}
+
+// Rules and Configuration
+Table rules {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  equipment_group_id bigint [null]
+  equipment_id bigint [null]
+  rules json [not null]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (equipment_group_id, equipment_id)
+  }
+}
+
+// API and System Management
+Table api_sync_logs {
+  id bigint [pk, increment]
+  sync_type varchar(50) [not null]
+  status enum('pending', 'running', 'completed', 'failed', 'cancelled') [not null]
+  records_processed int [default: 0]
+  records_success int [default: 0]
+  records_failed int [default: 0]
+  error_message text [null]
+  sync_started_at timestamp [null]
+  sync_completed_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (sync_type, status)
+    sync_started_at
+  }
+}
+
+// Notifications
+Table notifications {
+  id uuid [pk]
+  type varchar(255) [not null]
+  notifiable_type varchar(255) [not null]
+  notifiable_id bigint [not null]
+  data text [not null]
+  read_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (notifiable_type, notifiable_id)
+  }
+}
+
+// Queue and Job Management
+Table jobs {
+  id bigint [pk, increment]
+  queue varchar(255) [not null]
+  payload longtext [not null]
+  attempts tinyint unsigned [not null]
+  reserved_at int unsigned [null]
+  available_at int unsigned [not null]
+  created_at int unsigned [not null]
+
+  indexes {
+    queue
+  }
+}
+
+Table job_batches {
+  id varchar(255) [pk]
+  name varchar(255) [not null]
+  total_jobs int [not null]
+  pending_jobs int [not null]
+  failed_jobs int [not null]
+  failed_job_ids longtext [not null]
+  options mediumtext [null]
+  cancelled_at int [null]
+  created_at int [not null]
+  finished_at int [null]
+}
+
+Table failed_jobs {
+  id bigint [pk, increment]
+  uuid varchar(255) [unique, not null]
+  connection text [not null]
+  queue text [not null]
+  payload longtext [not null]
+  exception longtext [not null]
+  failed_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    uuid [unique]
+  }
+}
+
+Table queue_monitors {
+  id bigint [pk, increment]
+  job_id varchar(255) [not null]
+  name varchar(255) [null]
+  queue varchar(255) [null]
+  started_at timestamp [null]
+  finished_at timestamp [null]
+  failed boolean [default: false]
+  attempt int [default: 0]
+  progress int [null]
+  exception_message text [null]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    job_id
+    started_at
+    failed
+  }
+}
+
+// Cache Tables
+Table cache {
+  key varchar(255) [pk]
+  value mediumtext [not null]
+  expiration int [not null]
+}
+
+Table cache_locks {
+  key varchar(255) [pk]
+  owner varchar(255) [not null]
+  expiration int [not null]
+}
+
+// Relationships
+Ref: users.plant_id > plants.id [delete: set null]
+Ref: users.regional_id > regions.id [delete: set null]
+Ref: plants.regional_id > regions.id [delete: cascade]
+Ref: stations.plant_id > plants.id [delete: cascade]
+Ref: equipment.plant_id > plants.id [delete: cascade]
+Ref: equipment.station_id > stations.id [delete: set null]
+Ref: equipment.equipment_group_id > equipment_groups.id [delete: set null]
+Ref: equipment_running_times.equipment_id > equipment.id [delete: cascade]
+Ref: equipment_running_times.plant_id > plants.id [delete: cascade]
+Ref: running_times.plant_id > plants.id [delete: set null]
+Ref: work_orders.plant_id > plants.id [delete: set null]
+Ref: work_orders.station_id > stations.id [delete: set null]
+Ref: equipment_work_orders.plant_id > plants.id [delete: set null]
+Ref: equipment_work_orders.equipment_id > equipment.id [delete: set null]
+Ref: equipment_materials.plant_id > plants.id [delete: set null]
+Ref: rules.equipment_group_id > equipment_groups.id [delete: cascade]
+Ref: rules.equipment_id > equipment.id [delete: cascade]
+Ref: sessions.user_id > users.id [delete: cascade]

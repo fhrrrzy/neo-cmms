@@ -1,5 +1,6 @@
 <?php
 
+use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 
 // Health check endpoint for Docker
@@ -16,5 +17,16 @@ Route::get('/health', function () {
 });
 
 Route::get('/', function () {
-    return redirect()->to('/admin');
-});
+    return Inertia::render('Welcome');
+})->name('home');
+
+Route::get('/dashboard', function () {
+    return Inertia::render('Dashboard');
+})->name('dashboard')->middleware('auth');
+
+Route::get('/components', function () {
+    return Inertia::render('Components');
+})->name('components')->middleware('auth');
+
+include __DIR__ . '/auth.php';
+include __DIR__ . '/settings.php';

@@ -107,7 +107,6 @@ class ConcurrentApiSyncService
                     ->send('GET', $materialsUrl, [
                         'json' => [
                             'plant' => array_values($plantCodes),
-                            'material_number' => '000000',
                         ],
                     ]);
             }
@@ -195,6 +194,13 @@ class ConcurrentApiSyncService
         foreach (['equipment', 'equipment_material', 'equipment_work_orders', 'work_orders'] as $apiType) {
             $response = $responses[$apiType] ?? null;
             $this->info("🔄 Processing {$apiType} data...");
+
+            // If this type wasn't requested or no response was returned, skip with zeros
+            if ($response === null) {
+                $this->info("ℹ️ {$apiType}: Skipped (no request/response)");
+                $results[$apiType] = ['processed' => 0, 'success' => 0, 'failed' => 0];
+                continue;
+            }
 
             try {
                 if ($response->successful()) {
