@@ -25,7 +25,6 @@ import {
 import {
     Tooltip,
     TooltipContent,
-    TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
@@ -219,35 +218,33 @@ const rightNavItems: NavItem[] = [
                                 v-for="item in rightNavItems"
                                 :key="item.title"
                             >
-                                <TooltipProvider :delay-duration="0">
-                                    <Tooltip>
-                                        <TooltipTrigger>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                as-child
-                                                class="group h-9 w-9 cursor-pointer"
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            as-child
+                                            class="group h-9 w-9 cursor-pointer"
+                                        >
+                                            <a
+                                                :href="toUrl(item.href)"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                             >
-                                                <a
-                                                    :href="toUrl(item.href)"
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    <span class="sr-only">{{
-                                                        item.title
-                                                    }}</span>
-                                                    <component
-                                                        :is="item.icon"
-                                                        class="size-5 opacity-80 group-hover:opacity-100"
-                                                    />
-                                                </a>
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>{{ item.title }}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                                <span class="sr-only">{{
+                                                    item.title
+                                                }}</span>
+                                                <component
+                                                    :is="item.icon"
+                                                    class="size-5 opacity-80 group-hover:opacity-100"
+                                                />
+                                            </a>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{{ item.title }}</p>
+                                    </TooltipContent>
+                                </Tooltip>
                             </template>
                         </div>
                     </div>

@@ -24,6 +24,10 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->name('dashboard')->middleware('auth');
 
+Route::get('/monitoring', function () {
+    return Inertia::render('monitoring/Monitoring');
+})->name('monitoring')->middleware('auth');
+
 
 include __DIR__ . '/auth.php';
 include __DIR__ . '/settings.php';
