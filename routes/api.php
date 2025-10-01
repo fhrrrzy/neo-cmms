@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\MonitoringController;
 use App\Http\Controllers\Api\EquipmentApiController;
+use App\Http\Controllers\Api\WorkOrderApiController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -23,3 +24,6 @@ Route::get('/stations', [MonitoringController::class, 'stations']);
 
 // Equipment detail CSR API
 Route::get('/equipment/{equipmentNumber}', [EquipmentApiController::class, 'show']);
+
+// Work Orders by plant and date range
+Route::get('/workorders', [WorkOrderApiController::class, 'index']);

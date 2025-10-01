@@ -57,70 +57,125 @@
                 </div>
             </div>
 
-            <!-- Running Time Chart -->
-            <Card>
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <BarChart3 class="h-5 w-5" />
-                        Running Time Analysis
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <RunningTimeChart
-                        :data="equipment.recent_running_times"
-                        :subtitle="`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`"
-                    />
-                </CardContent>
-            </Card>
+            <Tabs default-value="running">
+                <TabsList class="grid w-fit grid-cols-3">
+                    <TabsTrigger value="running">Running Time</TabsTrigger>
+                    <TabsTrigger value="workorders">Work Orders</TabsTrigger>
+                    <TabsTrigger value="material">Material</TabsTrigger>
+                </TabsList>
 
-            <!-- Recent Running Times Table -->
-            <Card>
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <Clock class="h-5 w-5" />
-                        Running Times Data
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div v-if="equipment.recent_running_times?.length > 0">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead class="text-right"
-                                        >Counter Reading</TableHead
-                                    >
-                                    <TableHead class="text-right"
-                                        >Running Hours</TableHead
-                                    >
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow
-                                    v-for="(
-                                        time, index
-                                    ) in equipment.recent_running_times"
-                                    :key="index"
-                                >
-                                    <TableCell class="font-medium">
-                                        {{ formatDate(time.date) }}
-                                    </TableCell>
-                                    <TableCell class="text-right font-mono">
-                                        {{ formatNumber(time.counter_reading) }}
-                                    </TableCell>
-                                    <TableCell class="text-right font-mono">
-                                        {{ formatNumber(time.running_hours) }}
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </div>
-                    <div v-else class="py-8 text-center text-muted-foreground">
-                        <Calendar class="mx-auto mb-4 h-12 w-12 opacity-50" />
-                        <p>No running times data available</p>
-                    </div>
-                </CardContent>
-            </Card>
+                <TabsContent value="running" class="space-y-6 pt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle class="flex items-center gap-2">
+                                <BarChart3 class="h-5 w-5" />
+                                Running Time Analysis
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <RunningTimeChart
+                                :data="equipment.recent_running_times"
+                                :subtitle="`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`"
+                            />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle class="flex items-center gap-2">
+                                <Clock class="h-5 w-5" />
+                                Running Times Data
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div
+                                v-if="
+                                    equipment.recent_running_times?.length > 0
+                                "
+                            >
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead class="text-right"
+                                                >Counter Reading</TableHead
+                                            >
+                                            <TableHead class="text-right"
+                                                >Running Hours</TableHead
+                                            >
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow
+                                            v-for="(
+                                                time, index
+                                            ) in equipment.recent_running_times"
+                                            :key="index"
+                                        >
+                                            <TableCell class="font-medium">
+                                                {{ formatDate(time.date) }}
+                                            </TableCell>
+                                            <TableCell
+                                                class="text-right font-mono"
+                                            >
+                                                {{
+                                                    formatNumber(
+                                                        time.counter_reading,
+                                                    )
+                                                }}
+                                            </TableCell>
+                                            <TableCell
+                                                class="text-right font-mono"
+                                            >
+                                                {{
+                                                    formatNumber(
+                                                        time.running_hours,
+                                                    )
+                                                }}
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <div
+                                v-else
+                                class="py-8 text-center text-muted-foreground"
+                            >
+                                <Calendar
+                                    class="mx-auto mb-4 h-12 w-12 opacity-50"
+                                />
+                                <p>No running times data available</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="workorders" class="pt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Work Orders</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-muted-foreground">
+                                Coming soon...
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="material" class="pt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Material</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="text-muted-foreground">
+                                Coming soon...
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
         <QrShare
             :open="isQrOpen"
@@ -148,6 +203,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { useDateRangeStore } from '@/stores/useDateRangeStore';
 import { Head, router } from '@inertiajs/vue3';

@@ -10,6 +10,49 @@ const props = defineProps({
 const container = ref(null);
 let chart = null;
 
+// Dark mode detection (supports class and media query)
+const isDarkMode = () => {
+    if (
+        typeof document !== 'undefined' &&
+        document.documentElement.classList.contains('dark')
+    ) {
+        return true;
+    }
+    if (typeof window !== 'undefined' && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+};
+
+const getTheme = () => {
+    const dark = isDarkMode();
+    return dark
+        ? {
+              background: 'transparent',
+              text: '#e5e7eb',
+              mutedText: '#9ca3af',
+              grid: '#374151',
+              series: Highcharts.getOptions().colors || [
+                  '#60a5fa',
+                  '#f59e0b',
+                  '#34d399',
+                  '#f472b6',
+              ],
+          }
+        : {
+              background: 'transparent',
+              text: '#111827',
+              mutedText: '#6b7280',
+              grid: '#e5e7eb',
+              series: Highcharts.getOptions().colors || [
+                  '#2563eb',
+                  '#f59e0b',
+                  '#10b981',
+                  '#ec4899',
+              ],
+          };
+};
+
 const createChart = () => {
     if (!container.value || !props.data?.length) return;
 
@@ -21,31 +64,43 @@ const createChart = () => {
 
     if (chart) chart.destroy();
 
+    const theme = getTheme();
     chart = Highcharts.chart(container.value, {
         chart: { type: 'line', height: 400 },
-        title: { text: 'Running Time Analysis' },
-        subtitle: { text: props.subtitle },
-        xAxis: { type: 'datetime', title: { text: 'Date' } },
+        title: { text: 'Running Time Analysis', style: { color: theme.text } },
+        subtitle: { text: props.subtitle, style: { color: theme.mutedText } },
+        xAxis: {
+            type: 'datetime',
+            title: { text: 'Date', style: { color: theme.text } },
+            labels: { style: { color: theme.mutedText } },
+            lineColor: theme.grid,
+            tickColor: theme.grid,
+        },
         yAxis: [
             {
                 title: {
                     text: 'Counter Reading',
-                    style: { color: Highcharts.getOptions().colors[0] },
+                    style: { color: theme.series[0] },
                 },
-                labels: { style: { color: Highcharts.getOptions().colors[0] } },
+                labels: { style: { color: theme.series[0] } },
+                gridLineColor: theme.grid,
             },
             {
                 title: {
                     text: 'Running Hours',
-                    style: { color: Highcharts.getOptions().colors[1] },
+                    style: { color: theme.series[1] },
                 },
-                labels: { style: { color: Highcharts.getOptions().colors[1] } },
+                labels: { style: { color: theme.series[1] } },
                 opposite: true,
+                gridLineColor: theme.grid,
             },
         ],
         tooltip: {
             shared: true,
             crosshairs: true,
+            backgroundColor: isDarkMode() ? '#111827' : '#ffffff',
+            borderColor: theme.grid,
+            style: { color: theme.text },
         },
         legend: {
             layout: 'vertical',
@@ -54,9 +109,8 @@ const createChart = () => {
             verticalAlign: 'top',
             y: 55,
             floating: true,
-            backgroundColor:
-                Highcharts.defaultOptions.legend.backgroundColor ||
-                'rgba(255,255,255,0.25)',
+            backgroundColor: 'transparent',
+            itemStyle: { color: theme.text },
         },
         series: [
             {
@@ -64,7 +118,7 @@ const createChart = () => {
                 type: 'line',
                 yAxis: 0,
                 data: chartData.map((i) => [i.x, i.counterReading]),
-                color: Highcharts.getOptions().colors[0],
+                color: theme.series[0],
                 marker: { enabled: true, radius: 4 },
             },
             {
@@ -72,7 +126,7 @@ const createChart = () => {
                 type: 'line',
                 yAxis: 1,
                 data: chartData.map((i) => [i.x, i.runningHours]),
-                color: Highcharts.getOptions().colors[1],
+                color: theme.series[1],
                 marker: { enabled: true, radius: 4 },
             },
         ],
@@ -93,6 +147,8 @@ const createChart = () => {
                 },
             ],
         },
+        credits: { enabled: false },
+        chart: { backgroundColor: 'transparent' },
     });
 };
 
@@ -106,6 +162,12 @@ watch(
     () => createChart(),
     { deep: true },
 );
+
+// Recreate chart on color scheme changes
+if (typeof window !== 'undefined' && window.matchMedia) {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    mq.addEventListener?.('change', () => createChart());
+}
 </script>
 
 <template>
