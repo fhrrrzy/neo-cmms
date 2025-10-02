@@ -10,8 +10,7 @@ class WorkOrderApiController extends Controller
 {
     public function index(Request $request)
     {
-        $query = WorkOrder::with(['plant', 'station'])
-            ->orderByDesc('created_on');
+        $query = WorkOrder::with(['plant', 'station']);
 
         if ($request->filled('plant_id')) {
             $query->where('plant_id', $request->plant_id);
@@ -19,6 +18,21 @@ class WorkOrderApiController extends Controller
 
         if ($request->filled('date_start') && $request->filled('date_end')) {
             $query->whereBetween('created_on', [$request->date_start, $request->date_end]);
+        }
+
+        // Sorting support
+        $allowedSorts = [
+            'created_on' => 'created_on',
+            'order' => 'order',
+            'order_type_label' => 'order_type_label',
+            'order_status_label' => 'order_status_label',
+        ];
+        $sortBy = $request->get('sort_by');
+        $sortDirection = strtolower($request->get('sort_direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        if ($sortBy && isset($allowedSorts[$sortBy])) {
+            $query->orderBy($allowedSorts[$sortBy], $sortDirection);
+        } else {
+            $query->orderBy('created_on', 'desc');
         }
 
         $perPage = (int) $request->get('per_page', 15);

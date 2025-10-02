@@ -51,6 +51,19 @@ class EquipmentProcessor
                 'object_number' => Arr::get($item, 'object_number') ?? Arr::get($item, 'OBJNR'),
                 'point' => Arr::get($item, 'point') ?? Arr::get($item, 'POINT'),
                 'api_created_at' => ($ts = Arr::get($item, 'api_created_at') ?? Arr::get($item, 'CREATED_AT')) ? Carbon::parse($ts) : null,
+                // Complete API field mapping
+                'api_id' => Arr::get($item, 'ID'),
+                'mandt' => Arr::get($item, 'MANDT'),
+                'baujj' => Arr::get($item, 'BAUJJ'),
+                'groes' => Arr::get($item, 'GROES'),
+                'herst' => Arr::get($item, 'HERST'),
+                'mrnug' => Arr::get($item, 'MRNGU'),
+                'eqtyp' => Arr::get($item, 'EQTYP'),
+                'eqart' => Arr::get($item, 'EQART'),
+                'maintenance_planner_group' => Arr::get($item, 'MAINTAINANCE_PLANNER_GROUP'),
+                'maintenance_work_center' => Arr::get($item, 'MAINTAINANCE_WORK_CENTER'),
+                'functional_location' => Arr::get($item, 'FUNCTIONAL_LOCATION'),
+                'description_func_location' => Arr::get($item, 'DESCRIPTION_FUNC_LOCATION'),
                 'is_active' => true,
             ]
         );

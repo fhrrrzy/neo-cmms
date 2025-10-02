@@ -10,29 +10,25 @@ import {
 } from '@/components/ui/table';
 import axios from 'axios';
 import { h, onMounted, ref, watch } from 'vue';
-import { runningTimeColumns } from './columns';
+import { equipmentWorkOrderColumns } from './columns';
 
 const props = defineProps({
     equipmentNumber: { type: String, required: true },
-    dateRange: {
-        type: Object,
-        required: true,
-    },
-    // Tailwind class for max height; default to 80vh
+    dateRange: { type: Object, required: true },
     maxHeightClass: { type: String, default: 'max-h-[80vh]' },
 });
 
 const rows = ref([]);
 const loading = ref(false);
 const page = ref(1);
-const perPage = ref(50);
-const sortBy = ref('date');
-const sortDirection = ref('asc');
+const perPage = ref(15);
+const sortBy = ref('requirements_date');
+const sortDirection = ref('desc');
 
 const pagination = ref({
     total: 0,
     current_page: 1,
-    per_page: 50,
+    per_page: 15,
     last_page: 1,
 });
 
@@ -57,35 +53,38 @@ const tableContext = {
         },
     },
 };
-// No inline style to keep Tailwind-based cn working
+
+const renderOrNA = (value) => {
+    const s = value ?? '';
+    const lowered = String(s).toLowerCase();
+    if (!s || lowered === '-' || lowered === 'no data' || lowered === 'n/a')
+        return 'N/A';
+    return String(value);
+};
 
 const fetchData = async () => {
     loading.value = true;
     try {
         const params = new URLSearchParams();
+        params.append('equipment_number', props.equipmentNumber);
         if (props.dateRange?.start)
             params.append('date_start', props.dateRange.start);
         if (props.dateRange?.end)
             params.append('date_end', props.dateRange.end);
-        params.append('rt_page', String(page.value));
-        params.append('rt_per_page', String(perPage.value));
-        if (sortBy.value && sortDirection.value) {
-            params.append('rt_sort_by', sortBy.value);
-            params.append('rt_sort_direction', sortDirection.value);
-        }
+        params.append('page', String(page.value));
+        params.append('per_page', String(perPage.value));
+        params.append('sort_by', sortBy.value);
+        params.append('sort_direction', sortDirection.value);
         const { data } = await axios.get(
-            `/api/equipment/${props.equipmentNumber}?${params}`,
+            `/api/equipment-work-orders?${params}`,
         );
-        rows.value = data?.equipment?.recent_running_times || [];
-        const meta = data?.equipment?.running_times_pagination;
-        if (meta) {
-            pagination.value = {
-                total: meta.total ?? 0,
-                per_page: meta.per_page ?? perPage.value,
-                current_page: meta.current_page ?? page.value,
-                last_page: meta.last_page ?? 1,
-            };
-        }
+        rows.value = data?.data || [];
+        pagination.value = {
+            total: data?.total ?? 0,
+            per_page: data?.per_page ?? perPage.value,
+            current_page: data?.current_page ?? page.value,
+            last_page: data?.last_page ?? 1,
+        };
     } finally {
         loading.value = false;
     }
@@ -105,7 +104,7 @@ watch(
                 <TableHeader>
                     <TableRow>
                         <TableHead
-                            v-for="col in runningTimeColumns"
+                            v-for="col in equipmentWorkOrderColumns"
                             :key="col.id || col.accessorKey || col.key"
                             :class="col.align === 'right' ? 'text-right' : ''"
                         >
@@ -123,54 +122,77 @@ watch(
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    <TableRow v-for="(time, index) in rows" :key="index">
+                    <TableRow v-for="(item, idx) in rows" :key="item.id">
                         <TableCell class="text-center font-medium">
                             {{
                                 (pagination.current_page - 1) *
                                     pagination.per_page +
-                                index +
+                                idx +
                                 1
                             }}
                         </TableCell>
-                        <TableCell class="font-medium">
+                        <TableCell class="font-mono text-sm">
                             {{
-                                new Date(time.date).toLocaleDateString(
-                                    'en-US',
-                                    {
+                                renderOrNA(
+                                    new Date(
+                                        item.requirements_date,
+                                    ).toLocaleDateString('en-US', {
                                         year: 'numeric',
                                         month: 'short',
                                         day: 'numeric',
-                                    },
+                                    }),
                                 )
                             }}
                         </TableCell>
+                        <TableCell class="font-mono text-sm">{{
+                            renderOrNA(item.order_number)
+                        }}</TableCell>
+                        <TableCell class="font-mono text-sm">{{
+                            renderOrNA(item.reservation)
+                        }}</TableCell>
+                        <TableCell class="font-mono text-sm">{{
+                            renderOrNA(item.material)
+                        }}</TableCell>
                         <TableCell class="text-right font-mono">
                             {{
                                 Number(
-                                    time.counter_reading || 0,
+                                    item.requirement_quantity || 0,
                                 ).toLocaleString('id-ID', {
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0,
+                                    minimumFractionDigits: 3,
+                                    maximumFractionDigits: 3,
+                                })
+                            }}
+                        </TableCell>
+                        <TableCell>{{
+                            renderOrNA(item.base_unit_of_measure)
+                        }}</TableCell>
+                        <TableCell class="text-right font-mono">
+                            {{
+                                Number(
+                                    item.quantity_withdrawn || 0,
+                                ).toLocaleString('id-ID', {
+                                    minimumFractionDigits: 3,
+                                    maximumFractionDigits: 3,
                                 })
                             }}
                         </TableCell>
                         <TableCell class="text-right font-mono">
                             {{
-                                Number(time.running_hours || 0).toLocaleString(
-                                    'id-ID',
-                                    {
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 2,
-                                    },
-                                )
+                                Number(
+                                    item.value_withdrawn || 0,
+                                ).toLocaleString('id-ID', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })
                             }}
                         </TableCell>
+                        <TableCell>{{ renderOrNA(item.currency) }}</TableCell>
                     </TableRow>
                 </TableBody>
             </Table>
         </ScrollArea>
     </div>
     <div v-else class="py-8 text-center text-muted-foreground">
-        <p>No running times data available</p>
+        <p>No equipment work orders found</p>
     </div>
 </template>

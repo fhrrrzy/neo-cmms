@@ -83,6 +83,80 @@ class EquipmentResource extends Resource
                     ->label('Point'),
                 Forms\Components\DateTimePicker::make('api_created_at')
                     ->label('Dibuat di API'),
+
+                // Complete API Field Mapping
+                Forms\Components\Section::make('API Data')
+                    ->description('Data dari API eksternal')
+                    ->schema([
+                        Forms\Components\TextInput::make('api_id')
+                            ->prefixIcon('heroicon-o-hashtag')
+                            ->maxLength(255)
+                            ->label('ID API'),
+                        Forms\Components\TextInput::make('mandt')
+                            ->prefixIcon('heroicon-o-hashtag')
+                            ->maxLength(50)
+                            ->label('MANDT'),
+                        Forms\Components\TextInput::make('baujj')
+                            ->prefixIcon('heroicon-o-calendar')
+                            ->maxLength(50)
+                            ->label('Tahun Pembuat'),
+                        Forms\Components\TextInput::make('groes')
+                            ->prefixIcon('heroicon-o-cube')
+                            ->maxLength(255)
+                            ->label('Ukuran'),
+                        Forms\Components\TextInput::make('herst')
+                            ->prefixIcon('heroicon-o-building-storefront')
+                            ->maxLength(255)
+                            ->label('Pembuat'),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Technical Specifications')
+                    ->description('Spesifikasi teknis peralatan')
+                    ->schema([
+                        Forms\Components\TextInput::make('mrnug')
+                            ->prefixIcon('heroicon-o-hashtag')
+                            ->maxLength(50)
+                            ->label('MRNGU'),
+                        Forms\Components\TextInput::make('eqtyp')
+                            ->prefixIcon('heroicon-o-tag')
+                            ->maxLength(50)
+                            ->label('Equipment Type'),
+                        Forms\Components\TextInput::make('eqart')
+                            ->prefixIcon('heroicon-o-cog-6-tooth')
+                            ->maxLength(100)
+                            ->label('Equipment Art'),
+                    ])
+                    ->columns(3),
+
+                Forms\Components\Section::make('Maintenance Information')
+                    ->description('Informasi pemeliharaan')
+                    ->schema([
+                        Forms\Components\TextInput::make('maintenance_planner_group')
+                            ->prefixIcon('heroicon-o-users')
+                            ->maxLength(100)
+                            ->label('Grup Planner Pemeliharaan'),
+                        Forms\Components\TextInput::make('maintenance_work_center')
+                            ->prefixIcon('heroicon-o-building-office')
+                            ->maxLength(100)
+                            ->label('Work Center Pemeliharaan'),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Location Information')
+                    ->description('Informasi lokasi')
+                    ->schema([
+                        Forms\Components\TextInput::make('functional_location')
+                            ->prefixIcon('heroicon-o-map-pin')
+                            ->maxLength(255)
+                            ->label('Lokasi Fungsional'),
+                        Forms\Components\TextInput::make('description_func_location')
+                            ->prefixIcon('heroicon-o-rectangle-group')
+                            ->maxLength(255)
+                            ->label('Deskripsi Lokasi Fungsional'),
+                    ])
+                    ->columns(1),
+
                 Forms\Components\Toggle::make('is_active')
                     ->required()
                     ->label('Status Aktif'),
@@ -152,6 +226,65 @@ class EquipmentResource extends Resource
                     ->searchable()
                     ->label('Point')
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                // API Fields Columns
+                Tables\Columns\TextColumn::make('api_id')
+                    ->searchable()
+                    ->label('ID API')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('mandt')
+                    ->searchable()
+                    ->label('MANDT')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('baujj')
+                    ->searchable()
+                    ->label('Tahun Pembuat')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('groes')
+                    ->searchable()
+                    ->label('Ukuran')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('herst')
+                    ->searchable()
+                    ->label('Pembuat')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                // Technical Specifications
+                Tables\Columns\TextColumn::make('mrnug')
+                    ->searchable()
+                    ->label('MRNGU')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('eqtyp')
+                    ->searchable()
+                    ->label('Equipment Type')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('eqart')
+                    ->searchable()
+                    ->label('Equipment Art')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                // Maintenance Information
+                Tables\Columns\TextColumn::make('maintenance_planner_group')
+                    ->searchable()
+                    ->label('Grup Planner')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('maintenance_work_center')
+                    ->searchable()
+                    ->label('Work Center')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                // Location Information
+                Tables\Columns\TextColumn::make('functional_location')
+                    ->searchable()
+                    ->label('Lokasi Fungsional')
+                    ->limit(30)
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('description_func_location')
+                    ->searchable()
+                    ->label('Desk Lokasi')
+                    ->limit(30)
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('running_times_count')
                     ->label('Data Jam Jalan (Periode)')
                     ->getStateUsing(function ($record) {
@@ -306,6 +439,15 @@ class EquipmentResource extends Resource
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['equipment_number', 'equipment_description', 'company_code'];
+        return [
+            'equipment_number',
+            'equipment_description',
+            'company_code',
+            'api_id',
+            'herst',
+            'eqart',
+            'functional_location',
+            'maintenance_work_center'
+        ];
     }
 }

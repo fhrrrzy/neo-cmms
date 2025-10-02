@@ -29,15 +29,40 @@ class EquipmentApiController extends Controller
         $dateStart = $request->get('date_start');
         $dateEnd = $request->get('date_end');
 
+        // Running times with pagination & sorting
         $runningTimesQuery = DB::table('running_times')
-            ->where('equipment_number', $equipment->equipment_number)
-            ->orderBy('date', 'asc');
+            ->where('equipment_number', $equipment->equipment_number);
 
         if ($dateStart && $dateEnd) {
             $runningTimesQuery->whereBetween('date', [$dateStart, $dateEnd]);
         }
 
-        $runningTimes = $runningTimesQuery->get();
+        $rtSortBy = in_array($request->get('rt_sort_by'), ['date', 'running_hours', 'counter_reading']) ? $request->get('rt_sort_by') : 'date';
+        $rtSortDir = strtolower($request->get('rt_sort_direction', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $runningTimesQuery->orderBy($rtSortBy, $rtSortDir);
+
+        $rtPerPage = (int) $request->get('rt_per_page', 50);
+        $rtPage = (int) $request->get('rt_page', 1);
+        $rtTotal = (clone $runningTimesQuery)->count();
+        $runningTimes = $runningTimesQuery->forPage($rtPage, $rtPerPage)->get()
+            ->map(function ($rt) {
+                $format = function ($value) {
+                    if ($value === null) return null;
+                    $s = (string) $value;
+                    if (strpos($s, '.') !== false) {
+                        $s = rtrim(rtrim($s, '0'), '.');
+                    }
+                    return $s;
+                };
+                // Normalize numeric string formatting without trailing .00
+                if (property_exists($rt, 'running_hours')) {
+                    $rt->running_hours = $format($rt->running_hours);
+                }
+                if (property_exists($rt, 'counter_reading')) {
+                    $rt->counter_reading = $format($rt->counter_reading);
+                }
+                return $rt;
+            });
 
         $cumulativeRunningHours = DB::table('running_times')
             ->where('equipment_number', $equipment->equipment_number)
@@ -65,6 +90,14 @@ class EquipmentApiController extends Controller
                 ] : null,
                 'cumulative_running_hours' => (float) $cumulativeRunningHours,
                 'recent_running_times' => $runningTimes,
+                'running_times_pagination' => [
+                    'total' => $rtTotal,
+                    'per_page' => $rtPerPage,
+                    'current_page' => $rtPage,
+                    'last_page' => (int) ceil($rtTotal / max($rtPerPage, 1)),
+                    'sort_by' => $rtSortBy,
+                    'sort_direction' => $rtSortDir,
+                ],
             ],
         ]);
     }

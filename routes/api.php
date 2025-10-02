@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\MonitoringController;
 use App\Http\Controllers\Api\EquipmentApiController;
 use App\Http\Controllers\Api\WorkOrderApiController;
+use App\Http\Controllers\Api\EquipmentWorkOrderApiController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -27,3 +28,6 @@ Route::get('/equipment/{equipmentNumber}', [EquipmentApiController::class, 'show
 
 // Work Orders by plant and date range
 Route::get('/workorders', [WorkOrderApiController::class, 'index']);
+
+// Equipment work orders (materials issued per equipment)
+Route::get('/equipment-work-orders', [EquipmentWorkOrderApiController::class, 'index']);

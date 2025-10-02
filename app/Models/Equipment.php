@@ -26,6 +26,18 @@ class Equipment extends Model
         'object_number',
         'point',
         'api_created_at',
+        'api_id',
+        'mandt',
+        'baujj',
+        'groes',
+        'herst',
+        'mrnug',
+        'eqtyp',
+        'eqart',
+        'maintenance_planner_group',
+        'maintenance_work_center',
+        'functional_location',
+        'description_func_location',
     ];
 
     /**
@@ -118,6 +130,18 @@ class Equipment extends Model
             'object_number' => 'nullable|string|max:50',
             'point' => 'nullable|string|max:50',
             'api_created_at' => 'nullable|date',
+            'api_id' => 'nullable|string|max:255',
+            'mandt' => 'nullable|string|max:50',
+            'baujj' => 'nullable|string|max:50',
+            'groes' => 'nullable|string|max:255',
+            'herst' => 'nullable|string|max:255',
+            'mrnug' => 'nullable|string|max:50',
+            'eqtyp' => 'nullable|string|max:50',
+            'eqart' => 'nullable|string|max:100',
+            'maintenance_planner_group' => 'nullable|string|max:100',
+            'maintenance_work_center' => 'nullable|string|max:100',
+            'functional_location' => 'nullable|string|max:255',
+            'description_func_location' => 'nullable|string|max:255',
         ];
     }
 }

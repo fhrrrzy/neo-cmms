@@ -1,9 +1,31 @@
+import { makeNumberColumn, makeSortableHeader } from '../columns-utils';
+
 export const workOrderColumns = [
-  { key: 'created_on', label: 'Tanggal' },
-  { key: 'order', label: 'Order' },
-  { key: 'order_type_label', label: 'Jenis' },
-  { key: 'order_status_label', label: 'Status' },
-  { key: 'description', label: 'Deskripsi' },
+  makeNumberColumn('No'),
+  {
+    accessorKey: 'created_on',
+    header: makeSortableHeader('Tanggal', 'created_on'),
+    label: 'Tanggal',
+  },
+  {
+    accessorKey: 'order',
+    header: makeSortableHeader('Order', 'order'),
+    label: 'Order',
+  },
+  {
+    accessorKey: 'order_type_label',
+    header: makeSortableHeader('Jenis', 'order_type_label'),
+    label: 'Jenis',
+  },
+  {
+    accessorKey: 'order_status_label',
+    header: makeSortableHeader('Status', 'order_status_label'),
+    label: 'Status',
+  },
+  {
+    accessorKey: 'description',
+    label: 'Deskripsi',
+  },
 ];
 
 

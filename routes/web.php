@@ -3,6 +3,7 @@
 use Inertia\Inertia;
 use App\Http\Controllers\EquipmentController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 // Health check endpoint for Docker
 Route::get('/health', function () {
@@ -30,11 +31,12 @@ Route::get('/monitoring', function () {
 })->name('monitoring')->middleware('auth');
 
 Route::get('/equipment/{equipmentNumber}', function (string $equipmentNumber) {
-    // Render page; data will be fetched client-side via API
+    // Publicly accessible equipment page; data is fetched client-side via API
     return Inertia::render('equipment/detail/detail', [
         'equipmentNumber' => $equipmentNumber,
+        'isGuest' => !Auth::check(),
     ]);
-})->name('equipment.detail')->middleware('auth');
+})->name('equipment.detail');
 
 
 include __DIR__ . '/auth.php';

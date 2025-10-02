@@ -1,7 +1,8 @@
 <template>
     <Head title="Equipment Detail" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <!-- Guest view: render without App shell -->
+    <div v-if="props.isGuest" class="p-4">
         <div class="space-y-6">
             <!-- Header -->
             <div
@@ -50,7 +51,11 @@
                             />
                         </PopoverContent>
                     </Popover>
-                    <Button variant="outline" @click="goBack">
+                    <Button
+                        v-if="!props.isGuest"
+                        variant="outline"
+                        @click="goBack"
+                    >
                         <ArrowLeft class="mr-2 h-4 w-4" />
                         Back to Monitoring
                     </Button>
@@ -102,9 +107,11 @@
                             <CardTitle>Work Orders</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div class="text-muted-foreground">
-                                Coming soon...
-                            </div>
+                            <WorkOrderTable
+                                :plant-id="equipment?.plant?.id"
+                                :date-range="dateRange"
+                                max-height-class="max-h-[60vh]"
+                            />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -115,9 +122,11 @@
                             <CardTitle>Material</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div class="text-muted-foreground">
-                                Coming soon...
-                            </div>
+                            <EquipmentWorkOrderTable
+                                :equipment-number="props.equipmentNumber"
+                                :date-range="dateRange"
+                                max-height-class="max-h-[60vh]"
+                            />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -126,6 +135,147 @@
         <QrShare
             :open="isQrOpen"
             :qrcode="qrcode"
+            :description="equipment.equipment_description"
+            @update:open="(v) => (isQrOpen = v)"
+            @print="printQr"
+        />
+    </div>
+
+    <!-- Authenticated view: keep App shell -->
+    <AppLayout v-else :breadcrumbs="breadcrumbs">
+        <div class="space-y-6">
+            <!-- Header -->
+            <div
+                class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"
+            >
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-3xl font-bold tracking-tight">
+                            {{ equipment.equipment_description || 'N/A' }}
+                        </h1>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            class="h-8 w-8"
+                            @click="isQrOpen = true"
+                            aria-label="Open QR code"
+                        >
+                            <QrCode class="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <p class="text-muted-foreground">
+                        #{{ equipment.equipment_number }}
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                        {{ regionalName }} - {{ plantName }} - {{ stationName }}
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <Popover v-model:open="popoverOpen">
+                        <PopoverTrigger as-child>
+                            <Button
+                                variant="outline"
+                                :class="[
+                                    'w-[280px] justify-start text-left font-normal',
+                                    isRangeEmpty ? 'text-muted-foreground' : '',
+                                ]"
+                            >
+                                <Calendar class="mr-2 h-4 w-4" />
+                                {{ rangeDisplay }}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent class="w-auto p-0">
+                            <RangeCalendar
+                                v-model="rangeValue"
+                                :number-of-months="2"
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <Button
+                        v-if="!props.isGuest"
+                        variant="outline"
+                        @click="goBack"
+                    >
+                        <ArrowLeft class="mr-2 h-4 w-4" />
+                        Back to Monitoring
+                    </Button>
+                </div>
+            </div>
+
+            <Tabs default-value="running">
+                <TabsList class="grid w-fit grid-cols-3">
+                    <TabsTrigger value="running">Running Time</TabsTrigger>
+                    <TabsTrigger value="workorders">Work Orders</TabsTrigger>
+                    <TabsTrigger value="material">Material</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="running" class="space-y-6 pt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle class="flex items-center gap-2">
+                                <BarChart3 class="h-5 w-5" />
+                                Running Time Analysis
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <RunningTimeChart
+                                :data="equipment.recent_running_times"
+                                :subtitle="`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`"
+                            />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle class="flex items-center gap-2">
+                                <Clock class="h-5 w-5" />
+                                Running Times Data
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <RunningTimeTable
+                                :equipment-number="props.equipmentNumber"
+                                :date-range="dateRange"
+                            />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="workorders" class="pt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Work Orders</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <WorkOrderTable
+                                :plant-id="equipment?.plant?.id"
+                                :date-range="dateRange"
+                                max-height-class="max-h-[60vh]"
+                            />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="material" class="pt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Material</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <EquipmentWorkOrderTable
+                                :equipment-number="props.equipmentNumber"
+                                :date-range="dateRange"
+                                max-height-class="max-h-[60vh]"
+                            />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
+        <QrShare
+            :open="isQrOpen"
+            :qrcode="qrcode"
+            :description="equipment.equipment_description"
             @update:open="(v) => (isQrOpen = v)"
             @print="printQr"
         />
@@ -133,7 +283,9 @@
 </template>
 
 <script setup>
+import EquipmentWorkOrderTable from '@/components/tables/equipment-work-order/EquipmentWorkOrderTable.vue';
 import RunningTimeTable from '@/components/tables/running-time/RunningTimeTable.vue';
+import WorkOrderTable from '@/components/tables/work-order/WorkOrderTable.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -159,6 +311,10 @@ const props = defineProps({
     equipmentNumber: {
         type: String,
         required: true,
+    },
+    isGuest: {
+        type: Boolean,
+        default: false,
     },
 });
 
@@ -193,7 +349,7 @@ const printQr = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
     printWindow.document.write(
-        `<!doctype html><html><head><title>QR Code</title><style>body{margin:0} .container{display:flex;align-items:center;justify-content:center;height:100vh;padding:16px;} img{width:320px;height:320px}@media print{img{width:320px;height:320px}}</style></head><body><div class="container"><img src="${qrSrc}" alt="QR Code" /></div><script>window.onload=()=>{window.focus();window.print();window.close();};<\/script></body></html>`,
+        `<!doctype html><html><head><title>QR Code</title><style>body{margin:0} .container{display:flex;align-items:center;justify-content:center;height:100vh;padding:16px;} .content{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center} img{width:320px;height:320px} p{margin:0;white-space:pre-line;color:#000}@media print{img{width:320px;height:320px}}</style></head><body><div class="container"><div class="content"><img src="${qrSrc}" alt="QR Code" /><p>${equipment.value?.equipment_description || ''}</p></div></div><script>window.onload=()=>{window.focus();window.print();window.close();};<\/script></body></html>`,
     );
     printWindow.document.close();
 };

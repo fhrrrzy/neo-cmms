@@ -44,6 +44,47 @@ class EquipmentRelationManager extends RelationManager
                     ->prefixIcon('heroicon-o-map-pin')
                     ->maxLength(50)
                     ->label('Point'),
+                Forms\Components\TextInput::make('api_id')
+                    ->prefixIcon('heroicon-o-hashtag')
+                    ->maxLength(255)
+                    ->label('ID API'),
+                Forms\Components\TextInput::make('mandt')
+                    ->prefixIcon('heroicon-o-hashtag')
+                    ->maxLength(50)
+                    ->label('MANDT'),
+                Forms\Components\TextInput::make('baujj')
+                    ->prefixIcon('heroicon-o-calendar')
+                    ->maxLength(50)
+                    ->label('Tahun Pembuat'),
+                Forms\Components\TextInput::make('groes')
+                    ->prefixIcon('heroicon-o-cube')
+                    ->maxLength(255)
+                    ->label('Ukuran'),
+                Forms\Components\TextInput::make('herst')
+                    ->prefixIcon('heroicon-o-building-storefront')
+                    ->maxLength(255)
+                    ->label('Pembuat'),
+                Forms\Components\TextInput::make('mrnug')
+                    ->maxLength(50)
+                    ->label('MRNGU'),
+                Forms\Components\TextInput::make('eqtyp')
+                    ->maxLength(50)
+                    ->label('Equipment Type'),
+                Forms\Components\TextInput::make('eqart')
+                    ->maxLength(100)
+                    ->label('Equipment Art'),
+                Forms\Components\TextInput::make('maintenance_planner_group')
+                    ->maxLength(100)
+                    ->label('Grup Planner Pemeliharaan'),
+                Forms\Components\TextInput::make('maintenance_work_center')
+                    ->maxLength(100)
+                    ->label('Work Center Pemeliharaan'),
+                Forms\Components\TextInput::make('functional_location')
+                    ->maxLength(255)
+                    ->label('Lokasi Fungsional'),
+                Forms\Components\TextInput::make('description_func_location')
+                    ->maxLength(255)
+                    ->label('Deskripsi Lokasi Fungsional'),
                 Forms\Components\Toggle::make('is_active')
                     ->required()
                     ->label('Status Aktif'),
@@ -66,6 +107,27 @@ class EquipmentRelationManager extends RelationManager
                     ->label('Deskripsi')
                     ->limit(30)
                     ->toggleable(),
+                Tables\Columns\TextColumn::make('herst')
+                    ->searchable()
+                    ->label('Pembuat')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('baujj')
+                    ->searchable()
+                    ->label('Tahun Pembuat')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('groes')
+                    ->searchable()
+                    ->label('Ukuran')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('eqart')
+                    ->searchable()
+                    ->label('Equipment Art')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('functional_location')
+                    ->searchable()
+                    ->label('Lokasi Fungsional')
+                    ->limit(20)
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
                     ->label('Status Aktif'),
