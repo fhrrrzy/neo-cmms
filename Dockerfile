@@ -1,30 +1,20 @@
-FROM php:8.4-fpm
+# Use pre-built PHP image with extensions
+FROM webdevops/php-fpm:8.4
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies in one layer
+# Install additional system dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
-    libfreetype6-dev \
-    libjpeg62-turbo-dev \
-    zip \
-    unzip \
     supervisor \
     cron \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip opcache \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g pnpm \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /tmp/* /var/tmp/*
+    && rm -rf /tmp/* /var/tmp/* \
+    && npm cache clean --force
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -46,7 +36,8 @@ COPY . /var/www/html
 RUN pnpm run build
 
 # Clean up Node.js files after build (reduces image size)
-RUN rm -rf node_modules package*.json pnpm-lock.yaml
+RUN rm -rf node_modules package*.json pnpm-lock.yaml \
+    && pnpm store prune
 
 # Set permissions and create necessary directories
 RUN chown -R www-data:www-data /var/www/html \
@@ -63,13 +54,10 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # Create storage link (can be done at build time)
 RUN php artisan storage:link
 
-# Configure PHP for production
-RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.interned_strings_buffer=8" >> /usr/local/etc/php/conf.d/opcache.ini \
+# Configure PHP for production (webdevops image already has optimized settings)
+RUN echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.max_accelerated_files=4000" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.revalidate_freq=2" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.fast_shutdown=1" >> /usr/local/etc/php/conf.d/opcache.ini
+    && echo "opcache.revalidate_freq=2" >> /usr/local/etc/php/conf.d/opcache.ini
 
 # Expose port
 EXPOSE 9000
