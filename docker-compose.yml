@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build:
@@ -39,7 +37,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: cmms-worker
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
