@@ -1,13 +1,26 @@
-# Use pre-built PHP image with extensions
-FROM webdevops/php-fpm:8.4
+# Use official PHP image
+FROM php:8.4-fpm
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Install additional system dependencies
+# Install system dependencies and PHP extensions in one optimized layer
 RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libicu-dev \
+    zip \
+    unzip \
     supervisor \
     cron \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip opcache intl \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g pnpm \
@@ -19,20 +32,17 @@ RUN apt-get update && apt-get install -y \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy package files first for better caching
-COPY package.json ./
-COPY composer.json composer.lock* ./
+# Copy application files first
+COPY . /var/www/html
 
 # Install Node dependencies
 RUN pnpm install
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+# Install PHP dependencies (skip scripts first, then run them after)
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+RUN composer run-script post-autoload-dump
 
-# Copy application files (exclude unnecessary files)
-COPY . /var/www/html
-
-# Build frontend assets for production
+# Build frontend assets
 RUN pnpm run build
 
 # Clean up Node.js files after build (reduces image size)
@@ -51,13 +61,16 @@ RUN chown -R www-data:www-data /var/www/html \
 # Copy supervisor configuration
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Create storage link (can be done at build time)
+# Create storage link
 RUN php artisan storage:link
 
-# Configure PHP for production (webdevops image already has optimized settings)
-RUN echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
+# Configure PHP for production
+RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.interned_strings_buffer=8" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.max_accelerated_files=4000" >> /usr/local/etc/php/conf.d/opcache.ini \
-    && echo "opcache.revalidate_freq=2" >> /usr/local/etc/php/conf.d/opcache.ini
+    && echo "opcache.revalidate_freq=2" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.fast_shutdown=1" >> /usr/local/etc/php/conf.d/opcache.ini
 
 # Expose port
 EXPOSE 9000

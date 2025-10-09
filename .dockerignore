@@ -1,72 +1,80 @@
-# Git
+# Version control
 .git
 .gitignore
 .gitattributes
 
-# Documentation
-README.md
-*.md
-
-# Development files
-.env
-.env.local
-.env.*.local
-.env.example
-env.docker.example
-
-# IDE files
-.vscode
+# IDE and editor files
 .idea
+.vscode
 *.swp
 *.swo
 *~
-
-# OS files
 .DS_Store
-Thumbs.db
 
-# Logs
+# Dependencies (will be installed in Docker)
+/node_modules
+/vendor
+
+# Build artifacts
+/public/hot
+/public/storage
+/public/build
+/public/mix-manifest.json
+
+# Storage (mounted as volume)
+/storage/*.key
+/storage/logs
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+
+# Environment and config
+.env
+.env.*
+!.env.example
+
+# Testing
+/tests
+/phpunit.xml
+/.phpunit.cache
+/coverage
+
+# Documentation
+/docs
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+
+# CI/CD
+/.github
+/.gitlab-ci.yml
+/azure-pipelines.yml
+/bitbucket-pipelines.yml
+
+# Docker files (except the one being built)
+docker-compose*.yml
+Dockerfile.dev
+.dockerignore
+
+# Logs and temp files
 *.log
-storage/logs/*
-!storage/logs/.gitkeep
-
-# Cache and temporary files
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
-!storage/framework/cache/.gitkeep
-!storage/framework/sessions/.gitkeep
-!storage/framework/views/.gitkeep
-
-# Node.js
-node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
+/tmp
 
-# Build artifacts
-dist
-build
-public/build
-public/hot
-public/storage
-public/mix-manifest.json
-
-# Testing
-tests
-phpunit.xml
-.phpunit.result.cache
-
-# Docker
-Dockerfile*
-docker-compose*
-.dockerignore
+# OS files
+Thumbs.db
 
 # Backup files
 *.bak
 *.backup
-*.tmp
+*.old
 
-# Vendor (will be installed via composer)
-vendor/
+# Analysis files
+*.dbml
+*_analysis.md
+*_summary.md
+DEPLOYMENT_CHECKLIST.md
+DOCKER_SETUP.md
+README.Docker.md
