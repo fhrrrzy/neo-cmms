@@ -64,7 +64,7 @@ class Equipment extends Model
     public function getEquipmentTypeAttribute(): ?string
     {
         $map = [
-            '1' => 'Mesing Produksi',
+            '1' => 'Mesin Produksi',
             '2' => 'Kendaraan',
             '3' => 'Alat dan Utilitas',
             '4' => 'IT & Telekomunikasi',

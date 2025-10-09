@@ -1,16 +1,25 @@
-<script setup lang="ts">
-import type { CheckboxRootEmits, CheckboxRootProps } from 'reka-ui'
+<script setup lang="js">
 import { cn } from '@/lib/utils'
 import { Check } from 'lucide-vue-next'
 import { CheckboxIndicator, CheckboxRoot, useForwardPropsEmits } from 'reka-ui'
-import { computed, type HTMLAttributes } from 'vue'
+import { computed } from 'vue'
 
-const props = defineProps<CheckboxRootProps & { class?: HTMLAttributes['class'] }>()
-const emits = defineEmits<CheckboxRootEmits>()
+const props = defineProps()
+// Declare events to satisfy useForwardPropsEmits and devtools
+const emits = defineEmits([
+  'update:checked',
+  'checked-change',
+  'focus',
+  'blur',
+])
+
+// Map model-value (shadcn-vue convention) to checked (reka-ui)
+const controlledChecked = computed(() => {
+  return props.modelValue !== undefined ? props.modelValue : props.checked
+})
 
 const delegatedProps = computed(() => {
-  const { class: _, ...delegated } = props
-
+  const { class: _class, modelValue, ...delegated } = props
   return delegated
 })
 
@@ -21,6 +30,8 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
   <CheckboxRoot
     data-slot="checkbox"
     v-bind="forwarded"
+    :checked="controlledChecked"
+    @checked-change="(val) => { emits('checked-change', val); emits('update:checked', val); emits('update:model-value', val); }"
     :class="
       cn('peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
          props.class)"

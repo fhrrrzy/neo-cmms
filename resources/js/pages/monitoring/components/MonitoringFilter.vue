@@ -36,11 +36,24 @@ const loadingRegions = ref(false);
 const loadingPlants = ref(false);
 const loadingStations = ref(false);
 
+// Initialize with proper arrays - ensure reactivity
 const localFilters = ref({
-    ...props.filters,
-    regional_ids: props.filters.regional_ids || [],
-    plant_ids: props.filters.plant_ids || [],
-    station_ids: props.filters.station_ids || [],
+    date_range: props.filters?.date_range || {
+        start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0],
+        end: new Date().toISOString().split('T')[0],
+    },
+    regional_ids: Array.isArray(props.filters?.regional_ids)
+        ? [...props.filters.regional_ids]
+        : [],
+    plant_ids: Array.isArray(props.filters?.plant_ids)
+        ? [...props.filters.plant_ids]
+        : [],
+    station_ids: Array.isArray(props.filters?.station_ids)
+        ? [...props.filters.station_ids]
+        : [],
+    search: props.filters?.search || '',
 });
 
 // Initialize from localStorage if available
@@ -124,13 +137,27 @@ watch(
     { deep: true },
 );
 
-// Watch for prop changes
+// Debug watchers to track state changes
 watch(
-    () => props.filters,
-    (newFilters) => {
-        if (JSON.stringify(newFilters) !== JSON.stringify(localFilters.value)) {
-            localFilters.value = { ...newFilters };
-        }
+    () => localFilters.value.regional_ids,
+    (newVal) => {
+        console.log('Regional IDs changed:', newVal);
+    },
+    { deep: true },
+);
+
+watch(
+    () => localFilters.value.plant_ids,
+    (newVal) => {
+        console.log('Plant IDs changed:', newVal);
+    },
+    { deep: true },
+);
+
+watch(
+    () => localFilters.value.station_ids,
+    (newVal) => {
+        console.log('Station IDs changed:', newVal);
     },
     { deep: true },
 );
@@ -161,14 +188,10 @@ const fetchRegions = async () => {
     }
 };
 
-const fetchPlants = async (regionalId) => {
+const fetchPlants = async () => {
     loadingPlants.value = true;
     try {
-        let url = '/api/plants';
-        if (regionalId) {
-            url += `?regional_id=${regionalId}`;
-        }
-        const response = await axios.get(url);
+        const response = await axios.get('/api/plants');
         plants.value = response.data;
     } catch (error) {
         console.error('Error fetching plants:', error);
@@ -194,38 +217,197 @@ const fetchStations = async (plantId) => {
     }
 };
 
-const toggleRegional = (regionalId) => {
-    const ids = localFilters.value.regional_ids || [];
-    const index = ids.indexOf(regionalId);
+const toggleRegional = async (regionalId) => {
+    console.log('toggleRegional', regionalId);
+
+    // Ensure array exists
+    if (!Array.isArray(localFilters.value.regional_ids)) {
+        localFilters.value.regional_ids = [];
+    }
+
+    const currentIds = [...localFilters.value.regional_ids];
+    const index = currentIds.indexOf(regionalId);
 
     if (index > -1) {
-        localFilters.value.regional_ids = ids.filter((id) => id !== regionalId);
+        // Remove
+        currentIds.splice(index, 1);
     } else {
-        localFilters.value.regional_ids = [...ids, regionalId];
+        // Add
+        currentIds.push(regionalId);
+    }
+
+    // Create new array reference for reactivity
+    localFilters.value = {
+        ...localFilters.value,
+        regional_ids: currentIds,
+    };
+};
+
+const togglePlant = async (plantId) => {
+    console.log('togglePlant', plantId);
+
+    // Ensure array exists
+    if (!Array.isArray(localFilters.value.plant_ids)) {
+        localFilters.value.plant_ids = [];
+    }
+
+    const currentIds = [...localFilters.value.plant_ids];
+    const index = currentIds.indexOf(plantId);
+
+    if (index > -1) {
+        // Remove
+        currentIds.splice(index, 1);
+    } else {
+        // Add
+        currentIds.push(plantId);
+    }
+
+    // Create new array reference for reactivity
+    localFilters.value = {
+        ...localFilters.value,
+        plant_ids: currentIds,
+    };
+};
+
+const toggleStation = async (stationId) => {
+    console.log('toggleStation', stationId);
+
+    // Ensure array exists
+    if (!Array.isArray(localFilters.value.station_ids)) {
+        localFilters.value.station_ids = [];
+    }
+
+    const currentIds = [...localFilters.value.station_ids];
+    const index = currentIds.indexOf(stationId);
+
+    if (index > -1) {
+        // Remove
+        currentIds.splice(index, 1);
+    } else {
+        // Add
+        currentIds.push(stationId);
+    }
+
+    // Create new array reference for reactivity
+    localFilters.value = {
+        ...localFilters.value,
+        station_ids: currentIds,
+    };
+};
+
+// Handlers compatible with shadcn-vue Checkbox (v-model:checked / update:checked)
+const onRegionalChecked = async (regionalId, checked) => {
+    console.log('onRegionalChecked', regionalId, checked);
+    const currentlySelected = isRegionalSelected(regionalId);
+    const plantIdsForRegional = getPlantIdsForRegional(regionalId);
+
+    if (checked && !currentlySelected) {
+        // mark regional as selected template
+        await toggleRegional(regionalId);
+
+        // Add all plants under this regional
+        const currentPlantIds = new Set(localFilters.value.plant_ids || []);
+        plantIdsForRegional.forEach((id) => currentPlantIds.add(id));
+
+        localFilters.value = {
+            ...localFilters.value,
+            plant_ids: Array.from(currentPlantIds),
+        };
+    } else if (!checked && currentlySelected) {
+        // unmark regional template
+        await toggleRegional(regionalId);
+
+        // Remove all plants under this regional
+        const toRemove = new Set(plantIdsForRegional);
+        const remainingPlantIds = (localFilters.value.plant_ids || []).filter(
+            (id) => !toRemove.has(id),
+        );
+
+        // Also remove stations that belong to removed plants
+        const stationIdsToRemove = new Set(
+            stations.value
+                .filter((s) => toRemove.has(s.plant_id))
+                .map((s) => s.id),
+        );
+        const remainingStationIds = (
+            localFilters.value.station_ids || []
+        ).filter((id) => !stationIdsToRemove.has(id));
+
+        localFilters.value = {
+            ...localFilters.value,
+            plant_ids: remainingPlantIds,
+            station_ids: remainingStationIds,
+        };
     }
 };
 
-const togglePlant = (plantId) => {
-    const ids = localFilters.value.plant_ids || [];
-    const index = ids.indexOf(plantId);
+const onPlantChecked = async (plantId, checked) => {
+    console.log('onPlantChecked', plantId, checked);
+    const currentlySelected = isPlantSelected(plantId);
+    if (checked && !currentlySelected) {
+        await togglePlant(plantId);
+    } else if (!checked && currentlySelected) {
+        await togglePlant(plantId);
+    }
 
-    if (index > -1) {
-        localFilters.value.plant_ids = ids.filter((id) => id !== plantId);
-    } else {
-        localFilters.value.plant_ids = [...ids, plantId];
+    // If any plant in the regional is deselected, uncheck the regional template
+    const plant = plants.value.find((p) => p.id === plantId);
+    if (plant) {
+        const regionalId = plant.regional_id;
+        if (!isRegionalFullySelected(regionalId)) {
+            // remove regional from selected templates if present
+            if (isRegionalSelected(regionalId)) {
+                await toggleRegional(regionalId);
+            }
+        } else {
+            // all plants under this regional are selected, ensure regional is checked
+            if (!isRegionalSelected(regionalId)) {
+                await toggleRegional(regionalId);
+            }
+        }
     }
 };
 
-const toggleStation = (stationId) => {
-    const ids = localFilters.value.station_ids || [];
-    const index = ids.indexOf(stationId);
-
-    if (index > -1) {
-        localFilters.value.station_ids = ids.filter((id) => id !== stationId);
-    } else {
-        localFilters.value.station_ids = [...ids, stationId];
+const onStationChecked = async (stationId, checked) => {
+    console.log('onStationChecked', stationId, checked);
+    const currentlySelected = isStationSelected(stationId);
+    if (checked && !currentlySelected) {
+        await toggleStation(stationId);
+    } else if (!checked && currentlySelected) {
+        await toggleStation(stationId);
     }
 };
+
+// v-model adapters for shadcn-vue Checkbox
+const regionalModel = (regionalId) =>
+    computed({
+        get() {
+            return isRegionalSelected(regionalId);
+        },
+        async set(val) {
+            await onRegionalChecked(regionalId, !!val);
+        },
+    });
+
+const plantModel = (plantId) =>
+    computed({
+        get() {
+            return isPlantSelected(plantId);
+        },
+        async set(val) {
+            await onPlantChecked(plantId, !!val);
+        },
+    });
+
+const stationModel = (stationId) =>
+    computed({
+        get() {
+            return isStationSelected(stationId);
+        },
+        async set(val) {
+            await onStationChecked(stationId, !!val);
+        },
+    });
 
 const isRegionalSelected = (regionalId) => {
     return (localFilters.value.regional_ids || []).includes(regionalId);
@@ -284,15 +466,7 @@ const filteredPlants = computed(() => {
     const search = plantSearch.value.toLowerCase();
     let filtered = plants.value;
 
-    // Filter by selected regionals if any
-    if (
-        localFilters.value.regional_ids &&
-        localFilters.value.regional_ids.length > 0
-    ) {
-        filtered = filtered.filter((p) =>
-            localFilters.value.regional_ids.includes(p.regional_id),
-        );
-    }
+    // Do not constrain by selected regionals; show all plants
 
     // Filter by search
     return search
@@ -304,8 +478,10 @@ const filteredStations = computed(() => {
     const search = stationSearch.value.toLowerCase();
     let filtered = stations.value;
 
-    // Filter by selected plants if any
+    // Only filter by selected plants if we're inside the station dropdown
+    // and plant selections exist
     if (
+        stationOpen.value &&
         localFilters.value.plant_ids &&
         localFilters.value.plant_ids.length > 0
     ) {
@@ -347,47 +523,18 @@ const clearFilters = async () => {
     await nextTick();
 };
 
-// Watch for regional selection changes to auto-fetch plants
-watch(
-    () => localFilters.value.regional_ids,
-    async (newIds) => {
-        // Fetch plants when regional selection changes
-        if (newIds && newIds.length > 0) {
-            // Fetch all plants, filtering will be done client-side
-            await fetchPlants();
-        } else {
-            // Fetch all plants when no regional is selected
-            await fetchPlants();
-        }
-    },
-    { deep: true },
-);
-
-// Watch for plant selection changes to auto-fetch stations
-watch(
-    () => localFilters.value.plant_ids,
-    async (newIds) => {
-        // Fetch stations when plant selection changes
-        if (newIds && newIds.length > 0) {
-            // Fetch all stations, filtering will be done client-side
-            await fetchAllStations(newIds);
-        }
-    },
-    { deep: true },
-);
-
-// Fetch all stations for selected plants
-const fetchAllStations = async (plantIds) => {
-    if (!plantIds || plantIds.length === 0) {
-        stations.value = [];
-        return;
-    }
-
+// Fetch all stations for all plants
+const fetchAllStations = async () => {
     loadingStations.value = true;
     try {
-        // Fetch stations for all selected plants
-        const promises = plantIds.map((plantId) =>
-            axios.get(`/api/stations?plant_id=${plantId}`),
+        // Fetch all plants first to get their IDs
+        if (plants.value.length === 0) {
+            await fetchPlants();
+        }
+
+        // Fetch stations for all plants
+        const promises = plants.value.map((plant) =>
+            axios.get(`/api/stations?plant_id=${plant.id}`),
         );
         const responses = await Promise.all(promises);
 
@@ -405,18 +552,24 @@ const fetchAllStations = async (plantIds) => {
     }
 };
 
+const getPlantIdsForRegional = (regionalId) => {
+    return plants.value
+        .filter((p) => p.regional_id === regionalId)
+        .map((p) => p.id);
+};
+
+const isRegionalFullySelected = (regionalId) => {
+    const allPlantIds = getPlantIdsForRegional(regionalId);
+    if (allPlantIds.length === 0) return false;
+    const selected = new Set(localFilters.value.plant_ids || []);
+    return allPlantIds.every((id) => selected.has(id));
+};
+
 onMounted(async () => {
-    // Fetch initial data
+    // Fetch all initial data
     await fetchRegions();
     await fetchPlants();
-
-    // Load stations if plant filters are already set
-    if (
-        localFilters.value.plant_ids &&
-        localFilters.value.plant_ids.length > 0
-    ) {
-        await fetchAllStations(localFilters.value.plant_ids);
-    }
+    await fetchAllStations();
 
     await nextTick();
 });
@@ -433,7 +586,7 @@ onMounted(async () => {
                     <PopoverTrigger as-child>
                         <Button
                             variant="outline"
-                            class="w-full justify-between"
+                            class="w-full min-w-[300px] justify-between"
                         >
                             {{ regionalLabel }}
                             <ChevronsUpDown
@@ -482,11 +635,15 @@ onMounted(async () => {
                                     >
                                         <Checkbox
                                             :id="`regional-${region.id}`"
-                                            :checked="
+                                            :model-value="
                                                 isRegionalSelected(region.id)
                                             "
-                                            @update:checked="
-                                                toggleRegional(region.id)
+                                            @update:model-value="
+                                                (val) =>
+                                                    onRegionalChecked(
+                                                        region.id,
+                                                        val,
+                                                    )
                                             "
                                         />
                                         <label
@@ -511,10 +668,6 @@ onMounted(async () => {
                         <Button
                             variant="outline"
                             class="w-full justify-between"
-                            :disabled="
-                                !localFilters.regional_ids ||
-                                localFilters.regional_ids.length === 0
-                            "
                         >
                             {{ plantLabel }}
                             <ChevronsUpDown
@@ -563,9 +716,15 @@ onMounted(async () => {
                                     >
                                         <Checkbox
                                             :id="`plant-${plant.id}`"
-                                            :checked="isPlantSelected(plant.id)"
-                                            @update:checked="
-                                                togglePlant(plant.id)
+                                            :model-value="
+                                                isPlantSelected(plant.id)
+                                            "
+                                            @update:model-value="
+                                                (val) =>
+                                                    onPlantChecked(
+                                                        plant.id,
+                                                        val,
+                                                    )
                                             "
                                         />
                                         <label
@@ -590,10 +749,6 @@ onMounted(async () => {
                         <Button
                             variant="outline"
                             class="w-full justify-between"
-                            :disabled="
-                                !localFilters.plant_ids ||
-                                localFilters.plant_ids.length === 0
-                            "
                         >
                             {{ stationLabel }}
                             <ChevronsUpDown
@@ -642,11 +797,15 @@ onMounted(async () => {
                                     >
                                         <Checkbox
                                             :id="`station-${station.id}`"
-                                            :checked="
+                                            :model-value="
                                                 isStationSelected(station.id)
                                             "
-                                            @update:checked="
-                                                toggleStation(station.id)
+                                            @update:model-value="
+                                                (val) =>
+                                                    onStationChecked(
+                                                        station.id,
+                                                        val,
+                                                    )
                                             "
                                         />
                                         <label
