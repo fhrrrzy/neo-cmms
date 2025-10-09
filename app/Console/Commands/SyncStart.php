@@ -19,7 +19,8 @@ class SyncStart extends Command
                             {--running-time-start= : YYYY-MM-DD start date for running time (defaults to yesterday)}
                             {--running-time-end= : YYYY-MM-DD end date for running time (defaults to yesterday)}
                             {--work-order-start= : YYYY-MM-DD start date for work orders (defaults to first day of previous month)}
-                            {--work-order-end= : YYYY-MM-DD end date for work orders (defaults to today)}';
+                            {--work-order-end= : YYYY-MM-DD end date for work orders (defaults to today)}
+                            {--types= : Comma-separated list of data types to sync (equipment,running_time,work_orders,equipment_material,equipment_work_orders)}';
 
     /**
      * The console command description.
@@ -52,13 +53,28 @@ class SyncStart extends Command
             $this->info("Running Time: {$runningTimeStart} to {$runningTimeEnd}");
             $this->info("Work Orders: {$workOrderStart} to {$workOrderEnd}");
 
+            // Parse selected types (optional)
+            $typesOption = $this->option('types');
+            $types = null;
+            if ($typesOption) {
+                $types = collect(explode(',', $typesOption))
+                    ->map(fn($t) => trim($t))
+                    ->filter()
+                    ->values()
+                    ->all();
+                if (empty($types)) {
+                    $types = null;
+                }
+            }
+
             // Dispatch the concurrent sync job
             ConcurrentSyncJob::dispatch(
                 $plantCodes,
                 $runningTimeStart,
                 $runningTimeEnd,
                 $workOrderStart,
-                $workOrderEnd
+                $workOrderEnd,
+                $types
             )->onQueue('high');
 
             $duration = now()->diffInSeconds($startTime);

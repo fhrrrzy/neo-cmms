@@ -50,6 +50,32 @@ class Equipment extends Model
     ];
 
     /**
+     * Append computed attributes to model arrays
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'equipment_type',
+    ];
+
+    /**
+     * Map eqtyp code (1-5) to human-readable equipment type.
+     */
+    public function getEquipmentTypeAttribute(): ?string
+    {
+        $map = [
+            '1' => 'Mesing Produksi',
+            '2' => 'Kendaraan',
+            '3' => 'Alat dan Utilitas',
+            '4' => 'IT & Telekomunikasi',
+            '5' => 'Aset PMN',
+        ];
+
+        $code = (string) ($this->attributes['eqtyp'] ?? '');
+        return $map[$code] ?? null;
+    }
+
+    /**
      * Get the plant that owns the equipment.
      */
     public function plant(): BelongsTo

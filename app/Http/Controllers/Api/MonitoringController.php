@@ -110,6 +110,7 @@ class MonitoringController extends Controller
                 'company_code' => $item->company_code,
                 'object_number' => $item->object_number,
                 'point' => $item->point,
+                'equipment_type' => $item->equipment_type,
                 'plant' => $item->plant ? [
                     'id' => $item->plant->id,
                     'name' => $item->plant->name,

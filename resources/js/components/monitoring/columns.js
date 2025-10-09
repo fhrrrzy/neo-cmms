@@ -93,6 +93,23 @@ export const columns = [
         },
     },
     {
+        accessorKey: 'equipment_type',
+        header: () => 'Tipe',
+        cell: ({ row }) => {
+            const type = row.getValue('equipment_type');
+            const colorMap = {
+                'Mesing Produksi': 'bg-emerald-100 text-emerald-800',
+                'Kendaraan': 'bg-sky-100 text-sky-800',
+                'Alat dan Utilitas': 'bg-amber-100 text-amber-800',
+                'IT & Telekomunikasi': 'bg-violet-100 text-violet-800',
+                'Aset PMN': 'bg-rose-100 text-rose-800',
+            };
+            const cls = colorMap[type] || 'bg-muted text-foreground';
+            if (!type) return renderValueOrNA(type);
+            return h('span', { class: `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}` }, type);
+        },
+    },
+    {
         accessorKey: 'cumulative_jam_jalan',
         header: ({ column, table }) => {
             const sorting = table.options.meta?.sorting;

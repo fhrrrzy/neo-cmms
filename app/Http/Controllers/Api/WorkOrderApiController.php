@@ -21,11 +21,14 @@ class WorkOrderApiController extends Controller
         }
 
         // Sorting support
+        // Map client sort keys to actual DB columns
         $allowedSorts = [
             'created_on' => 'created_on',
             'order' => 'order',
-            'order_type_label' => 'order_type_label',
-            'order_status_label' => 'order_status_label',
+            'order_type_label' => 'order_type', // label is derived; sort by underlying column
+            'order_status_label' => 'order_status', // label is derived; sort by underlying column
+            'order_type' => 'order_type',
+            'order_status' => 'order_status',
         ];
         $sortBy = $request->get('sort_by');
         $sortDirection = strtolower($request->get('sort_direction', 'desc')) === 'asc' ? 'asc' : 'desc';
