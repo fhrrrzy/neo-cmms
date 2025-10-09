@@ -1,27 +1,72 @@
-node_modules
-npm-debug.log
+# Git
 .git
 .gitignore
+.gitattributes
+
+# Documentation
 README.md
+*.md
+
+# Development files
 .env
+.env.local
+.env.*.local
 .env.example
-.nyc_output
-coverage
-.phpunit.result.cache
-storage/app/*
-!storage/app/.gitkeep
-storage/framework/cache/*
-!storage/framework/cache/.gitkeep
-storage/framework/sessions/*
-!storage/framework/sessions/.gitkeep
-storage/framework/testing/*
-!storage/framework/testing/.gitkeep
-storage/framework/views/*
-!storage/framework/views/.gitkeep
-storage/logs/*
-!storage/logs/.gitkeep
-bootstrap/cache/*
-!bootstrap/cache/.gitkeep
-vendor
+env.docker.example
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+storage/logs/*
+!storage/logs/.gitkeep
+
+# Cache and temporary files
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+!storage/framework/cache/.gitkeep
+!storage/framework/sessions/.gitkeep
+!storage/framework/views/.gitkeep
+
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build artifacts
+dist
+build
+public/build
+public/hot
+public/storage
+public/mix-manifest.json
+
+# Testing
+tests
+phpunit.xml
+.phpunit.result.cache
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+
+# Vendor (will be installed via composer)
+vendor/
