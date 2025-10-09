@@ -5,6 +5,7 @@ namespace App\Services\Sync\Processors;
 use App\Models\Plant;
 use App\Models\RunningTime;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Exception;
 
@@ -13,7 +14,7 @@ class RunningTimeProcessor
     public function process(array $item, array $allowedPlantCodes = []): void
     {
         // Debug logging for troubleshooting
-        \Log::info('RunningTimeProcessor processing item', [
+        Log::info('RunningTimeProcessor processing item', [
             'item_keys' => array_keys($item),
             'sample_values' => [
                 'plant_code' => Arr::get($item, 'plant_code') ?? Arr::get($item, 'SWERK'),
@@ -23,9 +24,9 @@ class RunningTimeProcessor
             ]
         ]);
 
-        $plantCode = Arr::get($item, 'plant_id') ?? Arr::get($item, 'plant_code') ?? Arr ::get($item, 'SWERK');
+        $plantCode = Arr::get($item, 'plant_id') ?? Arr::get($item, 'plant_code') ?? Arr::get($item, 'SWERK');
         if (!empty($allowedPlantCodes) && ($plantCode === null || !in_array($plantCode, $allowedPlantCodes, true))) {
-            \Log::warning('RunningTimeProcessor: Plant code not in allowed list', [
+            Log::warning('RunningTimeProcessor: Plant code not in allowed list', [
                 'plant_code' => $plantCode,
                 'allowed_codes' => $allowedPlantCodes
             ]);
@@ -36,7 +37,7 @@ class RunningTimeProcessor
             $plant = Plant::where('plant_code', $plantCode)->first();
         }
         if (!$plant) {
-            \Log::warning('RunningTimeProcessor: Plant not found', [
+            Log::warning('RunningTimeProcessor: Plant not found', [
                 'plant_code' => $plantCode,
                 'available_plants' => Plant::pluck('plant_code')->toArray()
             ]);
@@ -46,7 +47,7 @@ class RunningTimeProcessor
         $equipmentNumber = Arr::get($item, 'equipment_number') ?? Arr::get($item, 'EQUNR');
         $date = Arr::get($item, 'date') ?? Arr::get($item, 'DATE');
         if (!$equipmentNumber || !$date) {
-            \Log::error('RunningTimeProcessor: Missing required fields', [
+            Log::error('RunningTimeProcessor: Missing required fields', [
                 'equipment_number' => $equipmentNumber,
                 'date' => $date,
                 'item_data' => $item
@@ -70,6 +71,8 @@ class RunningTimeProcessor
             'equipment_number' => $equipmentNumber,
             'date' => $date,
             'plant_id' => $plant->id,
+            'mandt' => Arr::get($item, 'MANDT'),
+            'point' => Arr::get($item, 'POINT'),
             'date_time' => Arr::get($item, 'date_time') ?? Arr::get($item, 'DATE_TIME'),
             'running_hours' => Arr::get($item, 'running_hours') ?? Arr::get($item, 'RECDV'),
             'counter_reading' => Arr::get($item, 'counter_reading') ?? Arr::get($item, 'CNTRR'),

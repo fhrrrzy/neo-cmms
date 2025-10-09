@@ -1,0 +1,291 @@
+// API Data Models and Relationships
+// Generated from our 5 API sync mappings
+
+Table plants {
+  id bigint [pk, increment]
+  plant_code varchar(20) [unique, not null]
+  name varchar(255) [not null]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table equipment_groups {
+  id bigint [pk, increment]
+  name varchar(255) [unique, not null]
+  description text
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table stations {
+  id bigint [pk, increment]
+  plant_id bigint [ref: > plants.id, not null]
+  cost_center varchar(50) [not null]
+  name varchar(255)
+  description text
+  created_at timestamp
+  updated_at timestamp
+  
+  indexes {
+    (plant_id, cost_center) [unique]
+  }
+}
+
+// Equipment API
+Table equipment {
+  id bigint [pk, increment]
+  equipment_number varchar(50) [unique, not null]
+  plant_id bigint [ref: > plants.id, not null]
+  station_id bigint [ref: > stations.id]
+  equipment_group_id bigint [ref: > equipment_groups.id]
+  company_code varchar(50)
+  equipment_description varchar(255)
+  object_number varchar(50)
+  point varchar(50)
+  api_created_at timestamp
+  is_active boolean [default: true]
+  
+  // API fields from equipment endpoint
+  api_id varchar(255)
+  mandt varchar(50)
+  baujj varchar(50)
+  groes varchar(255)
+  herst varchar(255)
+  mrnug varchar(50)
+  eqtyp varchar(50)
+  eqart varchar(100)
+  maintenance_planner_group varchar(100)
+  maintenance_work_center varchar(100)
+  functional_location varchar(255)
+  description_func_location varchar(255)
+  
+  created_at timestamp
+  updated_at timestamp
+  
+  indexes {
+    (plant_id, equipment_group_id)
+    equipment_number
+    (api_id, equipment_number)
+    (functional_location, maintenance_work_center)
+    functional_location
+  }
+}
+
+// Running Time API
+Table running_times {
+  id bigint [pk, increment]
+  ims_id varchar(50) [unique]
+  mandt varchar(50)
+  point varchar(50)
+  equipment_number varchar(50) [not null]
+  date date [not null]
+  plant_id bigint [ref: > plants.id]
+  date_time datetime
+  running_hours decimal(10,2)
+  counter_reading decimal(15,2)
+  maintenance_text text
+  company_code varchar(50)
+  equipment_description varchar(255)
+  object_number varchar(50)
+  api_created_at timestamp
+  created_at timestamp
+  updated_at timestamp
+  
+  indexes {
+    (equipment_number, date) [unique]
+    (plant_id, date)
+    ims_id
+    mandt
+    point
+  }
+}
+
+// Work Orders API
+Table work_orders {
+  id bigint [pk, increment]
+  ims_id varchar(50) [unique]
+  mandt varchar(10)
+  order varchar(50) [unique]
+  order_type varchar(10)
+  created_on date
+  change_date_for_order_master date
+  description text
+  company_code varchar(10)
+  plant_id bigint [ref: > plants.id]
+  plant_code varchar(20)
+  station_id bigint [ref: > stations.id]
+  responsible_cctr varchar(50)
+  order_status varchar(10)
+  technical_completion date
+  cost_center varchar(50)
+  profit_center varchar(50)
+  object_class varchar(10)
+  main_work_center varchar(50)
+  notification varchar(50)
+  cause varchar(50)
+  cause_text text
+  code_group_problem varchar(50)
+  item_text text
+  created timestamp
+  released timestamp
+  completed varchar(10)
+  closed timestamp
+  planned_release timestamp
+  planned_completion timestamp
+  planned_closing_date timestamp
+  release timestamp
+  close timestamp
+  api_updated_at timestamp
+  equipment_number varchar(50)
+  opertn_task_list_no varchar(50)
+  created_at timestamp
+  updated_at timestamp
+  
+  indexes {
+    (plant_id, order_status)
+    (created_on, order_type)
+    order
+    equipment_number
+    opertn_task_list_no
+  }
+}
+
+// Equipment Work Orders API
+Table equipment_work_orders {
+  id bigint [pk, increment]
+  ims_id varchar(50) [unique]
+  reservation varchar(50)
+  requirement_type varchar(10)
+  reservation_status varchar(5)
+  item_deleted varchar(5)
+  movement_allowed varchar(5)
+  final_issue varchar(5)
+  missing_part varchar(5)
+  material varchar(50)
+  plant_id bigint [ref: > plants.id]
+  storage_location varchar(50)
+  requirements_date date
+  requirement_quantity decimal(18,3)
+  base_unit_of_measure varchar(20)
+  debit_credit_ind varchar(5)
+  quantity_is_fixed varchar(5)
+  quantity_withdrawn decimal(18,3)
+  value_withdrawn decimal(18,2)
+  currency varchar(10)
+  qty_in_unit_of_entry decimal(18,3)
+  unit_of_entry varchar(20)
+  movement_type varchar(10)
+  gl_account varchar(50)
+  receiving_plant varchar(50)
+  receiving_storage_location varchar(50)
+  qty_for_avail_check decimal(18,3)
+  goods_recipient varchar(100)
+  material_group varchar(50)
+  acct_manually varchar(5)
+  commitment_item_1 varchar(50)
+  funds_center varchar(50)
+  start_time varchar(10)
+  end_time varchar(10)
+  service_duration decimal(10,2)
+  service_dur_unit varchar(10)
+  api_updated_at timestamp
+  commitment_item_2 varchar(50)
+  order_number varchar(50)
+  equipment_number varchar(50)
+  created_at timestamp
+  updated_at timestamp
+  
+  indexes {
+    (plant_id, requirements_date)
+    equipment_number
+  }
+}
+
+// Equipment Materials API
+Table equipment_materials {
+  id bigint [pk, increment]
+  ims_id varchar(50) [unique]
+  plant_id bigint [ref: > plants.id]
+  equipment_number varchar(50)
+  material_number varchar(50)
+  reservation_number varchar(50)
+  reservation_item varchar(10)
+  reservation_type varchar(10)
+  requirement_type varchar(10)
+  reservation_status varchar(5)
+  deletion_flag varchar(5)
+  goods_receipt_flag varchar(5)
+  final_issue_flag varchar(5)
+  error_flag varchar(5)
+  storage_location varchar(50)
+  production_supply_area varchar(50)
+  batch_number varchar(50)
+  storage_bin varchar(50)
+  special_stock_indicator varchar(10)
+  requirement_date date
+  requirement_qty decimal(18,3)
+  unit_of_measure varchar(20)
+  debit_credit_indicator varchar(5)
+  issued_qty decimal(18,3)
+  withdrawn_qty decimal(18,3)
+  withdrawn_value decimal(18,2)
+  currency varchar(10)
+  entry_qty decimal(18,3)
+  entry_uom varchar(20)
+  planned_order varchar(50)
+  purchase_requisition varchar(50)
+  purchase_requisition_item varchar(10)
+  production_order varchar(50)
+  movement_type varchar(10)
+  gl_account varchar(50)
+  receiving_storage_loc varchar(50)
+  receiving_plant varchar(50)
+  api_created_at timestamp
+  created_at timestamp
+  updated_at timestamp
+  
+  indexes {
+    (plant_id, requirement_date)
+    equipment_number
+    material_number
+    production_order
+  }
+}
+
+// API Sync Logs
+Table api_sync_logs {
+  id bigint [pk, increment]
+  sync_type varchar(50) [not null]
+  status varchar(20) [not null]
+  sync_started_at timestamp
+  sync_completed_at timestamp
+  records_processed int [default: 0]
+  records_success int [default: 0]
+  records_failed int [default: 0]
+  error_message text
+  created_at timestamp
+  updated_at timestamp
+}
+
+// Relationships Analysis
+// 1. Equipment -> Plant (via plant_id) ✅
+// 2. Equipment -> Station (via station_id) ✅
+// 3. Equipment -> EquipmentGroup (via equipment_group_id) ✅
+// 4. RunningTime -> Plant (via plant_id) ✅
+// 5. RunningTime -> Equipment (via equipment_number) ❌ MISSING FOREIGN KEY
+// 6. WorkOrder -> Plant (via plant_id) ✅
+// 7. WorkOrder -> Station (via station_id) ✅
+// 8. WorkOrder -> Equipment (via equipment_number) ❌ MISSING FOREIGN KEY
+// 9. EquipmentWorkOrder -> Plant (via plant_id) ✅
+// 10. EquipmentWorkOrder -> Equipment (via equipment_number) ❌ MISSING FOREIGN KEY
+// 11. EquipmentWorkOrder -> WorkOrder (via order_number) ❌ MISSING FOREIGN KEY
+// 12. EquipmentMaterial -> Plant (via plant_id) ✅
+// 13. EquipmentMaterial -> Equipment (via equipment_number) ❌ MISSING FOREIGN KEY
+// 14. EquipmentMaterial -> EquipmentWorkOrder (via reservation_number) ❌ MISSING FOREIGN KEY
+
+// Missing Relationships:
+// - Equipment number relationships (equipment_number fields don't have foreign keys)
+// - Order number relationships (order_number to work_orders.order)
+// - Reservation number relationships (reservation_number to equipment_work_orders.reservation)

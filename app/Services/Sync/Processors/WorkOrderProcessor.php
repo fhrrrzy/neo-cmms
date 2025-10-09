@@ -60,6 +60,8 @@ class WorkOrderProcessor
                 'release' => Arr::get($item, 'release') ? Carbon::parse(Arr::get($item, 'release')) : null,
                 'close' => Arr::get($item, 'close') ? Carbon::parse(Arr::get($item, 'close')) : null,
                 'api_updated_at' => Arr::get($item, 'updated_at') ? Carbon::parse(Arr::get($item, 'updated_at')) : null,
+                'equipment_number' => Arr::get($item, 'equipment_number'),
+                'opertn_task_list_no' => Arr::get($item, 'opertn_task_list_no'),
             ]
         );
     }

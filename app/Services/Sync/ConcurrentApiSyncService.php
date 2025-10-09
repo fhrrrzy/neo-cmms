@@ -40,11 +40,11 @@ class ConcurrentApiSyncService
         // Store allowed plant codes for filtering
         $this->allowedPlantCodes = $plantCodes;
 
-        // Set default dates (running time: previous month to today; work orders: previous month to today)
-        $runningTimeStartDate = $runningTimeStartDate ?? Carbon::now()->subMonthNoOverflow()->startOfMonth()->toDateString();
-        $runningTimeEndDate = $runningTimeEndDate ?? Carbon::today()->toDateString();
-        $workOrderStartDate = $workOrderStartDate ?? Carbon::now()->subMonthNoOverflow()->startOfMonth()->toDateString();
-        $workOrderEndDate = $workOrderEndDate ?? Carbon::today()->toDateString();
+        // Set default dates (running time: 3 days ago to now; work orders: 3 days ago to now)
+        $runningTimeStartDate = $runningTimeStartDate ?? Carbon::now()->subDays(3)->toDateString();
+        $runningTimeEndDate = $runningTimeEndDate ?? Carbon::now()->toDateString();
+        $workOrderStartDate = $workOrderStartDate ?? Carbon::now()->subDays(3)->toDateString();
+        $workOrderEndDate = $workOrderEndDate ?? Carbon::now()->toDateString();
 
         $this->info("🚀 Starting sequential sync for " . count($plantCodes) . " plants");
         $this->info("APIs: Equipment, Running Time ({$runningTimeStartDate} to {$runningTimeEndDate}), Work Orders ({$workOrderStartDate} to {$workOrderEndDate})");

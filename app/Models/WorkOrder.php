@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkOrder extends Model
 {
@@ -44,6 +45,8 @@ class WorkOrder extends Model
         'release',
         'close',
         'api_updated_at',
+        'equipment_number',
+        'opertn_task_list_no',
     ];
 
     protected $casts = [
@@ -118,5 +121,21 @@ class WorkOrder extends Model
     public function getIsClosedAttribute(): bool
     {
         return !is_null($this->closed);
+    }
+
+    /**
+     * Get the equipment associated with the work order.
+     */
+    public function equipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class, 'equipment_number', 'equipment_number');
+    }
+
+    /**
+     * Get the equipment work orders for this work order.
+     */
+    public function equipmentWorkOrders(): HasMany
+    {
+        return $this->hasMany(EquipmentWorkOrder::class, 'order_number', 'order');
     }
 }

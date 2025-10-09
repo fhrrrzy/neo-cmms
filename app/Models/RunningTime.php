@@ -12,6 +12,8 @@ class RunningTime extends Model
 
     protected $fillable = [
         'ims_id',
+        'mandt',
+        'point',
         'equipment_number',
         'date',
         'plant_id',
@@ -39,5 +41,13 @@ class RunningTime extends Model
     public function plant(): BelongsTo
     {
         return $this->belongsTo(Plant::class);
+    }
+
+    /**
+     * Get the equipment that owns the running time.
+     */
+    public function equipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class, 'equipment_number', 'equipment_number');
     }
 }

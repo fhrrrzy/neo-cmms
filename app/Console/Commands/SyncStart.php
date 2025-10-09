@@ -16,26 +16,27 @@ class SyncStart extends Command
      */
     protected $signature = 'sync:start 
                             {--plants= : Comma-separated list of plant codes to sync (optional, defaults to all active plants)}
-                            {--running-time-start= : YYYY-MM-DD start date for running time (defaults to yesterday)}
-                            {--running-time-end= : YYYY-MM-DD end date for running time (defaults to yesterday)}
-                            {--work-order-start= : YYYY-MM-DD start date for work orders (defaults to first day of previous month)}
-                            {--work-order-end= : YYYY-MM-DD end date for work orders (defaults to today)}
-                            {--types= : Comma-separated list of data types to sync (equipment,running_time,work_orders,equipment_material,equipment_work_orders)}';
+                            {--running-time-start= : YYYY-MM-DD start date for running_time API (defaults to 3 days ago)}
+                            {--running-time-end= : YYYY-MM-DD end date for running_time API (defaults to now)}
+                            {--work-order-start= : YYYY-MM-DD start date for work_orders, equipment_work_orders, equipment_material APIs (defaults to 3 days ago)}
+                            {--work-order-end= : YYYY-MM-DD end date for work_orders, equipment_work_orders, equipment_material APIs (defaults to now)}
+                            {--types= : Comma-separated list of data types to sync (defaults to ALL 5: equipment,running_time,work_orders,equipment_work_orders,equipment_material)}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Start sequential synchronization for all APIs (equipment → running_time → work_orders → equipment_work_orders → equipment_material)';
+    protected $description = 'Start sequential synchronization for all 5 APIs (equipment → running_time → work_orders → equipment_work_orders → equipment_material)';
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $this->info("🚀 Starting sequential synchronization...");
+        $this->info("🚀 Starting sequential synchronization for all 5 APIs...");
         $this->info("Mode: Sequential HTTP Requests (respecting dependencies)");
+        $this->info("APIs: equipment → running_time → work_orders → equipment_work_orders → equipment_material");
 
         $startTime = now();
 
@@ -44,16 +45,16 @@ class SyncStart extends Command
             $plantCodes = $this->getPlantCodes();
 
             // Get date ranges
-            $runningTimeStart = $this->option('running-time-start') ?? Carbon::yesterday()->toDateString();
-            $runningTimeEnd = $this->option('running-time-end') ?? Carbon::yesterday()->toDateString();
-            $workOrderStart = $this->option('work-order-start') ?? Carbon::now()->subMonthNoOverflow()->startOfMonth()->toDateString();
-            $workOrderEnd = $this->option('work-order-end') ?? Carbon::today()->toDateString();
+            $runningTimeStart = $this->option('running-time-start') ?? Carbon::now()->subDays(3)->toDateString();
+            $runningTimeEnd = $this->option('running-time-end') ?? Carbon::now()->toDateString();
+            $workOrderStart = $this->option('work-order-start') ?? Carbon::now()->subDays(3)->toDateString();
+            $workOrderEnd = $this->option('work-order-end') ?? Carbon::now()->toDateString();
 
             $this->info("Plants: " . count($plantCodes) . " (" . implode(', ', array_slice($plantCodes, 0, 5)) . (count($plantCodes) > 5 ? '...' : '') . ")");
-            $this->info("Running Time: {$runningTimeStart} to {$runningTimeEnd}");
-            $this->info("Work Orders: {$workOrderStart} to {$workOrderEnd}");
+            $this->info("Running Time API: {$runningTimeStart} to {$runningTimeEnd}");
+            $this->info("Work Orders/Equipment Work Orders/Equipment Material APIs: {$workOrderStart} to {$workOrderEnd}");
 
-            // Parse selected types (optional)
+            // Parse selected types (optional - defaults to all 5 APIs)
             $typesOption = $this->option('types');
             $types = null;
             if ($typesOption) {
@@ -65,6 +66,9 @@ class SyncStart extends Command
                 if (empty($types)) {
                     $types = null;
                 }
+                $this->info("Selected APIs: " . implode(' → ', $types));
+            } else {
+                $this->info("Selected APIs: All 5 APIs (equipment → running_time → work_orders → equipment_work_orders → equipment_material)");
             }
 
             // Dispatch the sequential sync job
@@ -81,6 +85,7 @@ class SyncStart extends Command
 
             $this->info("✅ Sync job dispatched successfully in {$duration} seconds");
             $this->info("💡 Process the job with: php artisan queue:work --queue=high");
+            $this->info("📊 The job will sync all 5 APIs in dependency order");
 
             Log::info('Master sync command completed successfully', [
                 'duration' => $duration,

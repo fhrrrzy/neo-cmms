@@ -123,6 +123,30 @@ class Equipment extends Model
         return $this->hasMany(RunningTime::class, 'equipment_number', 'equipment_number')->latest('date');
     }
 
+    /**
+     * Get the work orders for the equipment.
+     */
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class, 'equipment_number', 'equipment_number');
+    }
+
+    /**
+     * Get the equipment work orders for the equipment.
+     */
+    public function equipmentWorkOrders(): HasMany
+    {
+        return $this->hasMany(EquipmentWorkOrder::class, 'equipment_number', 'equipment_number');
+    }
+
+    /**
+     * Get the equipment materials for the equipment.
+     */
+    public function equipmentMaterials(): HasMany
+    {
+        return $this->hasMany(EquipmentMaterial::class, 'equipment_number', 'equipment_number');
+    }
+
 
     /**
      * Scope a query to filter by plant.

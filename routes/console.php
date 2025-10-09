@@ -20,29 +20,29 @@ Artisan::command('inspire', function () {
 |
 */
 
-// Schedule concurrent synchronization every 12 hours using queue
+// Schedule sequential synchronization every 6 hours using queue
 Schedule::job(new ConcurrentSyncJob())
-    ->cron('0 */12 * * *')
-    ->name('concurrent-sync-job-12h')
-    ->description('Concurrent synchronization of all APIs (equipment, running time, work orders, equipment material) every 12 hours')
+    ->cron('0 */6 * * *')
+    ->name('sequential-sync-job-6h')
+    ->description('Sequential synchronization of all APIs (equipment → running_time → work_orders → equipment_work_orders → equipment_material) every 6 hours with 3-day range')
     ->onFailure(function () {
-        \Illuminate\Support\Facades\Log::critical('Scheduled concurrent sync job failed');
+        \Illuminate\Support\Facades\Log::critical('Scheduled sequential sync job failed');
     })
     ->onSuccess(function () {
-        \Illuminate\Support\Facades\Log::info('Scheduled concurrent sync job completed successfully');
+        \Illuminate\Support\Facades\Log::info('Scheduled sequential sync job completed successfully');
     });
 
-// Additionally, dispatch per-plant jobs asynchronously every 12 hours to spread load
+// Additionally, dispatch per-plant jobs asynchronously every 6 hours to spread load
 Schedule::call(function () {
     $plants = \App\Models\Plant::where('is_active', true)->pluck('plant_code')->toArray();
     foreach ($plants as $plantCode) {
         dispatch(new ConcurrentSyncJob([$plantCode]));
     }
-    \Illuminate\Support\Facades\Log::info('Dispatched per-plant concurrent sync jobs');
+    \Illuminate\Support\Facades\Log::info('Dispatched per-plant sequential sync jobs');
 })
-    ->cron('5 */12 * * *')
-    ->name('per-plant-concurrent-sync-12h')
-    ->description('Dispatch concurrent sync jobs per plant every 12 hours for async by plant');
+    ->cron('5 */6 * * *')
+    ->name('per-plant-sequential-sync-6h')
+    ->description('Dispatch sequential sync jobs per plant every 6 hours for async by plant');
 
 // Schedule cleanup of old sync logs (keep last 30 days)
 Schedule::call(function () {

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EquipmentWorkOrder extends Model
 {
@@ -50,4 +52,44 @@ class EquipmentWorkOrder extends Model
         'order_number',
         'equipment_number',
     ];
+
+    /**
+     * Get the plant that owns the equipment work order.
+     */
+    public function plant(): BelongsTo
+    {
+        return $this->belongsTo(Plant::class);
+    }
+
+    /**
+     * Get the equipment associated with the equipment work order.
+     */
+    public function equipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class, 'equipment_number', 'equipment_number');
+    }
+
+    /**
+     * Get the work order associated with the equipment work order.
+     */
+    public function workOrder(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrder::class, 'order_number', 'order');
+    }
+
+    /**
+     * Get the equipment materials for this equipment work order (by reservation).
+     */
+    public function equipmentMaterialsByReservation(): HasMany
+    {
+        return $this->hasMany(EquipmentMaterial::class, 'reservation_number', 'reservation');
+    }
+
+    /**
+     * Get the equipment materials for this equipment work order (by material number).
+     */
+    public function equipmentMaterialsByMaterial(): HasMany
+    {
+        return $this->hasMany(EquipmentMaterial::class, 'material_number', 'material');
+    }
 }

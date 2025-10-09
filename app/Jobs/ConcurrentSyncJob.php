@@ -87,10 +87,10 @@ class ConcurrentSyncJob implements ShouldQueue
      * Create a new job instance.
      *
      * @param array|null $plantCodes Plant codes to sync (null = all active plants)
-     * @param string|null $runningTimeStartDate Running time start date (defaults to yesterday)
-     * @param string|null $runningTimeEndDate Running time end date (defaults to yesterday)
-     * @param string|null $workOrderStartDate Work order start date (defaults to first day of previous month)
-     * @param string|null $workOrderEndDate Work order end date (defaults to today)
+     * @param string|null $runningTimeStartDate Running time start date (defaults to 3 days ago)
+     * @param string|null $runningTimeEndDate Running time end date (defaults to now)
+     * @param string|null $workOrderStartDate Work order start date (defaults to 3 days ago)
+     * @param string|null $workOrderEndDate Work order end date (defaults to now)
      */
     public function __construct(
         ?array $plantCodes = null,
@@ -101,10 +101,10 @@ class ConcurrentSyncJob implements ShouldQueue
         ?array $types = null
     ) {
         $this->plantCodes = $plantCodes;
-        $this->runningTimeStartDate = $runningTimeStartDate ?? Carbon::yesterday()->toDateString();
-        $this->runningTimeEndDate = $runningTimeEndDate ?? Carbon::yesterday()->toDateString();
-        $this->workOrderStartDate = $workOrderStartDate ?? Carbon::now()->subMonthNoOverflow()->startOfMonth()->toDateString();
-        $this->workOrderEndDate = $workOrderEndDate ?? Carbon::today()->toDateString();
+        $this->runningTimeStartDate = $runningTimeStartDate ?? Carbon::now()->subDays(3)->toDateString();
+        $this->runningTimeEndDate = $runningTimeEndDate ?? Carbon::now()->toDateString();
+        $this->workOrderStartDate = $workOrderStartDate ?? Carbon::now()->subDays(3)->toDateString();
+        $this->workOrderEndDate = $workOrderEndDate ?? Carbon::now()->toDateString();
         $this->types = $types;
 
         // Set job to high priority queue
