@@ -23,8 +23,13 @@ use App\Services\Sync\Processors\WorkOrderProcessor;
 
 class ConcurrentApiSyncService
 {
-    protected int $timeoutSeconds = 60;
+    protected int $timeoutSeconds;
     protected array $allowedPlantCodes = [];
+
+    public function __construct()
+    {
+        $this->timeoutSeconds = config('ims.timeout', 30);
+    }
 
     /**
      * Sync all data types sequentially in dependency order
@@ -100,15 +105,38 @@ class ConcurrentApiSyncService
             // Make API request based on type
             switch ($apiType) {
                 case 'equipment':
-                    $url = $baseUrl . '/equipments';
-                    $this->info("GET {$url}");
-                    $response = Http::withHeaders(['Authorization' => $token])
-                        ->timeout($this->timeoutSeconds)
-                        ->asJson()
-                        ->send('GET', $url, [
-                            'json' => ['plant' => array_values($plantCodes)],
-                        ]);
-                    break;
+                    // Process plants in batches to avoid API limits
+                    $batchSize = 5; // Process 5 plants at a time
+                    $plantBatches = array_chunk($plantCodes, $batchSize);
+                    $allItems = [];
+
+                    foreach ($plantBatches as $batchIndex => $plantBatch) {
+                        $url = $baseUrl . '/equipments';
+                        $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
+
+                        $response = Http::withHeaders(['Authorization' => $token])
+                            ->timeout($this->timeoutSeconds)
+                            ->send('GET', $url, [
+                                'form_params' => ['plant' => array_values($plantBatch)],
+                            ]);
+
+                        if ($response->successful()) {
+                            $data = $response->json() ?? [];
+                            $items = $data['data'] ?? $data;
+                            if (!empty($items) && is_array($items)) {
+                                $allItems = array_merge($allItems, $items);
+                                $this->info("Batch " . ($batchIndex + 1) . " returned " . count($items) . " items");
+                            }
+                        }
+                    }
+
+                    $this->info("Total equipment items from all batches: " . count($allItems));
+
+                    if (!empty($allItems)) {
+                        return $this->processApiData($apiType, $allItems);
+                    } else {
+                        return ['processed' => 0, 'success' => 0, 'failed' => 0];
+                    }
 
                 case 'running_time':
                     // Running time requires one request per plant, then aggregate
@@ -124,9 +152,8 @@ class ConcurrentApiSyncService
 
                         $plantResponse = Http::withHeaders(['Authorization' => $token])
                             ->timeout($this->timeoutSeconds)
-                            ->asJson()
                             ->send('GET', $url, [
-                                'json' => ['plant' => [$plant]],
+                                'form_params' => ['plant' => [$plant]],
                             ]);
 
                         if ($plantResponse->successful()) {
@@ -147,40 +174,107 @@ class ConcurrentApiSyncService
                     }
 
                 case 'work_orders':
-                    $url = $baseUrl . '/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
-                    $this->info("GET {$url}");
-                    $response = Http::withHeaders(['Authorization' => $token])
-                        ->timeout($this->timeoutSeconds)
-                        ->asJson()
-                        ->send('GET', $url, [
-                            'json' => ['plant' => array_values($plantCodes)],
-                        ]);
-                    break;
+                    // Process plants in batches to avoid API limits
+                    $batchSize = 5; // Process 5 plants at a time
+                    $plantBatches = array_chunk($plantCodes, $batchSize);
+                    $allItems = [];
+
+                    foreach ($plantBatches as $batchIndex => $plantBatch) {
+                        $url = $baseUrl . '/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
+                        $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
+
+                        $response = Http::withHeaders(['Authorization' => $token])
+                            ->timeout($this->timeoutSeconds)
+                            ->send('GET', $url, [
+                                'form_params' => ['plant' => array_values($plantBatch)],
+                            ]);
+
+                        if ($response->successful()) {
+                            $data = $response->json() ?? [];
+                            $items = $data['data'] ?? $data;
+                            if (!empty($items) && is_array($items)) {
+                                $allItems = array_merge($allItems, $items);
+                                $this->info("Batch " . ($batchIndex + 1) . " returned " . count($items) . " items");
+                            }
+                        }
+                    }
+
+                    $this->info("Total work_orders items from all batches: " . count($allItems));
+
+                    if (!empty($allItems)) {
+                        return $this->processApiData($apiType, $allItems);
+                    } else {
+                        return ['processed' => 0, 'success' => 0, 'failed' => 0];
+                    }
 
                 case 'equipment_work_orders':
-                    $url = $baseUrl . '/equipments/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
-                    $this->info("GET {$url}");
-                    $response = Http::withHeaders(['Authorization' => $token])
-                        ->timeout($this->timeoutSeconds)
-                        ->asJson()
-                        ->send('GET', $url, [
-                            'json' => [
-                                'plant' => array_values($plantCodes),
-                                'material_number' => '000000',
-                            ],
-                        ]);
-                    break;
+                    // Process plants in batches to avoid API limits
+                    $batchSize = 5; // Process 5 plants at a time
+                    $plantBatches = array_chunk($plantCodes, $batchSize);
+                    $allItems = [];
+
+                    foreach ($plantBatches as $batchIndex => $plantBatch) {
+                        $url = $baseUrl . '/equipments/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
+                        $requestBody = ['plant' => array_values($plantBatch)];
+                        $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
+
+                        $response = Http::withHeaders(['Authorization' => $token])
+                            ->timeout($this->timeoutSeconds)
+                            ->send('GET', $url, [
+                                'form_params' => $requestBody,
+                            ]);
+
+                        if ($response->successful()) {
+                            $data = $response->json() ?? [];
+                            $items = $data['data'] ?? $data;
+                            if (!empty($items) && is_array($items)) {
+                                $allItems = array_merge($allItems, $items);
+                                $this->info("Batch " . ($batchIndex + 1) . " returned " . count($items) . " items");
+                            }
+                        }
+                    }
+
+                    $this->info("Total equipment_work_orders items from all batches: " . count($allItems));
+
+                    if (!empty($allItems)) {
+                        return $this->processApiData($apiType, $allItems);
+                    } else {
+                        return ['processed' => 0, 'success' => 0, 'failed' => 0];
+                    }
 
                 case 'equipment_material':
-                    $url = $baseUrl . '/equipments/material?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
-                    $this->info("GET {$url}");
-                    $response = Http::withHeaders(['Authorization' => $token])
-                        ->timeout($this->timeoutSeconds)
-                        ->asJson()
-                        ->send('GET', $url, [
-                            'json' => ['plant' => array_values($plantCodes)],
-                        ]);
-                    break;
+                    // Process plants in batches to avoid API limits
+                    $batchSize = 5; // Process 5 plants at a time
+                    $plantBatches = array_chunk($plantCodes, $batchSize);
+                    $allItems = [];
+
+                    foreach ($plantBatches as $batchIndex => $plantBatch) {
+                        $url = $baseUrl . '/equipments/material?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
+                        $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
+
+                        $response = Http::withHeaders(['Authorization' => $token])
+                            ->timeout($this->timeoutSeconds)
+                            ->send('GET', $url, [
+                                'form_params' => ['plant' => array_values($plantBatch)],
+                            ]);
+
+                        if ($response->successful()) {
+                            $data = $response->json() ?? [];
+                            $items = $data['data'] ?? $data;
+                            if (!empty($items) && is_array($items)) {
+                                $allItems = array_merge($allItems, $items);
+                                $this->info("Batch " . ($batchIndex + 1) . " returned " . count($items) . " items");
+                            }
+                        }
+                    }
+
+                    $this->info("Total equipment_material items from all batches: " . count($allItems));
+
+                    if (!empty($allItems)) {
+                        return $this->processApiData($apiType, $allItems);
+                    } else {
+                        return ['processed' => 0, 'success' => 0, 'failed' => 0];
+                    }
 
                 default:
                     throw new Exception("Unknown API type: {$apiType}");
@@ -196,12 +290,22 @@ class ConcurrentApiSyncService
                         'has_data_key' => isset($data['data']),
                         'data_type' => gettype($items),
                         'items_count' => is_array($items) ? count($items) : 'not_array',
-                        'sample_item' => is_array($items) && !empty($items) ? array_keys($items[0]) : 'no_items'
+                        'sample_item' => is_array($items) && !empty($items) ? array_keys($items[0]) : 'no_items',
+                        'full_response_keys' => array_keys($data),
+                        'response_message' => $data['message'] ?? 'no_message'
                     ]);
 
                     if (!empty($items) && is_array($items)) {
                         return $this->processApiData($apiType, $items);
                     } else {
+                        // Log a short preview of the raw body to aid debugging when API returns no items
+                        try {
+                            $raw = (string) $response->body();
+                            $preview = substr($raw, 0, 500);
+                            Log::info("{$apiType} raw response preview (500 chars): " . $preview);
+                        } catch (\Throwable $t) {
+                            // ignore logging errors
+                        }
                         $this->info("ℹ️ {$apiType}: No data returned");
                         return ['processed' => 0, 'success' => 0, 'failed' => 0];
                     }
