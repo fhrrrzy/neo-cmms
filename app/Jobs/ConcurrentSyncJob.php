@@ -118,7 +118,7 @@ class ConcurrentSyncJob implements ShouldQueue
     {
         $startTime = now();
 
-        Log::info('Starting concurrent sync job', [
+        Log::info('Starting sequential sync job', [
             'plant_codes' => $this->plantCodes,
             'running_time_range' => "{$this->runningTimeStartDate} to {$this->runningTimeEndDate}",
             'work_order_range' => "{$this->workOrderStartDate} to {$this->workOrderEndDate}",
@@ -129,9 +129,9 @@ class ConcurrentSyncJob implements ShouldQueue
             // Get plant codes if not provided
             $plantCodes = $this->plantCodes ?? Plant::where('is_active', true)->pluck('plant_code')->toArray();
 
-            // Use concurrent sync service
+            // Use sequential sync service
             $syncService = new ConcurrentApiSyncService();
-            $results = $syncService->syncAllConcurrently(
+            $results = $syncService->syncAllSequentially(
                 $plantCodes,
                 $this->runningTimeStartDate,
                 $this->runningTimeEndDate,
@@ -142,7 +142,7 @@ class ConcurrentSyncJob implements ShouldQueue
 
             $duration = now()->diffInSeconds($startTime);
 
-            Log::info('Concurrent sync job completed successfully', [
+            Log::info('Sequential sync job completed successfully', [
                 'duration' => $duration,
                 'results' => $results,
                 'attempt' => $this->attempts(),
@@ -164,7 +164,7 @@ class ConcurrentSyncJob implements ShouldQueue
         } catch (Exception $e) {
             $duration = now()->diffInSeconds($startTime);
 
-            Log::error('Concurrent sync job failed', [
+            Log::error('Sequential sync job failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'duration' => $duration,
@@ -190,7 +190,7 @@ class ConcurrentSyncJob implements ShouldQueue
      */
     public function failed(Exception $exception): void
     {
-        Log::critical('Concurrent sync job failed permanently', [
+        Log::critical('Sequential sync job failed permanently', [
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString(),
             'plant_codes' => $this->plantCodes,

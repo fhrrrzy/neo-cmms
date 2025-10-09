@@ -27,15 +27,15 @@ class SyncStart extends Command
      *
      * @var string
      */
-    protected $description = 'Start concurrent synchronization for all APIs (equipment, running time, work orders)';
+    protected $description = 'Start sequential synchronization for all APIs (equipment → running_time → work_orders → equipment_work_orders → equipment_material)';
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $this->info("🚀 Starting concurrent synchronization...");
-        $this->info("Mode: Concurrent HTTP Requests (Http::pool)");
+        $this->info("🚀 Starting sequential synchronization...");
+        $this->info("Mode: Sequential HTTP Requests (respecting dependencies)");
 
         $startTime = now();
 
@@ -67,7 +67,7 @@ class SyncStart extends Command
                 }
             }
 
-            // Dispatch the concurrent sync job
+            // Dispatch the sequential sync job
             ConcurrentSyncJob::dispatch(
                 $plantCodes,
                 $runningTimeStart,

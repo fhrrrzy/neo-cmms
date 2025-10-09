@@ -124,7 +124,7 @@ export const columns = [
                         const newDirection = isSorted && isAsc ? 'desc' : 'asc';
                         table.options.meta?.onSortChange?.('cumulative_jam_jalan', newDirection);
                     },
-                    class: 'h-8 px-2 lg:px-3',
+                    class: 'h-8 w-full px-2 lg:px-3 justify-end',
                 },
                 () => [
                     'Jam Jalan Cummulative',
@@ -159,7 +159,7 @@ export const columns = [
                         const newDirection = isSorted && isAsc ? 'desc' : 'asc';
                         table.options.meta?.onSortChange?.('running_times_count', newDirection);
                     },
-                    class: 'h-8 px-2 lg:px-3 text-right',
+                    class: 'h-8 w-full px-2 lg:px-3 justify-end',
                 },
                 () => [
                     'Data Jam Jalan (Periode)',

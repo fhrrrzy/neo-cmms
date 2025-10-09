@@ -1,6 +1,6 @@
 <script setup lang="js">
-import DataTable from '@/components/monitoring/DataTable.vue';
-import DataTableViewOptions from '@/components/monitoring/DataTableViewOptions.vue';
+import DataTable from '@/components/tables/monitoring/DataTable.vue';
+import DataTableViewOptions from '@/components/tables/monitoring/DataTableViewOptions.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { monitoring } from '@/routes';
 import { useMonitoringFilterStore } from '@/stores/monitoringFilterStore';
@@ -48,9 +48,9 @@ const filters = ref({
         start: dateRangeStore.start,
         end: dateRangeStore.end,
     },
-    regional_id: monitoringFilterStore.regional_id,
-    plant_id: monitoringFilterStore.plant_id,
-    station_id: monitoringFilterStore.station_id,
+    regional_ids: monitoringFilterStore.regional_ids || [],
+    plant_ids: monitoringFilterStore.plant_ids || [],
+    station_ids: monitoringFilterStore.station_ids || [],
     search: monitoringFilterStore.search,
 });
 
@@ -69,15 +69,24 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
         params.append('sort_by', sorting.value.sort_by);
         params.append('sort_direction', sorting.value.sort_direction);
 
-        // Add filter parameters
-        if (filters.value.regional_id) {
-            params.append('regional_id', filters.value.regional_id.toString());
+        // Add filter parameters (arrays)
+        if (
+            filters.value.regional_ids &&
+            filters.value.regional_ids.length > 0
+        ) {
+            filters.value.regional_ids.forEach((id) => {
+                params.append('regional_ids[]', id.toString());
+            });
         }
-        if (filters.value.plant_id) {
-            params.append('plant_id', filters.value.plant_id.toString());
+        if (filters.value.plant_ids && filters.value.plant_ids.length > 0) {
+            filters.value.plant_ids.forEach((id) => {
+                params.append('plant_ids[]', id.toString());
+            });
         }
-        if (filters.value.station_id) {
-            params.append('station_id', filters.value.station_id.toString());
+        if (filters.value.station_ids && filters.value.station_ids.length > 0) {
+            filters.value.station_ids.forEach((id) => {
+                params.append('station_ids[]', id.toString());
+            });
         }
         if (filters.value.date_range.start) {
             params.append('date_start', filters.value.date_range.start);
@@ -114,9 +123,9 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
 const handleFilterChange = (newFilters) => {
     filters.value = { ...filters.value, ...newFilters };
     monitoringFilterStore.setFilters({
-        regional_id: filters.value.regional_id,
-        plant_id: filters.value.plant_id,
-        station_id: filters.value.station_id,
+        regional_ids: filters.value.regional_ids || [],
+        plant_ids: filters.value.plant_ids || [],
+        station_ids: filters.value.station_ids || [],
         search: filters.value.search,
     });
     if (newFilters?.date_range?.start && newFilters?.date_range?.end) {

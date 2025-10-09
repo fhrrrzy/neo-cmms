@@ -13,7 +13,7 @@ import {
     ChevronsLeft,
     ChevronsRight,
 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     pagination: {
@@ -35,6 +35,40 @@ const handlePageSizeChange = (value) => {
 const handlePageChange = (page) => {
     emit('page-change', page);
 };
+
+const pageNumbers = computed(() => {
+    const current = props.pagination.current_page;
+    const last = props.pagination.last_page;
+    const totalButtons = 5; // Total number of page buttons to show
+    const pages = [];
+
+    let start, end;
+
+    if (last <= totalButtons) {
+        // If total pages is less than or equal to totalButtons, show all pages
+        start = 1;
+        end = last;
+    } else if (current <= 3) {
+        // Near the start, show first 5 pages
+        start = 1;
+        end = totalButtons;
+    } else if (current >= last - 2) {
+        // Near the end, show last 5 pages
+        start = last - totalButtons + 1;
+        end = last;
+    } else {
+        // In the middle, show 2 pages on each side
+        start = current - 2;
+        end = current + 2;
+    }
+
+    // Add pages to array
+    for (let i = start; i <= end; i++) {
+        pages.push(i);
+    }
+
+    return pages;
+});
 </script>
 
 <template>
@@ -65,11 +99,6 @@ const handlePageChange = (page) => {
                     </SelectContent>
                 </Select>
             </div>
-            <div
-                class="flex w-[100px] items-center justify-center text-sm font-medium"
-            >
-                Page {{ pagination.current_page }} of {{ pagination.last_page }}
-            </div>
             <div class="flex items-center space-x-2">
                 <Button
                     variant="outline"
@@ -89,6 +118,32 @@ const handlePageChange = (page) => {
                     <span class="sr-only">Go to previous page</span>
                     <ChevronLeft class="h-4 w-4" />
                 </Button>
+
+                <!-- Page Numbers -->
+                <div class="hidden items-center space-x-1 md:flex">
+                    <Button
+                        v-for="page in pageNumbers"
+                        :key="page"
+                        variant="outline"
+                        class="h-8 w-8 p-0"
+                        :class="{
+                            'border-primary bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-slate-200':
+                                page === pagination.current_page,
+                        }"
+                        @click="handlePageChange(page)"
+                    >
+                        {{ page }}
+                    </Button>
+                </div>
+
+                <!-- Mobile: Show current page -->
+                <div
+                    class="flex items-center justify-center px-2 text-sm font-medium md:hidden"
+                >
+                    Page {{ pagination.current_page }} of
+                    {{ pagination.last_page }}
+                </div>
+
                 <Button
                     variant="outline"
                     class="h-8 w-8 p-0"

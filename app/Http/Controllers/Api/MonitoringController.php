@@ -24,14 +24,17 @@ class MonitoringController extends Controller
             ->leftJoin('plants', 'equipment.plant_id', '=', 'plants.id')
             ->leftJoin('stations', 'equipment.station_id', '=', 'stations.id');
 
-        // Apply filters
-        if ($request->filled('station_id')) {
-            $query->where('equipment.station_id', $request->station_id);
-        } elseif ($request->filled('plant_id')) {
-            $query->where('equipment.plant_id', $request->plant_id);
-        } elseif ($request->filled('regional_id')) {
-            $query->whereHas('plant', function (Builder $q) use ($request) {
-                $q->where('regional_id', $request->regional_id);
+        // Apply filters (support both single and multiple selections)
+        if ($request->filled('station_ids')) {
+            $stationIds = is_array($request->station_ids) ? $request->station_ids : [$request->station_ids];
+            $query->whereIn('equipment.station_id', $stationIds);
+        } elseif ($request->filled('plant_ids')) {
+            $plantIds = is_array($request->plant_ids) ? $request->plant_ids : [$request->plant_ids];
+            $query->whereIn('equipment.plant_id', $plantIds);
+        } elseif ($request->filled('regional_ids')) {
+            $regionalIds = is_array($request->regional_ids) ? $request->regional_ids : [$request->regional_ids];
+            $query->whereHas('plant', function (Builder $q) use ($regionalIds) {
+                $q->whereIn('regional_id', $regionalIds);
             });
         }
 
@@ -134,9 +137,9 @@ class MonitoringController extends Controller
             'to' => $paginatedEquipment->lastItem(),
             'has_more_pages' => $paginatedEquipment->hasMorePages(),
             'filters' => [
-                'regional_id' => $request->get('regional_id'),
-                'plant_id' => $request->get('plant_id'),
-                'station_id' => $request->get('station_id'),
+                'regional_ids' => $request->get('regional_ids'),
+                'plant_ids' => $request->get('plant_ids'),
+                'station_ids' => $request->get('station_ids'),
                 'date_start' => $dateStart,
                 'date_end' => $dateEnd,
                 'search' => $request->get('search'),

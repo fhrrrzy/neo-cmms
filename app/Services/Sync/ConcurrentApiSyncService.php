@@ -9,7 +9,6 @@ use App\Models\EquipmentGroup;
 use App\Models\Station;
 use App\Models\RunningTime;
 use App\Models\WorkOrder;
-use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -28,9 +27,10 @@ class ConcurrentApiSyncService
     protected array $allowedPlantCodes = [];
 
     /**
-     * Sync all data types concurrently using Http::pool()
+     * Sync all data types sequentially in dependency order
+     * Order: equipment -> running_time -> work_orders -> equipment_work_orders -> equipment_material
      */
-    public function syncAllConcurrently(array $plantCodes = [], ?string $runningTimeStartDate = null, ?string $runningTimeEndDate = null, ?string $workOrderStartDate = null, ?string $workOrderEndDate = null, ?array $types = null): array
+    public function syncAllSequentially(array $plantCodes = [], ?string $runningTimeStartDate = null, ?string $runningTimeEndDate = null, ?string $workOrderStartDate = null, ?string $workOrderEndDate = null, ?array $types = null): array
     {
         // Get plant codes if not provided
         if (empty($plantCodes)) {
@@ -46,163 +46,148 @@ class ConcurrentApiSyncService
         $workOrderStartDate = $workOrderStartDate ?? Carbon::now()->subMonthNoOverflow()->startOfMonth()->toDateString();
         $workOrderEndDate = $workOrderEndDate ?? Carbon::today()->toDateString();
 
-        $this->info("🚀 Starting concurrent sync for " . count($plantCodes) . " plants");
+        $this->info("🚀 Starting sequential sync for " . count($plantCodes) . " plants");
         $this->info("APIs: Equipment, Running Time ({$runningTimeStartDate} to {$runningTimeEndDate}), Work Orders ({$workOrderStartDate} to {$workOrderEndDate})");
+        $this->info("Order: equipment → running_time → work_orders → equipment_work_orders → equipment_material");
 
         $startTime = now();
+        $results = [];
 
         try {
-            // Make concurrent API requests using Http::pool()
-            $responses = $this->makeConcurrentApiRequests($plantCodes, $runningTimeStartDate, $runningTimeEndDate, $workOrderStartDate, $workOrderEndDate, $types);
+            // Define the sync order (respecting dependencies)
+            $syncOrder = ['equipment', 'running_time', 'work_orders', 'equipment_work_orders', 'equipment_material'];
+            $selectedTypes = $types ?? $syncOrder;
 
-            // Process responses
-            $results = $this->processApiResponses($responses);
+            foreach ($syncOrder as $apiType) {
+                // Skip if not in selected types
+                if (!in_array($apiType, $selectedTypes)) {
+                    $this->info("⏭️ Skipping {$apiType} (not selected)");
+                    $results[$apiType] = ['processed' => 0, 'success' => 0, 'failed' => 0, 'skipped' => true];
+                    continue;
+                }
+
+                $this->info("📡 Syncing {$apiType}...");
+                $stepStartTime = now();
+
+                // Make API request and process immediately
+                $result = $this->syncApiType($apiType, $plantCodes, $runningTimeStartDate, $runningTimeEndDate, $workOrderStartDate, $workOrderEndDate);
+                $results[$apiType] = $result;
+
+                $stepDuration = now()->diffInSeconds($stepStartTime);
+                $this->info("✅ {$apiType}: processed={$result['processed']}, success={$result['success']}, failed={$result['failed']} (took {$stepDuration}s)");
+            }
 
             $duration = now()->diffInSeconds($startTime);
-            $this->info("✅ Concurrent sync completed in {$duration} seconds");
+            $this->info("✅ Sequential sync completed in {$duration} seconds");
 
             return $results;
         } catch (Exception $e) {
             $duration = now()->diffInSeconds($startTime);
-            $this->error("❌ Concurrent sync failed after {$duration} seconds: " . $e->getMessage());
+            $this->error("❌ Sequential sync failed after {$duration} seconds: " . $e->getMessage());
             throw $e;
         }
     }
 
     /**
-     * Make concurrent API requests using Http::pool()
+     * Sync a single API type
      */
-    protected function makeConcurrentApiRequests(array $plantCodes, string $runningTimeStartDate, string $runningTimeEndDate, string $workOrderStartDate, string $workOrderEndDate, ?array $types = null): array
+    protected function syncApiType(string $apiType, array $plantCodes, string $runningTimeStartDate, string $runningTimeEndDate, string $workOrderStartDate, string $workOrderEndDate): array
     {
         $baseUrl = rtrim(config('ims.base_url'), '/');
         $token = config('ims.token');
 
-        $this->info("🔄 Making concurrent API requests (equipment, materials & work orders)...");
-        $selected = collect($types ?? ['equipment', 'equipment_material', 'equipment_work_orders', 'work_orders'])->keyBy(fn($v) => $v);
+        try {
+            // Make API request based on type
+            switch ($apiType) {
+                case 'equipment':
+                    $url = $baseUrl . '/equipments';
+                    $this->info("GET {$url}");
+                    $response = Http::withHeaders(['Authorization' => $token])
+                        ->timeout($this->timeoutSeconds)
+                        ->asJson()
+                        ->send('GET', $url, [
+                            'json' => ['plant' => array_values($plantCodes)],
+                        ]);
+                    break;
 
-        // Batch 1: dynamically include requests based on selected types
-        $batch1 = Http::pool(function (Pool $pool) use ($baseUrl, $token, $plantCodes, $workOrderStartDate, $workOrderEndDate, $selected) {
-            $equipmentsUrl = $baseUrl . '/equipments';
-            $materialsUrl = $baseUrl . '/equipments/material?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
-            $eqWorkOrdersUrl = $baseUrl . '/equipments/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
-            $workOrdersUrl = $baseUrl . '/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
+                case 'running_time':
+                    // Running time requires one request per plant, then aggregate
+                    $this->info("Making running time requests for " . count($plantCodes) . " plants...");
+                    $allItems = [];
+                    foreach ($plantCodes as $plant) {
+                        $query = http_build_query([
+                            'start_date' => $runningTimeStartDate,
+                            'end_date' => $runningTimeEndDate,
+                        ]);
+                        $url = $baseUrl . '/equipments/jam-jalan?' . $query;
+                        $this->info("GET {$url} (plant: {$plant})");
 
-            $requests = [];
-            if ($selected->has('equipment')) {
-                $this->info("GET {$equipmentsUrl} (JSON body)");
-                $requests[] = $pool->withHeaders(['Authorization' => $token])
-                    ->timeout($this->timeoutSeconds)
-                    ->asJson()
-                    ->send('GET', $equipmentsUrl, [
-                        'json' => [
-                            'plant' => array_values($plantCodes),
-                        ],
-                    ]);
-            }
-            if ($selected->has('equipment_material')) {
-                $this->info("GET {$materialsUrl} (JSON body)");
-                $requests[] = $pool->withHeaders(['Authorization' => $token])
-                    ->timeout($this->timeoutSeconds)
-                    ->asJson()
-                    ->send('GET', $materialsUrl, [
-                        'json' => [
-                            'plant' => array_values($plantCodes),
-                        ],
-                    ]);
-            }
-            if ($selected->has('equipment_work_orders')) {
-                $this->info("GET {$eqWorkOrdersUrl} (JSON body)");
-                $requests[] = $pool->withHeaders(['Authorization' => $token])
-                    ->timeout($this->timeoutSeconds)
-                    ->asJson()
-                    ->send('GET', $eqWorkOrdersUrl, [
-                        'json' => [
-                            'plant' => array_values($plantCodes),
-                            'material_number' => '000000',
-                        ],
-                    ]);
-            }
-            if ($selected->has('work_orders')) {
-                $this->info("GET {$workOrdersUrl} (JSON body)");
-                $requests[] = $pool->withHeaders(['Authorization' => $token])
-                    ->timeout($this->timeoutSeconds)
-                    ->asJson()
-                    ->send('GET', $workOrdersUrl, [
-                        'json' => [
-                            'plant' => array_values($plantCodes),
-                        ],
-                    ]);
-            }
+                        $plantResponse = Http::withHeaders(['Authorization' => $token])
+                            ->timeout($this->timeoutSeconds)
+                            ->asJson()
+                            ->send('GET', $url, [
+                                'json' => ['plant' => [$plant]],
+                            ]);
 
-            return $requests;
-        });
+                        if ($plantResponse->successful()) {
+                            $data = $plantResponse->json() ?? [];
+                            $items = $data['data'] ?? $data;
+                            if (!empty($items) && is_array($items)) {
+                                $allItems = array_merge($allItems, $items);
+                            }
+                        }
+                    }
 
-        $this->info("🔄 Making concurrent API requests (running time per plant): " . count($plantCodes) . " requests...");
+                    $this->info("Aggregated " . count($allItems) . " running time items from all plants");
 
-        // Batch 2: running time per plant (one request per plant)
-        $runningTimeResponses = Http::pool(function (Pool $pool) use ($baseUrl, $token, $plantCodes, $runningTimeStartDate, $runningTimeEndDate) {
-            $requests = [];
-            foreach (array_values($plantCodes) as $index => $plant) {
-                $query = http_build_query([
-                    'start_date' => $runningTimeStartDate,
-                    'end_date' => $runningTimeEndDate,
-                ]);
-                $url = $baseUrl . '/equipments/jam-jalan?' . $query;
-                $this->info("GET {$url} (JSON body)");
-                $requests[] = $pool->withHeaders(['Authorization' => $token])
-                    ->timeout($this->timeoutSeconds)
-                    ->asJson()
-                    ->send('GET', $url, [
-                        'json' => [
-                            'plant' => [$plant],
-                        ],
-                    ]);
-            }
-            return $requests;
-        });
+                    if (!empty($allItems)) {
+                        return $this->processApiData($apiType, $allItems);
+                    } else {
+                        return ['processed' => 0, 'success' => 0, 'failed' => 0];
+                    }
 
-        $this->info("✅ All API requests completed");
+                case 'work_orders':
+                    $url = $baseUrl . '/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
+                    $this->info("GET {$url}");
+                    $response = Http::withHeaders(['Authorization' => $token])
+                        ->timeout($this->timeoutSeconds)
+                        ->asJson()
+                        ->send('GET', $url, [
+                            'json' => ['plant' => array_values($plantCodes)],
+                        ]);
+                    break;
 
-        $mapped = [];
-        $i = 0;
-        foreach (['equipment', 'equipment_material', 'equipment_work_orders', 'work_orders'] as $key) {
-            if ($selected->has($key)) {
-                $mapped[$key] = $batch1[$i] ?? null;
-                $i++;
-            } else {
-                $mapped[$key] = null;
-            }
-        }
-        $mapped['running_time_batches'] = $runningTimeResponses;
-        return $mapped;
-    }
+                case 'equipment_work_orders':
+                    $url = $baseUrl . '/equipments/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
+                    $this->info("GET {$url}");
+                    $response = Http::withHeaders(['Authorization' => $token])
+                        ->timeout($this->timeoutSeconds)
+                        ->asJson()
+                        ->send('GET', $url, [
+                            'json' => [
+                                'plant' => array_values($plantCodes),
+                                'material_number' => '000000',
+                            ],
+                        ]);
+                    break;
 
-    /**
-     * Process API responses and sync to database
-     */
-    protected function processApiResponses(array $responses): array
-    {
-        $results = [
-            'equipment' => ['processed' => 0, 'success' => 0, 'failed' => 0],
-            'equipment_material' => ['processed' => 0, 'success' => 0, 'failed' => 0],
-            'equipment_work_orders' => ['processed' => 0, 'success' => 0, 'failed' => 0],
-            'running_time' => ['processed' => 0, 'success' => 0, 'failed' => 0],
-            'work_orders' => ['processed' => 0, 'success' => 0, 'failed' => 0],
-        ];
+                case 'equipment_material':
+                    $url = $baseUrl . '/equipments/material?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
+                    $this->info("GET {$url}");
+                    $response = Http::withHeaders(['Authorization' => $token])
+                        ->timeout($this->timeoutSeconds)
+                        ->asJson()
+                        ->send('GET', $url, [
+                            'json' => ['plant' => array_values($plantCodes)],
+                        ]);
+                    break;
 
-        // Process equipment, equipment_material, equipment_work_orders and work orders responses
-        foreach (['equipment', 'equipment_material', 'equipment_work_orders', 'work_orders'] as $apiType) {
-            $response = $responses[$apiType] ?? null;
-            $this->info("🔄 Processing {$apiType} data...");
-
-            // If this type wasn't requested or no response was returned, skip with zeros
-            if ($response === null) {
-                $this->info("ℹ️ {$apiType}: Skipped (no request/response)");
-                $results[$apiType] = ['processed' => 0, 'success' => 0, 'failed' => 0];
-                continue;
+                default:
+                    throw new Exception("Unknown API type: {$apiType}");
             }
 
-            try {
+            // Process response (skip for running_time as it's already handled above)
+            if ($apiType !== 'running_time') {
                 if ($response->successful()) {
                     $data = $response->json() ?? [];
                     $items = $data['data'] ?? $data;
@@ -215,52 +200,21 @@ class ConcurrentApiSyncService
                     ]);
 
                     if (!empty($items) && is_array($items)) {
-                        $result = $this->processApiData($apiType, $items);
-                        $results[$apiType] = $result;
-
-                        $this->info("✅ {$apiType}: processed={$result['processed']}, success={$result['success']}, failed={$result['failed']}");
+                        return $this->processApiData($apiType, $items);
                     } else {
                         $this->info("ℹ️ {$apiType}: No data returned");
-                        $results[$apiType] = ['processed' => 0, 'success' => 0, 'failed' => 0];
+                        return ['processed' => 0, 'success' => 0, 'failed' => 0];
                     }
                 } else {
                     throw new Exception("HTTP {$response->status()}: {$response->body()}");
                 }
-            } catch (Exception $e) {
-                $this->error("❌ {$apiType}: " . $e->getMessage());
-                $results[$apiType] = ['processed' => 0, 'success' => 0, 'failed' => 0, 'error' => $e->getMessage()];
             }
+        } catch (Exception $e) {
+            $this->error("❌ {$apiType}: " . $e->getMessage());
+            return ['processed' => 0, 'success' => 0, 'failed' => 0, 'error' => $e->getMessage()];
         }
 
-        // Process running time batch responses (aggregate items across plants)
-        $this->info("🔄 Processing running_time data (batched by plant)...");
-        $allRtItems = [];
-        $rtResponses = $responses['running_time_batches'] ?? [];
-        foreach ($rtResponses as $rtResponse) {
-            try {
-                if ($rtResponse->successful()) {
-                    $data = $rtResponse->json() ?? [];
-                    $items = $data['data'] ?? $data;
-                    if (!empty($items) && is_array($items)) {
-                        $allRtItems = array_merge($allRtItems, $items);
-                    }
-                }
-            } catch (\Throwable $e) {
-                // continue; individual failures shouldn't break the whole batch
-            }
-        }
-
-        $this->info("running_time aggregated items: " . count($allRtItems));
-        if (!empty($allRtItems)) {
-            $rtResult = $this->processApiData('running_time', $allRtItems);
-            $results['running_time'] = $rtResult;
-            $this->info("✅ running_time: processed={$rtResult['processed']}, success={$rtResult['success']}, failed={$rtResult['failed']}");
-        } else {
-            $this->info("ℹ️ running_time: No data returned");
-            $results['running_time'] = ['processed' => 0, 'success' => 0, 'failed' => 0];
-        }
-
-        return $results;
+        return ['processed' => 0, 'success' => 0, 'failed' => 0];
     }
 
     /**

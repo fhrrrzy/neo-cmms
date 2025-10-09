@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 
-const STORAGE_KEY = 'monitoring_filters_v1'
+const STORAGE_KEY = 'monitoring_filters_v2'
 
 function loadPersisted() {
   try {
@@ -8,9 +8,9 @@ function loadPersisted() {
     if (!raw) return null
     const parsed = JSON.parse(raw)
     return {
-      regional_id: parsed?.regional_id ?? undefined,
-      plant_id: parsed?.plant_id ?? undefined,
-      station_id: parsed?.station_id ?? undefined,
+      regional_ids: Array.isArray(parsed?.regional_ids) ? parsed.regional_ids : [],
+      plant_ids: Array.isArray(parsed?.plant_ids) ? parsed.plant_ids : [],
+      station_ids: Array.isArray(parsed?.station_ids) ? parsed.station_ids : [],
       search: parsed?.search ?? '',
     }
   } catch {
@@ -21,9 +21,9 @@ function loadPersisted() {
 function savePersisted(filters) {
   try {
     const payload = {
-      regional_id: filters?.regional_id ?? undefined,
-      plant_id: filters?.plant_id ?? undefined,
-      station_id: filters?.station_id ?? undefined,
+      regional_ids: Array.isArray(filters?.regional_ids) ? filters.regional_ids : [],
+      plant_ids: Array.isArray(filters?.plant_ids) ? filters.plant_ids : [],
+      station_ids: Array.isArray(filters?.station_ids) ? filters.station_ids : [],
       search: filters?.search ?? '',
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
@@ -34,25 +34,25 @@ function savePersisted(filters) {
 
 export const useMonitoringFilterStore = defineStore('monitoringFilters', {
   state: () => ({
-    regional_id: undefined,
-    plant_id: undefined,
-    station_id: undefined,
+    regional_ids: [],
+    plant_ids: [],
+    station_ids: [],
     search: '',
   }),
   actions: {
     load() {
       const persisted = loadPersisted()
       if (persisted) {
-        this.regional_id = persisted.regional_id
-        this.plant_id = persisted.plant_id
-        this.station_id = persisted.station_id
+        this.regional_ids = persisted.regional_ids
+        this.plant_ids = persisted.plant_ids
+        this.station_ids = persisted.station_ids
         this.search = persisted.search
       }
     },
     setFilters(next) {
-      this.regional_id = next?.regional_id
-      this.plant_id = next?.plant_id
-      this.station_id = next?.station_id
+      this.regional_ids = Array.isArray(next?.regional_ids) ? next.regional_ids : []
+      this.plant_ids = Array.isArray(next?.plant_ids) ? next.plant_ids : []
+      this.station_ids = Array.isArray(next?.station_ids) ? next.station_ids : []
       if (typeof next?.search === 'string') this.search = next.search
       savePersisted(this)
     },
@@ -61,9 +61,9 @@ export const useMonitoringFilterStore = defineStore('monitoringFilters', {
       savePersisted(this)
     },
     clear() {
-      this.regional_id = undefined
-      this.plant_id = undefined
-      this.station_id = undefined
+      this.regional_ids = []
+      this.plant_ids = []
+      this.station_ids = []
       this.search = ''
       savePersisted(this)
     },
