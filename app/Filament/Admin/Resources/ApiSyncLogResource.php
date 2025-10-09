@@ -127,10 +127,12 @@ class ApiSyncLogResource extends Resource
                             ]),
                         Forms\Components\DatePicker::make('start_date')
                             ->native(false)
-                            ->required(),
+                            ->required(fn($get) => $get('types') !== ['equipment'])
+                            ->helperText('Required for Running Time, Work Orders, Equipment Work Orders, and Equipment Material APIs. Not needed for Equipment only.'),
                         Forms\Components\DatePicker::make('end_date')
                             ->native(false)
-                            ->required(),
+                            ->required(fn($get) => $get('types') !== ['equipment'])
+                            ->helperText('Required for Running Time, Work Orders, Equipment Work Orders, and Equipment Material APIs. Not needed for Equipment only.'),
                     ])
                     ->action(function (array $data): void {
                         $start = $data['start_date'] ?? null;
@@ -139,6 +141,16 @@ class ApiSyncLogResource extends Resource
                         $plants = $data['plants'] ?? null; // array of plant_code
 
                         $types = array_values($data['types'] ?? []);
+
+                        // If only equipment is selected, we don't need dates
+                        $onlyEquipment = $types === ['equipment'];
+
+                        if ($onlyEquipment) {
+                            // Equipment doesn't need date ranges, use defaults
+                            $start = null;
+                            $end = null;
+                        }
+
                         if ($all || empty($plants)) {
                             // all plants
                             ConcurrentSyncJob::dispatch(
@@ -151,7 +163,9 @@ class ApiSyncLogResource extends Resource
                             )->onQueue('high');
                             \Filament\Notifications\Notification::make()
                                 ->title('Sync started')
-                                ->body('Job created for all plants. We\'ll notify you once it\'s done.')
+                                ->body($onlyEquipment
+                                    ? 'Job created for all plants (equipment only - no date range needed). We\'ll notify you once it\'s done.'
+                                    : 'Job created for all plants. We\'ll notify you once it\'s done.')
                                 ->success()
                                 ->send();
                         } else {
@@ -166,7 +180,9 @@ class ApiSyncLogResource extends Resource
                             )->onQueue('high');
                             \Filament\Notifications\Notification::make()
                                 ->title('Sync started')
-                                ->body('Job created for selected plants. We\'ll notify you once it\'s done.')
+                                ->body($onlyEquipment
+                                    ? 'Job created for selected plants (equipment only - no date range needed). We\'ll notify you once it\'s done.'
+                                    : 'Job created for selected plants. We\'ll notify you once it\'s done.')
                                 ->success()
                                 ->send();
                         }

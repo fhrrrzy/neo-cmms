@@ -150,14 +150,24 @@ class ConcurrentSyncJob implements ShouldQueue
 
             // Notify superadmins via Filament database notifications
             $recipients = User::superadmin()->get();
+
+            // Detailed notification for tracking
             FilamentNotification::make()
-                ->title('Sync completed')
-                ->body('Equipment: ' . ($results['equipment']['success'] ?? 0)
+                ->title('Sequential API Sync Completed Successfully')
+                ->body('Detailed Results: Equipment: ' . ($results['equipment']['success'] ?? 0)
                     . ', Equipment Material: ' . ($results['equipment_material']['success'] ?? 0)
                     . ', Equipment Work Orders: ' . ($results['equipment_work_orders']['success'] ?? 0)
                     . ', Running Time: ' . ($results['running_time']['success'] ?? 0)
                     . ', Work Orders: ' . ($results['work_orders']['success'] ?? 0)
-                    . ' | Duration: ' . $duration . 's')
+                    . ' | Duration: ' . $duration . 's | Plants: ' . count($plantCodes))
+                ->icon('heroicon-o-check-circle')
+                ->iconColor('success')
+                ->sendToDatabase($recipients);
+
+            // Summary notification for quick awareness
+            FilamentNotification::make()
+                ->title('API Sync Completed')
+                ->body('All APIs synced successfully in ' . $duration . ' seconds')
                 ->icon('heroicon-o-check-circle')
                 ->iconColor('success')
                 ->sendToDatabase($recipients);
@@ -173,9 +183,19 @@ class ConcurrentSyncJob implements ShouldQueue
 
             // Notify superadmins via Filament database notifications
             $recipients = User::superadmin()->get();
+
+            // Detailed error notification
             FilamentNotification::make()
-                ->title('Sync failed')
-                ->body($e->getMessage())
+                ->title('Sequential API Sync Failed')
+                ->body('Error: ' . $e->getMessage() . ' | Duration: ' . $duration . 's | Attempt: ' . $this->attempts())
+                ->icon('heroicon-o-x-circle')
+                ->iconColor('danger')
+                ->sendToDatabase($recipients);
+
+            // Summary error notification
+            FilamentNotification::make()
+                ->title('API Sync Failed')
+                ->body('Sync encountered an error. Check logs for details.')
                 ->icon('heroicon-o-x-circle')
                 ->iconColor('danger')
                 ->sendToDatabase($recipients);
@@ -185,7 +205,7 @@ class ConcurrentSyncJob implements ShouldQueue
         }
     }
 
-    /**
+    /** 
      * Handle a job failure.
      */
     public function failed(Exception $exception): void
@@ -200,9 +220,19 @@ class ConcurrentSyncJob implements ShouldQueue
 
         // Notify superadmins via Filament database notifications
         $recipients = User::superadmin()->get();
+
+        // Detailed permanent failure notification
         FilamentNotification::make()
-            ->title('Sync failed permanently')
-            ->body($exception->getMessage())
+            ->title('Sequential API Sync Failed Permanently')
+            ->body('Job failed after all retry attempts. Error: ' . $exception->getMessage())
+            ->icon('heroicon-o-x-circle')
+            ->iconColor('danger')
+            ->sendToDatabase($recipients);
+
+        // Summary permanent failure notification
+        FilamentNotification::make()
+            ->title('API Sync Failed Permanently')
+            ->body('Job failed after all retries. Manual intervention required.')
             ->icon('heroicon-o-x-circle')
             ->iconColor('danger')
             ->sendToDatabase($recipients);

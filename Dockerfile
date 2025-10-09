@@ -1,10 +1,9 @@
-# Use official PHP 8.2 image with FPM for Nginx
-FROM php:8.2-fpm
+FROM php:8.4-fpm
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies including Nginx
+# Install system dependencies including Node.js and pnpm
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -12,72 +11,58 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
     zip \
     unzip \
-    nodejs \
-    npm \
-    nginx \
     supervisor \
     cron \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip opcache \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20.x
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
+# Install pnpm
+RUN npm install -g pnpm
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy Nginx configuration
-COPY docker/nginx/default.conf /etc/nginx/sites-available/default
+# Copy package files first for better caching
+COPY package.json ./
+COPY pnpm-lock.yaml* ./
 
-# Copy PHP-FPM configuration
-COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+# Install Node dependencies
+RUN pnpm install --frozen-lockfile
 
-# Remove default Nginx site and enable our config
-RUN rm -f /etc/nginx/sites-enabled/default \
-    && ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
+# Copy composer files
+COPY composer.json composer.lock* ./
 
-# Copy supervisor configuration
-COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Copy composer files first for better layer caching
-COPY composer.json composer.lock ./
-
-# Install PHP dependencies (this layer will be cached if composer files don't change)
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-autoloader
-
-# Copy package.json files for Node.js
-COPY package*.json ./
-
-# Install Node.js dependencies
-RUN npm ci --only=production
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader
 
 # Copy application files
 COPY . /var/www/html
 
-# Complete Composer autoloader
-RUN composer dump-autoload --optimize
+# Build frontend assets for production
+RUN pnpm run build
 
-# Build assets
-RUN npm run build
-
-# Set proper permissions
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Create Laravel environment file if it doesn't exist
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
+# Copy supervisor configuration
+COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Generate application key
-RUN php artisan key:generate
+# Create storage link (can be done at build time)
+RUN php artisan storage:link
 
-# Create storage and cache directories with proper permissions
-RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
-    && chown -R www-data:www-data storage \
-    && chmod -R 775 storage
+# Expose port
+EXPOSE 9000
 
-# Expose port 80
-EXPOSE 80
-
-# Start supervisor to manage Nginx, PHP-FPM and other services
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["php-fpm"]
