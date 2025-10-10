@@ -35,9 +35,15 @@ RUN rm -rf node_modules package*.json pnpm-lock.yaml \
 RUN mkdir -p /var/log/supervisor
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Copy and setup init script
-COPY docker/init-permissions.sh /usr/local/bin/init-permissions.sh
-RUN chmod +x /usr/local/bin/init-permissions.sh
+# Create necessary directories and set permissions
+RUN mkdir -p /var/www/html/storage/logs \
+    && mkdir -p /var/www/html/storage/framework/cache \
+    && mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
+    && chown -R www-data:www-data /var/www/html/storage \
+    && chown -R www-data:www-data /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
 
 # Create storage link and optimize Laravel
 RUN php artisan storage:link \
