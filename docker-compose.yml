@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     working_dir: /var/www/html
     ports:
-      - '9000:9000'
+      - '8081:8081'
     volumes:
       - storage_data:/var/www/html/storage
       - cache_data:/var/www/html/bootstrap/cache
@@ -24,7 +24,15 @@ services:
     #   timeout: 10s
     #   retries: 3
     #   start_period: 40s
-    command: ['/usr/local/bin/set-permissions.sh', 'php-fpm']
+    command:
+      [
+        '/usr/local/bin/set-permissions.sh',
+        'php',
+        'artisan',
+        'serve',
+        '--host=0.0.0.0',
+        '--port=8081',
+      ]
 
   worker:
     build:
