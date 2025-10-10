@@ -29,20 +29,19 @@ RUN pnpm run build
 RUN rm -rf node_modules package*.json pnpm-lock.yaml \
     && pnpm store prune
 
-# Set permissions and create necessary directories
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache \
-    && mkdir -p /var/www/html/storage/logs \
-    && mkdir -p /var/www/html/storage/framework/cache \
-    && mkdir -p /var/www/html/storage/framework/sessions \
-    && mkdir -p /var/www/html/storage/framework/views
+# Set minimal permissions for Laravel
+RUN chown -R www-data:www-data /var/www/html/storage \
+    && chown -R www-data:www-data /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
 
 # Copy supervisor configuration
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Create storage link
-RUN php artisan storage:link
+# Create storage link and optimize Laravel
+RUN php artisan storage:link \
+    && php artisan filament:optimize \
+    && php artisan optimize
 
 # Configure PHP for production
 RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
