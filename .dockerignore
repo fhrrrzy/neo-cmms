@@ -1,80 +1,104 @@
-# Version control
+# Git
 .git
 .gitignore
 .gitattributes
 
-# IDE and editor files
-.idea
-.vscode
-*.swp
-*.swo
-*~
-.DS_Store
+# Documentation
+README.md
+SETUP.md
+*.md
 
-# Dependencies (will be installed in Docker)
-/node_modules
-/vendor
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
 
-# Build artifacts
-/public/hot
-/public/storage
-/public/build
-/public/mix-manifest.json
-
-# Storage (mounted as volume)
-/storage/*.key
-/storage/logs
-/storage/framework/cache/*
-/storage/framework/sessions/*
-/storage/framework/views/*
-
-# Environment and config
+# Environment
 .env
 .env.*
 !.env.example
 
-# Testing
-/tests
-/phpunit.xml
-/.phpunit.cache
-/coverage
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
 
-# Documentation
-/docs
-README.md
-CHANGELOG.md
-CONTRIBUTING.md
-
-# CI/CD
-/.github
-/.gitlab-ci.yml
-/azure-pipelines.yml
-/bitbucket-pipelines.yml
-
-# Docker files (except the one being built)
-docker-compose*.yml
-Dockerfile.dev
-.dockerignore
-
-# Logs and temp files
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-/tmp
-
-# OS files
+# OS
+.DS_Store
 Thumbs.db
 
-# Backup files
-*.bak
-*.backup
-*.old
+# Logs
+*.log
+logs/
 
-# Analysis files
-*.dbml
-*_analysis.md
-*_summary.md
-DEPLOYMENT_CHECKLIST.md
-DOCKER_SETUP.md
-README.Docker.md
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependency directories
+node_modules/
+vendor/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# next.js build output
+.next
+
+# Nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Laravel specific
+storage/app/*
+!storage/app/.gitignore
+storage/framework/cache/*
+!storage/framework/cache/.gitignore
+storage/framework/sessions/*
+!storage/framework/sessions/.gitignore
+storage/framework/views/*
+!storage/framework/views/.gitignore
+storage/logs/*
+!storage/logs/.gitignore
+bootstrap/cache/*
+!bootstrap/cache/.gitignore
+
+# Build artifacts
+public/build/
+public/hot
+public/storage
