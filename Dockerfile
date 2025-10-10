@@ -29,11 +29,7 @@ RUN pnpm run build
 RUN rm -rf node_modules package*.json pnpm-lock.yaml \
     && pnpm store prune
 
-# Set minimal permissions for Laravel
-RUN chown -R www-data:www-data /var/www/html/storage \
-    && chown -R www-data:www-data /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage \
-    && chmod -R 775 /var/www/html/bootstrap/cache
+# Note: Storage permissions handled by volume mounts in docker-compose.yml
 
 # Copy supervisor configuration
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
