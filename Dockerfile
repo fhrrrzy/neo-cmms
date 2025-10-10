@@ -1,32 +1,12 @@
-# Use official PHP image
-FROM php:8.4-fpm
+# Use pre-built PHP image with all extensions
+FROM webdevops/php-official:8.4-alpine
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies and PHP extensions in one optimized layer
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
-    libfreetype6-dev \
-    libjpeg62-turbo-dev \
-    libicu-dev \
-    zip \
-    unzip \
-    supervisor \
-    cron \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip opcache intl \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
+# Install Node.js and pnpm
+RUN apk add --no-cache nodejs npm \
     && npm install -g pnpm \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /tmp/* /var/tmp/* \
     && npm cache clean --force
 
 # Install Composer
