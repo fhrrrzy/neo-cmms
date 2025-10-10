@@ -1,11 +1,16 @@
-# Use pre-built PHP image with all extensions
-FROM webdevops/php-official:8.4-alpine
+# Use PHP-FPM image
+FROM php:8.4-fpm-alpine
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Install Node.js and pnpm
-RUN apk add --no-cache nodejs npm \
+# Install system dependencies and PHP extensions
+RUN apk add --no-cache \
+    nodejs npm \
+    libpng-dev libjpeg-turbo-dev freetype-dev \
+    libzip-dev libxml2-dev icu-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql zip xml intl \
     && npm install -g pnpm \
     && npm cache clean --force
 
