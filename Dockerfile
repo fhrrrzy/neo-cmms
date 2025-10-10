@@ -31,7 +31,8 @@ RUN rm -rf node_modules package*.json pnpm-lock.yaml \
 
 # Note: Storage permissions handled by volume mounts in docker-compose.yml
 
-# Copy supervisor configuration
+# Create supervisor log directory and copy configuration
+RUN mkdir -p /var/log/supervisor
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Create storage link and optimize Laravel
