@@ -35,6 +35,10 @@ RUN rm -rf node_modules package*.json pnpm-lock.yaml \
 RUN mkdir -p /var/log/supervisor
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Copy and setup init script
+COPY docker/init-permissions.sh /usr/local/bin/init-permissions.sh
+RUN chmod +x /usr/local/bin/init-permissions.sh
+
 # Create storage link and optimize Laravel
 RUN php artisan storage:link \
     && php artisan filament:optimize \
