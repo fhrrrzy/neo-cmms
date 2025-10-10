@@ -22,6 +22,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    command: >
+      sh -c "
+        chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache &&
+        chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache &&
+        php-fpm
+      "
 
   nginx:
     image: nginx:alpine
@@ -46,7 +52,12 @@ services:
     volumes:
       - ./storage:/var/www/html/storage
       - ./bootstrap/cache:/var/www/html/bootstrap/cache
-    command: supervisord -c /etc/supervisor/conf.d/supervisord.conf
+    command: >
+      sh -c "
+        chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache &&
+        chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache &&
+        supervisord -c /etc/supervisor/conf.d/supervisord.conf
+      "
     env_file:
       - .env
     environment:
@@ -74,7 +85,12 @@ services:
     volumes:
       - ./storage:/var/www/html/storage
       - ./bootstrap/cache:/var/www/html/bootstrap/cache
-    command: php artisan schedule:work --verbose
+    command: >
+      sh -c "
+        chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache &&
+        chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache &&
+        php artisan schedule:work --verbose
+      "
     env_file:
       - .env
     environment:
