@@ -28,7 +28,7 @@ class ConcurrentApiSyncService
 
     public function __construct()
     {
-        $this->timeoutSeconds = config('ims.timeout', 30);
+        $this->timeoutSeconds = config('ims.timeout', 300);
     }
 
     /**
@@ -114,10 +114,13 @@ class ConcurrentApiSyncService
                         $url = $baseUrl . '/equipments';
                         $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
 
-                        $response = Http::withHeaders(['Authorization' => $token])
+                        $response = Http::withHeaders([
+                            'Authorization' => $token,
+                            'Content-Type' => 'application/json'
+                        ])
                             ->timeout($this->timeoutSeconds)
                             ->send('GET', $url, [
-                                'form_params' => ['plant' => array_values($plantBatch)],
+                                'json' => ['plant' => array_values($plantBatch)],
                             ]);
 
                         if ($response->successful()) {
@@ -183,10 +186,13 @@ class ConcurrentApiSyncService
                         $url = $baseUrl . '/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
                         $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
 
-                        $response = Http::withHeaders(['Authorization' => $token])
+                        $response = Http::withHeaders([
+                            'Authorization' => $token,
+                            'Content-Type' => 'application/json'
+                        ])
                             ->timeout($this->timeoutSeconds)
                             ->send('GET', $url, [
-                                'form_params' => ['plant' => array_values($plantBatch)],
+                                'json' => ['plant' => array_values($plantBatch)],
                             ]);
 
                         if ($response->successful()) {
@@ -218,10 +224,13 @@ class ConcurrentApiSyncService
                         $requestBody = ['plant' => array_values($plantBatch)];
                         $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
 
-                        $response = Http::withHeaders(['Authorization' => $token])
+                        $response = Http::withHeaders([
+                            'Authorization' => $token,
+                            'Content-Type' => 'application/json'
+                        ])
                             ->timeout($this->timeoutSeconds)
                             ->send('GET', $url, [
-                                'form_params' => $requestBody,
+                                'json' => $requestBody,
                             ]);
 
                         if ($response->successful()) {
@@ -252,10 +261,13 @@ class ConcurrentApiSyncService
                         $url = $baseUrl . '/equipments/material?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
                         $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
 
-                        $response = Http::withHeaders(['Authorization' => $token])
+                        $response = Http::withHeaders([
+                            'Authorization' => $token,
+                            'Content-Type' => 'application/json'
+                        ])
                             ->timeout($this->timeoutSeconds)
                             ->send('GET', $url, [
-                                'form_params' => ['plant' => array_values($plantBatch)],
+                                'json' => ['plant' => array_values($plantBatch)],
                             ]);
 
                         if ($response->successful()) {
@@ -317,8 +329,6 @@ class ConcurrentApiSyncService
             $this->error("❌ {$apiType}: " . $e->getMessage());
             return ['processed' => 0, 'success' => 0, 'failed' => 0, 'error' => $e->getMessage()];
         }
-
-        return ['processed' => 0, 'success' => 0, 'failed' => 0];
     }
 
     /**

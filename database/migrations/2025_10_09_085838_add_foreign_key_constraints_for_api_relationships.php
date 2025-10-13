@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         // Add foreign key constraints for API relationships (only if they don't exist)
-        
+
         // 1. running_times.equipment_number → equipment.equipment_number
         if (!$this->foreignKeyExists('running_times', 'equipment_number')) {
             Schema::table('running_times', function (Blueprint $table) {
@@ -71,6 +71,11 @@ return new class extends Migration
 
         // 6. equipment_materials.reservation_number → equipment_work_orders.reservation
         if (!$this->foreignKeyExists('equipment_materials', 'reservation_number')) {
+            // First, ensure the referenced column has an index
+            Schema::table('equipment_work_orders', function (Blueprint $table) {
+                $table->index('reservation', 'equipment_work_orders_reservation_index');
+            });
+
             Schema::table('equipment_materials', function (Blueprint $table) {
                 $table->foreign('reservation_number')
                     ->references('reservation')
@@ -94,7 +99,7 @@ return new class extends Migration
              AND REFERENCED_TABLE_NAME IS NOT NULL",
             [$table, $column]
         );
-        
+
         return count($constraints) > 0;
     }
 
@@ -104,7 +109,7 @@ return new class extends Migration
     public function down(): void
     {
         // Drop foreign key constraints
-        
+
         Schema::table('running_times', function (Blueprint $table) {
             $table->dropForeign(['equipment_number']);
         });
@@ -121,6 +126,10 @@ return new class extends Migration
         Schema::table('equipment_materials', function (Blueprint $table) {
             $table->dropForeign(['equipment_number']);
             $table->dropForeign(['reservation_number']);
+        });
+
+        Schema::table('equipment_work_orders', function (Blueprint $table) {
+            $table->dropIndex('equipment_work_orders_reservation_index');
         });
     }
 };

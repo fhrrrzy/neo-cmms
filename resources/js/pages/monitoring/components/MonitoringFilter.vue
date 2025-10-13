@@ -200,18 +200,15 @@ const fetchPlants = async () => {
     }
 };
 
-const fetchStations = async (plantId) => {
-    if (!plantId) {
-        stations.value = [];
-        return;
-    }
-
+// Fetch all stations - backend will handle filtering based on plant codes
+const fetchStations = async () => {
     loadingStations.value = true;
     try {
-        const response = await axios.get(`/api/stations?plant_id=${plantId}`);
-        stations.value = response.data;
+        const response = await axios.get('/api/stations');
+        stations.value = response.data || [];
     } catch (error) {
         console.error('Error fetching stations:', error);
+        stations.value = [];
     } finally {
         loadingStations.value = false;
     }
@@ -323,20 +320,9 @@ const onRegionalChecked = async (regionalId, checked) => {
             (id) => !toRemove.has(id),
         );
 
-        // Also remove stations that belong to removed plants
-        const stationIdsToRemove = new Set(
-            stations.value
-                .filter((s) => toRemove.has(s.plant_id))
-                .map((s) => s.id),
-        );
-        const remainingStationIds = (
-            localFilters.value.station_ids || []
-        ).filter((id) => !stationIdsToRemove.has(id));
-
         localFilters.value = {
             ...localFilters.value,
             plant_ids: remainingPlantIds,
-            station_ids: remainingStationIds,
         };
     }
 };
@@ -478,19 +464,7 @@ const filteredStations = computed(() => {
     const search = stationSearch.value.toLowerCase();
     let filtered = stations.value;
 
-    // Only filter by selected plants if we're inside the station dropdown
-    // and plant selections exist
-    if (
-        stationOpen.value &&
-        localFilters.value.plant_ids &&
-        localFilters.value.plant_ids.length > 0
-    ) {
-        filtered = filtered.filter((s) =>
-            localFilters.value.plant_ids.includes(s.plant_id),
-        );
-    }
-
-    // Filter by search
+    // Filter by search only - backend will handle plant-based filtering
     return search
         ? filtered.filter((s) => s.description.toLowerCase().includes(search))
         : filtered;
@@ -523,34 +497,7 @@ const clearFilters = async () => {
     await nextTick();
 };
 
-// Fetch all stations for all plants
-const fetchAllStations = async () => {
-    loadingStations.value = true;
-    try {
-        // Fetch all plants first to get their IDs
-        if (plants.value.length === 0) {
-            await fetchPlants();
-        }
-
-        // Fetch stations for all plants
-        const promises = plants.value.map((plant) =>
-            axios.get(`/api/stations?plant_id=${plant.id}`),
-        );
-        const responses = await Promise.all(promises);
-
-        // Combine and deduplicate stations
-        const allStations = responses.flatMap((r) => r.data);
-        const uniqueStations = Array.from(
-            new Map(allStations.map((s) => [s.id, s])).values(),
-        );
-
-        stations.value = uniqueStations;
-    } catch (error) {
-        console.error('Error fetching stations:', error);
-    } finally {
-        loadingStations.value = false;
-    }
-};
+// Removed fetchAllStations; stations now depend on selected plants only
 
 const getPlantIdsForRegional = (regionalId) => {
     return plants.value
@@ -569,7 +516,7 @@ onMounted(async () => {
     // Fetch all initial data
     await fetchRegions();
     await fetchPlants();
-    await fetchAllStations();
+    await fetchStations();
 
     await nextTick();
 });
