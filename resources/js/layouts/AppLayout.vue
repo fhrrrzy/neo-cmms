@@ -1,19 +1,17 @@
-<script setup lang="ts">
+<script setup>
 import AppLayout from '@/layouts/app/AppSidebarLayout.vue';
-import type { BreadcrumbItemType } from '@/types';
 
-interface Props {
-    breadcrumbs?: BreadcrumbItemType[];
-}
-
-withDefaults(defineProps<Props>(), {
-    breadcrumbs: () => [],
+const props = defineProps({
+    breadcrumbs: {
+        type: Array,
+        default: () => [],
+    },
 });
 </script>
 
 <template>
     <AppLayout vaul-drawer-wrapper :breadcrumbs="breadcrumbs">
-        <div class="p-4">
+        <div class="flex-1 p-4">
             <slot />
         </div>
     </AppLayout>

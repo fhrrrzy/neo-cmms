@@ -44,6 +44,10 @@ class EquipmentApiController extends Controller
         $rtPerPage = (int) $request->get('rt_per_page', 50);
         $rtPage = (int) $request->get('rt_page', 1);
         $rtTotal = (clone $runningTimesQuery)->count();
+        $rtLastPage = (int) ceil($rtTotal / max($rtPerPage, 1));
+        $rtFrom = ($rtPage - 1) * $rtPerPage + 1;
+        $rtTo = min($rtPage * $rtPerPage, $rtTotal);
+
         $runningTimes = $runningTimesQuery->forPage($rtPage, $rtPerPage)->get()
             ->map(function ($rt) {
                 $format = function ($value) {
@@ -94,7 +98,10 @@ class EquipmentApiController extends Controller
                     'total' => $rtTotal,
                     'per_page' => $rtPerPage,
                     'current_page' => $rtPage,
-                    'last_page' => (int) ceil($rtTotal / max($rtPerPage, 1)),
+                    'last_page' => $rtLastPage,
+                    'from' => $rtFrom,
+                    'to' => $rtTo,
+                    'has_more_pages' => $rtPage < $rtLastPage,
                     'sort_by' => $rtSortBy,
                     'sort_direction' => $rtSortDir,
                 ],

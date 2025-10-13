@@ -1,5 +1,4 @@
 <script setup>
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Table,
     TableBody,
@@ -9,8 +8,9 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import axios from 'axios';
-import { h, onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { runningTimeColumns } from './columns';
+import RunningTimePagination from './RunningTimePagination.vue';
 
 const props = defineProps({
     equipmentNumber: { type: String, required: true },
@@ -18,8 +18,8 @@ const props = defineProps({
         type: Object,
         required: true,
     },
-    // Tailwind class for max height; default to 80vh
-    maxHeightClass: { type: String, default: 'max-h-[80vh]' },
+    // Tailwind class for max height; default to 70vh to account for sticky header
+    maxHeightClass: { type: String, default: 'max-h-[70vh]' },
 });
 
 const rows = ref([]);
@@ -91,6 +91,17 @@ const fetchData = async () => {
     }
 };
 
+const handlePageChange = (newPage) => {
+    page.value = newPage;
+    fetchData();
+};
+
+const handlePageSizeChange = (perPageValue) => {
+    perPage.value = perPageValue;
+    page.value = 1; // Reset to first page when changing page size
+    fetchData();
+};
+
 onMounted(fetchData);
 watch(
     () => [props.equipmentNumber, props.dateRange?.start, props.dateRange?.end],
@@ -99,76 +110,63 @@ watch(
 </script>
 
 <template>
-    <div v-if="rows?.length > 0">
-        <ScrollArea :class="['w-full', props.maxHeightClass]">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead
-                            v-for="col in runningTimeColumns"
-                            :key="col.id || col.accessorKey || col.key"
-                            :class="col.align === 'right' ? 'text-right' : ''"
-                        >
+    <div
+        v-if="rows?.length > 0"
+        :class="['w-full', props.maxHeightClass, 'overflow-hidden']"
+    >
+        <Table>
+            <TableHeader class="sticky top-0 z-10 bg-background">
+                <TableRow>
+                    <TableHead
+                        v-for="col in runningTimeColumns"
+                        :key="col.id || col.accessorKey || col.key"
+                    >
+                        <div>
                             <component
-                                :is="
-                                    typeof col.header === 'function'
-                                        ? col.header({
-                                              table: tableContext,
-                                              column: col,
-                                          })
-                                        : h('span', null, col.label)
-                                "
+                                :is="col.header"
+                                v-bind="{ table: tableContext, column: col }"
                             />
-                        </TableHead>
-                    </TableRow>
-                </TableHeader>
+                        </div>
+                    </TableHead>
+                </TableRow>
+            </TableHeader>
+        </Table>
+        <div
+            class="overflow-y-auto"
+            :style="{ maxHeight: 'calc(100% - 6rem)' }"
+        >
+            <Table>
                 <TableBody>
                     <TableRow v-for="(time, index) in rows" :key="index">
-                        <TableCell class="text-center font-medium">
-                            {{
-                                (pagination.current_page - 1) *
-                                    pagination.per_page +
-                                index +
-                                1
-                            }}
-                        </TableCell>
-                        <TableCell class="font-medium">
-                            {{
-                                new Date(time.date).toLocaleDateString(
-                                    'en-US',
-                                    {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: 'numeric',
+                        <TableCell
+                            v-for="col in runningTimeColumns"
+                            :key="col.id || col.accessorKey || col.key"
+                        >
+                            <component
+                                :is="col.cell"
+                                v-bind="{
+                                    row: {
+                                        getValue: (key) => time[key],
+                                        index: index,
+                                        original: time,
                                     },
-                                )
-                            }}
-                        </TableCell>
-                        <TableCell class="text-right font-mono">
-                            {{
-                                Number(
-                                    time.counter_reading || 0,
-                                ).toLocaleString('id-ID', {
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0,
-                                })
-                            }}
-                        </TableCell>
-                        <TableCell class="text-right font-mono">
-                            {{
-                                Number(time.running_hours || 0).toLocaleString(
-                                    'id-ID',
-                                    {
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 2,
-                                    },
-                                )
-                            }}
+                                    table: tableContext,
+                                }"
+                            />
                         </TableCell>
                     </TableRow>
                 </TableBody>
             </Table>
-        </ScrollArea>
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-4">
+            <RunningTimePagination
+                :pagination="pagination"
+                @page-change="handlePageChange"
+                @page-size-change="handlePageSizeChange"
+            />
+        </div>
     </div>
     <div v-else class="py-8 text-center text-muted-foreground">
         <p>No running times data available</p>
