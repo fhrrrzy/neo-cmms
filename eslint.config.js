@@ -8,15 +8,8 @@ export default [
     },
     {
         files: ['**/*.vue'],
-        languageOptions: {
-            parserOptions: {
-                parser: '@typescript-eslint/parser',
-                extraFileExtensions: ['.vue'],
-            },
-        },
         rules: {
             'vue/multi-word-component-names': 'off',
-            'vue/block-lang': 'off', // Allow JavaScript in Vue files
         },
     },
     prettier,

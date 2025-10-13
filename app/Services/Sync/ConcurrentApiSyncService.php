@@ -53,14 +53,15 @@ class ConcurrentApiSyncService
 
         $this->info("🚀 Starting sequential sync for " . count($plantCodes) . " plants");
         $this->info("APIs: Equipment, Running Time ({$runningTimeStartDate} to {$runningTimeEndDate}), Work Orders ({$workOrderStartDate} to {$workOrderEndDate})");
-        $this->info("Order: equipment → running_time → work_orders → equipment_work_orders → equipment_material");
+        $this->info("Order: equipment → work_orders → running_time → equipment_work_orders → equipment_material");
 
         $startTime = now();
         $results = [];
 
         try {
             // Define the sync order (respecting dependencies)
-            $syncOrder = ['equipment', 'running_time', 'work_orders', 'equipment_work_orders', 'equipment_material'];
+            // equipment -> work_orders -> running_time -> equipment_work_orders -> equipment_material
+            $syncOrder = ['equipment', 'work_orders', 'running_time', 'equipment_work_orders', 'equipment_material'];
             $selectedTypes = $types ?? $syncOrder;
 
             foreach ($syncOrder as $apiType) {
@@ -142,33 +143,35 @@ class ConcurrentApiSyncService
                     }
 
                 case 'running_time':
-                    // Running time requires one request per plant, then aggregate
-                    $this->info("Making running time requests for " . count($plantCodes) . " plants...");
+                    // Process plants in batches to avoid API limits
+                    $batchSize = 5; // Process 5 plants at a time
+                    $plantBatches = array_chunk($plantCodes, $batchSize);
                     $allItems = [];
-                    foreach ($plantCodes as $plant) {
-                        $query = http_build_query([
-                            'start_date' => $runningTimeStartDate,
-                            'end_date' => $runningTimeEndDate,
-                        ]);
-                        $url = $baseUrl . '/equipments/jam-jalan?' . $query;
-                        $this->info("GET {$url} (plant: {$plant})");
 
-                        $plantResponse = Http::withHeaders(['Authorization' => $token])
+                    foreach ($plantBatches as $batchIndex => $plantBatch) {
+                        $url = $baseUrl . '/equipments/jam-jalan?start_date=' . urlencode($runningTimeStartDate) . '&end_date=' . urlencode($runningTimeEndDate);
+                        $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
+
+                        $response = Http::withHeaders([
+                            'Authorization' => $token,
+                            'Content-Type' => 'application/json'
+                        ])
                             ->timeout($this->timeoutSeconds)
                             ->send('GET', $url, [
-                                'form_params' => ['plant' => [$plant]],
+                                'json' => ['plant' => array_values($plantBatch)],
                             ]);
 
-                        if ($plantResponse->successful()) {
-                            $data = $plantResponse->json() ?? [];
+                        if ($response->successful()) {
+                            $data = $response->json() ?? [];
                             $items = $data['data'] ?? $data;
                             if (!empty($items) && is_array($items)) {
                                 $allItems = array_merge($allItems, $items);
+                                $this->info("Batch " . ($batchIndex + 1) . " returned " . count($items) . " items");
                             }
                         }
                     }
 
-                    $this->info("Aggregated " . count($allItems) . " running time items from all plants");
+                    $this->info("Total running_time items from all batches: " . count($allItems));
 
                     if (!empty($allItems)) {
                         return $this->processApiData($apiType, $allItems);
