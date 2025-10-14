@@ -1,6 +1,11 @@
 <script setup lang="js">
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
 import {
     Popover,
@@ -14,7 +19,10 @@ import { getLocalTimeZone, parseDate } from '@internationalized/date';
 import axios from 'axios';
 import {
     Calendar as CalendarIcon,
+    ChevronDown,
     ChevronsUpDown,
+    Filter,
+    RotateCcw,
     Search,
     X,
 } from 'lucide-vue-next';
@@ -50,8 +58,8 @@ const localFilters = ref({
     plant_ids: Array.isArray(props.filters?.plant_ids)
         ? [...props.filters.plant_ids]
         : [],
-    station_ids: Array.isArray(props.filters?.station_ids)
-        ? [...props.filters.station_ids]
+    station_codes: Array.isArray(props.filters?.station_codes)
+        ? [...props.filters.station_codes]
         : [],
     search: props.filters?.search || '',
 });
@@ -77,6 +85,9 @@ onMounted(() => {
 const regionalOpen = ref(false);
 const plantOpen = ref(false);
 const stationOpen = ref(false);
+
+// Collapsible state
+const isFilterOpen = ref(false);
 
 // Search states
 const regionalSearch = ref('');
@@ -155,9 +166,9 @@ watch(
 );
 
 watch(
-    () => localFilters.value.station_ids,
+    () => localFilters.value.station_codes,
     (newVal) => {
-        console.log('Station IDs changed:', newVal);
+        console.log('Station codes changed:', newVal);
     },
     { deep: true },
 );
@@ -200,14 +211,33 @@ const fetchPlants = async () => {
     }
 };
 
-// Fetch all stations - backend will handle filtering based on plant codes
+// Define unique station codes and descriptions
+const stationTypes = ref([
+    { code: 'STAS01', description: 'Jembatan Timbang' },
+    { code: 'STAS02', description: 'Loading Ramp' },
+    { code: 'STAS03', description: 'Sterilizer' },
+    { code: 'STAS04', description: 'Rail Track' },
+    { code: 'STAS05', description: 'Thresser & Hoisting' },
+    { code: 'STAS06', description: 'Pressan' },
+    { code: 'STAS07', description: 'Klarifikasi' },
+    { code: 'STAS08', description: 'Pengolahan Inti Sawi' },
+    { code: 'STAS09', description: 'Boiler' },
+    { code: 'STAS10', description: 'Pengolahan Air' },
+    { code: 'STAS11', description: 'Kamar Mesin' },
+    { code: 'STAS12', description: 'Tangki Timbun dan Ke' },
+    { code: 'STAS13', description: 'Limbah' },
+    { code: 'STAS14', description: 'Empty Bunch Hopper' },
+    { code: 'STAS19', description: 'Laboratorium' },
+]);
+
+// No need to fetch stations from API - use predefined station types
 const fetchStations = async () => {
     loadingStations.value = true;
     try {
-        const response = await axios.get('/api/stations');
-        stations.value = response.data || [];
+        // Use predefined station types instead of API call
+        stations.value = stationTypes.value;
     } catch (error) {
-        console.error('Error fetching stations:', error);
+        console.error('Error setting stations:', error);
         stations.value = [];
     } finally {
         loadingStations.value = false;
@@ -266,29 +296,29 @@ const togglePlant = async (plantId) => {
     };
 };
 
-const toggleStation = async (stationId) => {
-    console.log('toggleStation', stationId);
+const toggleStation = async (stationCode) => {
+    console.log('toggleStation', stationCode);
 
     // Ensure array exists
-    if (!Array.isArray(localFilters.value.station_ids)) {
-        localFilters.value.station_ids = [];
+    if (!Array.isArray(localFilters.value.station_codes)) {
+        localFilters.value.station_codes = [];
     }
 
-    const currentIds = [...localFilters.value.station_ids];
-    const index = currentIds.indexOf(stationId);
+    const currentCodes = [...localFilters.value.station_codes];
+    const index = currentCodes.indexOf(stationCode);
 
     if (index > -1) {
         // Remove
-        currentIds.splice(index, 1);
+        currentCodes.splice(index, 1);
     } else {
         // Add
-        currentIds.push(stationId);
+        currentCodes.push(stationCode);
     }
 
     // Create new array reference for reactivity
     localFilters.value = {
         ...localFilters.value,
-        station_ids: currentIds,
+        station_codes: currentCodes,
     };
 };
 
@@ -354,13 +384,13 @@ const onPlantChecked = async (plantId, checked) => {
     }
 };
 
-const onStationChecked = async (stationId, checked) => {
-    console.log('onStationChecked', stationId, checked);
-    const currentlySelected = isStationSelected(stationId);
+const onStationChecked = async (stationCode, checked) => {
+    console.log('onStationChecked', stationCode, checked);
+    const currentlySelected = isStationSelected(stationCode);
     if (checked && !currentlySelected) {
-        await toggleStation(stationId);
+        await toggleStation(stationCode);
     } else if (!checked && currentlySelected) {
-        await toggleStation(stationId);
+        await toggleStation(stationCode);
     }
 };
 
@@ -385,13 +415,13 @@ const plantModel = (plantId) =>
         },
     });
 
-const stationModel = (stationId) =>
+const stationModel = (stationCode) =>
     computed({
         get() {
-            return isStationSelected(stationId);
+            return isStationSelected(stationCode);
         },
         async set(val) {
-            await onStationChecked(stationId, !!val);
+            await onStationChecked(stationCode, !!val);
         },
     });
 
@@ -403,8 +433,8 @@ const isPlantSelected = (plantId) => {
     return (localFilters.value.plant_ids || []).includes(plantId);
 };
 
-const isStationSelected = (stationId) => {
-    return (localFilters.value.station_ids || []).includes(stationId);
+const isStationSelected = (stationCode) => {
+    return (localFilters.value.station_codes || []).includes(stationCode);
 };
 
 // Computed properties for display labels
@@ -430,12 +460,12 @@ const plantLabel = computed(() => {
 });
 
 const stationLabel = computed(() => {
-    const count = (localFilters.value.station_ids || []).length;
+    const count = (localFilters.value.station_codes || []).length;
     return count === 0
         ? 'Semua Stasiun'
         : count === 1
           ? stations.value.find(
-                (s) => s.id === localFilters.value.station_ids[0],
+                (s) => s.code === localFilters.value.station_codes[0],
             )?.description || 'Stasiun'
           : `${count} Stasiun dipilih`;
 });
@@ -481,7 +511,7 @@ const clearFilters = async () => {
         },
         regional_ids: [],
         plant_ids: [],
-        station_ids: [],
+        station_codes: [],
     };
 
     // Clear search states
@@ -495,6 +525,50 @@ const clearFilters = async () => {
     stationOpen.value = false;
 
     await nextTick();
+};
+
+// Individual filter reset functions
+const resetRegional = async () => {
+    localFilters.value = {
+        ...localFilters.value,
+        regional_ids: [],
+        plant_ids: [], // Also reset plants when resetting regional
+    };
+    regionalSearch.value = '';
+    regionalOpen.value = false;
+
+    // Trigger reactivity by creating new object reference
+    await nextTick();
+    localFilters.value = { ...localFilters.value };
+};
+
+const resetPlant = async () => {
+    localFilters.value = {
+        ...localFilters.value,
+        regional_ids: [], // Also reset regional since they're bound together
+        plant_ids: [],
+    };
+    plantSearch.value = '';
+    plantOpen.value = false;
+    regionalSearch.value = '';
+    regionalOpen.value = false;
+
+    // Trigger reactivity by creating new object reference
+    await nextTick();
+    localFilters.value = { ...localFilters.value };
+};
+
+const resetStation = async () => {
+    localFilters.value = {
+        ...localFilters.value,
+        station_codes: [],
+    };
+    stationSearch.value = '';
+    stationOpen.value = false;
+
+    // Trigger reactivity by creating new object reference
+    await nextTick();
+    localFilters.value = { ...localFilters.value };
 };
 
 // Removed fetchAllStations; stations now depend on selected plants only
@@ -524,283 +598,695 @@ onMounted(async () => {
 
 <template>
     <div class="space-y-4">
-        <!-- Filter Controls -->
-        <div class="flex flex-wrap items-end gap-4">
-            <!-- Regional Filter -->
-            <div class="min-w-[200px] space-y-2">
-                <Label>Regional</Label>
-                <Popover v-model:open="regionalOpen">
-                    <PopoverTrigger as-child>
-                        <Button
-                            variant="outline"
-                            class="w-full min-w-[300px] justify-between"
-                        >
-                            {{ regionalLabel }}
-                            <ChevronsUpDown
-                                class="ml-2 h-4 w-4 shrink-0 opacity-50"
-                            />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-[250px] p-0">
-                        <div class="flex flex-col">
-                            <div
-                                class="relative flex w-full items-center border-b"
-                            >
-                                <input
-                                    v-model="regionalSearch"
-                                    type="text"
-                                    placeholder="Cari Regional..."
-                                    class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none"
-                                />
-                                <span
-                                    class="absolute inset-y-0 left-0 flex items-center justify-center px-3"
-                                >
-                                    <Search
-                                        class="h-4 w-4 text-muted-foreground"
-                                    />
-                                </span>
-                                <button
-                                    v-if="regionalSearch"
-                                    @click="regionalSearch = ''"
-                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground"
-                                >
-                                    <X class="h-4 w-4" />
-                                </button>
-                            </div>
-                            <ScrollArea class="h-[200px]">
-                                <div class="p-2">
-                                    <div
-                                        v-if="filteredRegions.length === 0"
-                                        class="py-6 text-center text-sm text-muted-foreground"
-                                    >
-                                        No regional found.
-                                    </div>
-                                    <div
-                                        v-for="region in filteredRegions"
-                                        :key="region.id"
-                                        class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
-                                    >
-                                        <Checkbox
-                                            :id="`regional-${region.id}`"
-                                            :model-value="
-                                                isRegionalSelected(region.id)
-                                            "
-                                            @update:model-value="
-                                                (val) =>
-                                                    onRegionalChecked(
-                                                        region.id,
-                                                        val,
-                                                    )
-                                            "
-                                        />
-                                        <label
-                                            :for="`regional-${region.id}`"
-                                            class="flex-1 cursor-pointer text-sm"
-                                        >
-                                            {{ region.name }}
-                                        </label>
-                                    </div>
-                                </div>
-                            </ScrollArea>
+        <!-- Mobile: Collapsible Filter -->
+        <div class="md:hidden">
+            <Collapsible v-model:open="isFilterOpen" class="w-full">
+                <CollapsibleTrigger as-child>
+                    <Button variant="outline" class="w-full justify-between">
+                        <div class="flex items-center gap-2">
+                            <Filter class="h-4 w-4" />
+                            <span>Filter</span>
                         </div>
-                    </PopoverContent>
-                </Popover>
-            </div>
-
-            <!-- Plant Filter -->
-            <div class="min-w-[200px] space-y-2">
-                <Label>Pabrik</Label>
-                <Popover v-model:open="plantOpen">
-                    <PopoverTrigger as-child>
-                        <Button
-                            variant="outline"
-                            class="w-full justify-between"
-                        >
-                            {{ plantLabel }}
-                            <ChevronsUpDown
-                                class="ml-2 h-4 w-4 shrink-0 opacity-50"
-                            />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-[250px] p-0">
-                        <div class="flex flex-col">
-                            <div
-                                class="relative flex w-full items-center border-b"
-                            >
-                                <input
-                                    v-model="plantSearch"
-                                    type="text"
-                                    placeholder="Cari Pabrik..."
-                                    class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none"
-                                />
-                                <span
-                                    class="absolute inset-y-0 left-0 flex items-center justify-center px-3"
-                                >
-                                    <Search
-                                        class="h-4 w-4 text-muted-foreground"
-                                    />
-                                </span>
-                                <button
-                                    v-if="plantSearch"
-                                    @click="plantSearch = ''"
-                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground"
-                                >
-                                    <X class="h-4 w-4" />
-                                </button>
-                            </div>
-                            <ScrollArea class="h-[200px]">
-                                <div class="p-2">
-                                    <div
-                                        v-if="filteredPlants.length === 0"
-                                        class="py-6 text-center text-sm text-muted-foreground"
-                                    >
-                                        No plant found.
-                                    </div>
-                                    <div
-                                        v-for="plant in filteredPlants"
-                                        :key="plant.id"
-                                        class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
-                                    >
-                                        <Checkbox
-                                            :id="`plant-${plant.id}`"
-                                            :model-value="
-                                                isPlantSelected(plant.id)
-                                            "
-                                            @update:model-value="
-                                                (val) =>
-                                                    onPlantChecked(
-                                                        plant.id,
-                                                        val,
-                                                    )
-                                            "
-                                        />
-                                        <label
-                                            :for="`plant-${plant.id}`"
-                                            class="flex-1 cursor-pointer text-sm"
-                                        >
-                                            {{ plant.name }}
-                                        </label>
-                                    </div>
-                                </div>
-                            </ScrollArea>
-                        </div>
-                    </PopoverContent>
-                </Popover>
-            </div>
-
-            <!-- Station Filter -->
-            <div class="min-w-[200px] space-y-2">
-                <Label>Stasiun</Label>
-                <Popover v-model:open="stationOpen">
-                    <PopoverTrigger as-child>
-                        <Button
-                            variant="outline"
-                            class="w-full justify-between"
-                        >
-                            {{ stationLabel }}
-                            <ChevronsUpDown
-                                class="ml-2 h-4 w-4 shrink-0 opacity-50"
-                            />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-[250px] p-0">
-                        <div class="flex flex-col">
-                            <div
-                                class="relative flex w-full items-center border-b"
-                            >
-                                <input
-                                    v-model="stationSearch"
-                                    type="text"
-                                    placeholder="Cari Stasiun..."
-                                    class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none"
-                                />
-                                <span
-                                    class="absolute inset-y-0 left-0 flex items-center justify-center px-3"
-                                >
-                                    <Search
-                                        class="h-4 w-4 text-muted-foreground"
-                                    />
-                                </span>
-                                <button
-                                    v-if="stationSearch"
-                                    @click="stationSearch = ''"
-                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground"
-                                >
-                                    <X class="h-4 w-4" />
-                                </button>
-                            </div>
-                            <ScrollArea class="h-[200px]">
-                                <div class="p-2">
-                                    <div
-                                        v-if="filteredStations.length === 0"
-                                        class="py-6 text-center text-sm text-muted-foreground"
-                                    >
-                                        No station found.
-                                    </div>
-                                    <div
-                                        v-for="station in filteredStations"
-                                        :key="station.id"
-                                        class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
-                                    >
-                                        <Checkbox
-                                            :id="`station-${station.id}`"
-                                            :model-value="
-                                                isStationSelected(station.id)
-                                            "
-                                            @update:model-value="
-                                                (val) =>
-                                                    onStationChecked(
-                                                        station.id,
-                                                        val,
-                                                    )
-                                            "
-                                        />
-                                        <label
-                                            :for="`station-${station.id}`"
-                                            class="flex-1 cursor-pointer text-sm"
-                                        >
-                                            {{ station.description }}
-                                        </label>
-                                    </div>
-                                </div>
-                            </ScrollArea>
-                        </div>
-                    </PopoverContent>
-                </Popover>
-            </div>
-
-            <!-- Date Range Filter -->
-            <div class="min-w-[300px] space-y-2">
-                <Label>Periode Jam Jalan</Label>
-                <Popover v-model:open="datePopoverOpen">
-                    <PopoverTrigger as-child>
-                        <Button
-                            variant="outline"
-                            :class="[
-                                'w-[300px] justify-start text-left font-normal',
-                                isRangeEmpty() ? 'text-muted-foreground' : '',
-                            ]"
-                        >
-                            <CalendarIcon class="mr-2 h-4 w-4" />
-                            {{ rangeDisplay() }}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-auto p-0">
-                        <RangeCalendar
-                            v-model="rangeValue"
-                            :number-of-months="2"
-                            @update:value="handleRangeUpdate"
+                        <ChevronDown
+                            class="h-4 w-4 transition-transform duration-200"
+                            :class="{ 'rotate-180': isFilterOpen }"
                         />
-                    </PopoverContent>
-                </Popover>
-            </div>
+                    </Button>
+                </CollapsibleTrigger>
 
-            <!-- Process Button -->
-            <div class="space-y-2">
-                <Label class="opacity-0 select-none">Proses</Label>
-                <Button variant="default" class="w-full" @click="applyFilters">
-                    Proses
-                </Button>
+                <CollapsibleContent class="mt-4">
+                    <!-- Mobile Filter Controls -->
+                    <div class="grid grid-cols-1 gap-4">
+                        <!-- Regional Filter -->
+                        <div class="space-y-2">
+                            <div class="relative">
+                                <Label>Regional</Label>
+                                <Button
+                                    v-if="localFilters.regional_ids.length > 0"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                                    @click="resetRegional"
+                                >
+                                    <RotateCcw class="h-3 w-3" />
+                                    <span class="sr-only">Reset Regional</span>
+                                </Button>
+                            </div>
+                            <Popover v-model:open="regionalOpen">
+                                <PopoverTrigger as-child>
+                                    <Button
+                                        variant="outline"
+                                        class="w-full justify-between"
+                                    >
+                                        {{ regionalLabel }}
+                                        <ChevronsUpDown
+                                            class="ml-2 h-4 w-4 shrink-0 opacity-50"
+                                        />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent class="w-[250px] p-0">
+                                    <div class="flex flex-col">
+                                        <div
+                                            class="relative flex w-full items-center border-b"
+                                        >
+                                            <input
+                                                v-model="regionalSearch"
+                                                type="text"
+                                                placeholder="Cari Regional..."
+                                                class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none"
+                                            />
+                                            <span
+                                                class="absolute inset-y-0 left-0 flex items-center justify-center px-3"
+                                            >
+                                                <Search
+                                                    class="h-4 w-4 text-muted-foreground"
+                                                />
+                                            </span>
+                                            <button
+                                                v-if="regionalSearch"
+                                                @click="regionalSearch = ''"
+                                                class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground"
+                                            >
+                                                <X class="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                        <ScrollArea class="h-[200px]">
+                                            <div class="p-2">
+                                                <div
+                                                    v-if="
+                                                        filteredRegions.length ===
+                                                        0
+                                                    "
+                                                    class="py-6 text-center text-sm text-muted-foreground"
+                                                >
+                                                    No regional found.
+                                                </div>
+                                                <div
+                                                    v-for="region in filteredRegions"
+                                                    :key="region.id"
+                                                    class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                                >
+                                                    <Checkbox
+                                                        :id="`regional-${region.id}`"
+                                                        :model-value="
+                                                            isRegionalSelected(
+                                                                region.id,
+                                                            )
+                                                        "
+                                                        @update:model-value="
+                                                            (val) =>
+                                                                onRegionalChecked(
+                                                                    region.id,
+                                                                    val,
+                                                                )
+                                                        "
+                                                    />
+                                                    <label
+                                                        :for="`regional-${region.id}`"
+                                                        class="flex-1 cursor-pointer text-sm"
+                                                    >
+                                                        {{ region.name }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </ScrollArea>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        <!-- Plant Filter -->
+                        <div class="space-y-2">
+                            <div class="relative">
+                                <Label>Pabrik</Label>
+                                <Button
+                                    v-if="localFilters.plant_ids.length > 0"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                                    @click="resetPlant"
+                                >
+                                    <RotateCcw class="h-3 w-3" />
+                                    <span class="sr-only">Reset Pabrik</span>
+                                </Button>
+                            </div>
+                            <Popover v-model:open="plantOpen">
+                                <PopoverTrigger as-child>
+                                    <Button
+                                        variant="outline"
+                                        class="w-full justify-between"
+                                    >
+                                        {{ plantLabel }}
+                                        <ChevronsUpDown
+                                            class="ml-2 h-4 w-4 shrink-0 opacity-50"
+                                        />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent class="w-[250px] p-0">
+                                    <div class="flex flex-col">
+                                        <div
+                                            class="relative flex w-full items-center border-b"
+                                        >
+                                            <input
+                                                v-model="plantSearch"
+                                                type="text"
+                                                placeholder="Cari Pabrik..."
+                                                class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none"
+                                            />
+                                            <span
+                                                class="absolute inset-y-0 left-0 flex items-center justify-center px-3"
+                                            >
+                                                <Search
+                                                    class="h-4 w-4 text-muted-foreground"
+                                                />
+                                            </span>
+                                            <button
+                                                v-if="plantSearch"
+                                                @click="plantSearch = ''"
+                                                class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground"
+                                            >
+                                                <X class="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                        <ScrollArea class="h-[200px]">
+                                            <div class="p-2">
+                                                <div
+                                                    v-if="
+                                                        filteredPlants.length ===
+                                                        0
+                                                    "
+                                                    class="py-6 text-center text-sm text-muted-foreground"
+                                                >
+                                                    No plant found.
+                                                </div>
+                                                <div
+                                                    v-for="plant in filteredPlants"
+                                                    :key="plant.id"
+                                                    class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                                >
+                                                    <Checkbox
+                                                        :id="`plant-${plant.id}`"
+                                                        :model-value="
+                                                            isPlantSelected(
+                                                                plant.id,
+                                                            )
+                                                        "
+                                                        @update:model-value="
+                                                            (val) =>
+                                                                onPlantChecked(
+                                                                    plant.id,
+                                                                    val,
+                                                                )
+                                                        "
+                                                    />
+                                                    <label
+                                                        :for="`plant-${plant.id}`"
+                                                        class="flex-1 cursor-pointer text-sm"
+                                                    >
+                                                        {{ plant.name }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </ScrollArea>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        <!-- Station Filter -->
+                        <div class="space-y-2">
+                            <div class="relative">
+                                <Label>Stasiun</Label>
+                                <Button
+                                    v-if="localFilters.station_codes.length > 0"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                                    @click="resetStation"
+                                >
+                                    <RotateCcw class="h-3 w-3" />
+                                    <span class="sr-only">Reset Stasiun</span>
+                                </Button>
+                            </div>
+                            <Popover v-model:open="stationOpen">
+                                <PopoverTrigger as-child>
+                                    <Button
+                                        variant="outline"
+                                        class="w-full justify-between"
+                                    >
+                                        {{ stationLabel }}
+                                        <ChevronsUpDown
+                                            class="ml-2 h-4 w-4 shrink-0 opacity-50"
+                                        />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent class="w-[250px] p-0">
+                                    <div class="flex flex-col">
+                                        <div
+                                            class="relative flex w-full items-center border-b"
+                                        >
+                                            <input
+                                                v-model="stationSearch"
+                                                type="text"
+                                                placeholder="Cari Stasiun..."
+                                                class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none"
+                                            />
+                                            <span
+                                                class="absolute inset-y-0 left-0 flex items-center justify-center px-3"
+                                            >
+                                                <Search
+                                                    class="h-4 w-4 text-muted-foreground"
+                                                />
+                                            </span>
+                                            <button
+                                                v-if="stationSearch"
+                                                @click="stationSearch = ''"
+                                                class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground"
+                                            >
+                                                <X class="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                        <ScrollArea class="h-[200px]">
+                                            <div class="p-2">
+                                                <div
+                                                    v-if="
+                                                        filteredStations.length ===
+                                                        0
+                                                    "
+                                                    class="py-6 text-center text-sm text-muted-foreground"
+                                                >
+                                                    No station found.
+                                                </div>
+                                                <div
+                                                    v-for="station in filteredStations"
+                                                    :key="station.code"
+                                                    class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                                >
+                                                    <Checkbox
+                                                        :id="`station-${station.code}`"
+                                                        :model-value="
+                                                            isStationSelected(
+                                                                station.code,
+                                                            )
+                                                        "
+                                                        @update:model-value="
+                                                            (val) =>
+                                                                onStationChecked(
+                                                                    station.code,
+                                                                    val,
+                                                                )
+                                                        "
+                                                    />
+                                                    <label
+                                                        :for="`station-${station.code}`"
+                                                        class="flex-1 cursor-pointer text-sm"
+                                                    >
+                                                        {{
+                                                            station.description
+                                                        }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </ScrollArea>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        <!-- Date Range Filter -->
+                        <div class="space-y-2">
+                            <Label>Periode Jam Jalan</Label>
+                            <Popover v-model:open="datePopoverOpen">
+                                <PopoverTrigger as-child>
+                                    <Button
+                                        variant="outline"
+                                        :class="[
+                                            'w-full justify-start text-left font-normal',
+                                            isRangeEmpty()
+                                                ? 'text-muted-foreground'
+                                                : '',
+                                        ]"
+                                    >
+                                        <CalendarIcon class="mr-2 h-4 w-4" />
+                                        <span class="truncate">{{
+                                            rangeDisplay()
+                                        }}</span>
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent class="w-auto p-0">
+                                    <RangeCalendar
+                                        v-model="rangeValue"
+                                        :number-of-months="2"
+                                        @update:value="handleRangeUpdate"
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        <!-- Process Button -->
+                        <div class="space-y-2">
+                            <Button
+                                variant="default"
+                                class="w-full"
+                                @click="applyFilters"
+                            >
+                                Proses
+                            </Button>
+                        </div>
+                    </div>
+                </CollapsibleContent>
+            </Collapsible>
+        </div>
+
+        <!-- Desktop: Always Visible Filter Controls -->
+        <div class="hidden md:block">
+            <div
+                class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5"
+            >
+                <!-- Regional Filter -->
+                <div class="space-y-2">
+                    <div class="relative">
+                        <Label>Regional</Label>
+                        <Button
+                            v-if="localFilters.regional_ids.length > 0"
+                            variant="ghost"
+                            size="sm"
+                            class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                            @click="resetRegional"
+                        >
+                            <RotateCcw class="h-3 w-3" />
+                            <span class="sr-only">Reset Regional</span>
+                        </Button>
+                    </div>
+                    <Popover v-model:open="regionalOpen">
+                        <PopoverTrigger as-child>
+                            <Button
+                                variant="outline"
+                                class="w-full justify-between"
+                            >
+                                {{ regionalLabel }}
+                                <ChevronsUpDown
+                                    class="ml-2 h-4 w-4 shrink-0 opacity-50"
+                                />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent class="w-[250px] p-0">
+                            <div class="flex flex-col">
+                                <div
+                                    class="relative flex w-full items-center border-b"
+                                >
+                                    <input
+                                        v-model="regionalSearch"
+                                        type="text"
+                                        placeholder="Cari Regional..."
+                                        class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none"
+                                    />
+                                    <span
+                                        class="absolute inset-y-0 left-0 flex items-center justify-center px-3"
+                                    >
+                                        <Search
+                                            class="h-4 w-4 text-muted-foreground"
+                                        />
+                                    </span>
+                                    <button
+                                        v-if="regionalSearch"
+                                        @click="regionalSearch = ''"
+                                        class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground"
+                                    >
+                                        <X class="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <ScrollArea class="h-[200px]">
+                                    <div class="p-2">
+                                        <div
+                                            v-if="filteredRegions.length === 0"
+                                            class="py-6 text-center text-sm text-muted-foreground"
+                                        >
+                                            No regional found.
+                                        </div>
+                                        <div
+                                            v-for="region in filteredRegions"
+                                            :key="region.id"
+                                            class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                        >
+                                            <Checkbox
+                                                :id="`regional-${region.id}`"
+                                                :model-value="
+                                                    isRegionalSelected(
+                                                        region.id,
+                                                    )
+                                                "
+                                                @update:model-value="
+                                                    (val) =>
+                                                        onRegionalChecked(
+                                                            region.id,
+                                                            val,
+                                                        )
+                                                "
+                                            />
+                                            <label
+                                                :for="`regional-${region.id}`"
+                                                class="flex-1 cursor-pointer text-sm"
+                                            >
+                                                {{ region.name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
+                <!-- Plant Filter -->
+                <div class="space-y-2">
+                    <div class="relative">
+                        <Label>Pabrik</Label>
+                        <Button
+                            v-if="localFilters.plant_ids.length > 0"
+                            variant="ghost"
+                            size="sm"
+                            class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                            @click="resetPlant"
+                        >
+                            <RotateCcw class="h-3 w-3" />
+                            <span class="sr-only">Reset Pabrik</span>
+                        </Button>
+                    </div>
+                    <Popover v-model:open="plantOpen">
+                        <PopoverTrigger as-child>
+                            <Button
+                                variant="outline"
+                                class="w-full justify-between"
+                            >
+                                {{ plantLabel }}
+                                <ChevronsUpDown
+                                    class="ml-2 h-4 w-4 shrink-0 opacity-50"
+                                />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent class="w-[250px] p-0">
+                            <div class="flex flex-col">
+                                <div
+                                    class="relative flex w-full items-center border-b"
+                                >
+                                    <input
+                                        v-model="plantSearch"
+                                        type="text"
+                                        placeholder="Cari Pabrik..."
+                                        class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none"
+                                    />
+                                    <span
+                                        class="absolute inset-y-0 left-0 flex items-center justify-center px-3"
+                                    >
+                                        <Search
+                                            class="h-4 w-4 text-muted-foreground"
+                                        />
+                                    </span>
+                                    <button
+                                        v-if="plantSearch"
+                                        @click="plantSearch = ''"
+                                        class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground"
+                                    >
+                                        <X class="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <ScrollArea class="h-[200px]">
+                                    <div class="p-2">
+                                        <div
+                                            v-if="filteredPlants.length === 0"
+                                            class="py-6 text-center text-sm text-muted-foreground"
+                                        >
+                                            No plant found.
+                                        </div>
+                                        <div
+                                            v-for="plant in filteredPlants"
+                                            :key="plant.id"
+                                            class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                        >
+                                            <Checkbox
+                                                :id="`plant-${plant.id}`"
+                                                :model-value="
+                                                    isPlantSelected(plant.id)
+                                                "
+                                                @update:model-value="
+                                                    (val) =>
+                                                        onPlantChecked(
+                                                            plant.id,
+                                                            val,
+                                                        )
+                                                "
+                                            />
+                                            <label
+                                                :for="`plant-${plant.id}`"
+                                                class="flex-1 cursor-pointer text-sm"
+                                            >
+                                                {{ plant.name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
+                <!-- Station Filter -->
+                <div class="space-y-2">
+                    <div class="relative">
+                        <Label>Stasiun</Label>
+                        <Button
+                            v-if="localFilters.station_codes.length > 0"
+                            variant="ghost"
+                            size="sm"
+                            class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                            @click="resetStation"
+                        >
+                            <RotateCcw class="h-3 w-3" />
+                            <span class="sr-only">Reset Stasiun</span>
+                        </Button>
+                    </div>
+                    <Popover v-model:open="stationOpen">
+                        <PopoverTrigger as-child>
+                            <Button
+                                variant="outline"
+                                class="w-full justify-between"
+                            >
+                                {{ stationLabel }}
+                                <ChevronsUpDown
+                                    class="ml-2 h-4 w-4 shrink-0 opacity-50"
+                                />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent class="w-[250px] p-0">
+                            <div class="flex flex-col">
+                                <div
+                                    class="relative flex w-full items-center border-b"
+                                >
+                                    <input
+                                        v-model="stationSearch"
+                                        type="text"
+                                        placeholder="Cari Stasiun..."
+                                        class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none"
+                                    />
+                                    <span
+                                        class="absolute inset-y-0 left-0 flex items-center justify-center px-3"
+                                    >
+                                        <Search
+                                            class="h-4 w-4 text-muted-foreground"
+                                        />
+                                    </span>
+                                    <button
+                                        v-if="stationSearch"
+                                        @click="stationSearch = ''"
+                                        class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground"
+                                    >
+                                        <X class="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <ScrollArea class="h-[200px]">
+                                    <div class="p-2">
+                                        <div
+                                            v-if="filteredStations.length === 0"
+                                            class="py-6 text-center text-sm text-muted-foreground"
+                                        >
+                                            No station found.
+                                        </div>
+                                        <div
+                                            v-for="station in filteredStations"
+                                            :key="station.code"
+                                            class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                        >
+                                            <Checkbox
+                                                :id="`station-${station.code}`"
+                                                :model-value="
+                                                    isStationSelected(
+                                                        station.code,
+                                                    )
+                                                "
+                                                @update:model-value="
+                                                    (val) =>
+                                                        onStationChecked(
+                                                            station.code,
+                                                            val,
+                                                        )
+                                                "
+                                            />
+                                            <label
+                                                :for="`station-${station.code}`"
+                                                class="flex-1 cursor-pointer text-sm"
+                                            >
+                                                {{ station.description }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
+                <!-- Date Range Filter -->
+                <div class="space-y-2">
+                    <Label>Periode Jam Jalan</Label>
+                    <Popover v-model:open="datePopoverOpen">
+                        <PopoverTrigger as-child>
+                            <Button
+                                variant="outline"
+                                :class="[
+                                    'w-full justify-start text-left font-normal',
+                                    isRangeEmpty()
+                                        ? 'text-muted-foreground'
+                                        : '',
+                                ]"
+                            >
+                                <CalendarIcon class="mr-2 h-4 w-4" />
+                                <span class="truncate">{{
+                                    rangeDisplay()
+                                }}</span>
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent class="w-auto p-0">
+                            <RangeCalendar
+                                v-model="rangeValue"
+                                :number-of-months="2"
+                                @update:value="handleRangeUpdate"
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
+                <!-- Process Button -->
+                <div class="space-y-2">
+                    <Label class="opacity-0 select-none">Proses</Label>
+                    <Button
+                        variant="default"
+                        class="w-full"
+                        @click="applyFilters"
+                    >
+                        Proses
+                    </Button>
+                </div>
             </div>
         </div>
     </div>

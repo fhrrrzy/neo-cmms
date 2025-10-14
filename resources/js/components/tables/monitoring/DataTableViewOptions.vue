@@ -31,16 +31,12 @@ const columns = computed(() =>
 <template>
     <DropdownMenu>
         <DropdownMenuTrigger as-child>
-            <Button
-                variant="outline"
-                size="sm"
-                class="ml-auto hidden h-8 lg:flex"
-            >
+            <Button variant="outline" size="sm" class="ml-auto h-8">
                 <Settings class="mr-2 h-4 w-4" />
-                View
+                <span class="hidden sm:inline">View</span>
             </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" class="">
+        <DropdownMenuContent align="end" class="w-56">
             <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuCheckboxItem

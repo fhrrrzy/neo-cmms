@@ -25,9 +25,37 @@ class MonitoringController extends Controller
             ->leftJoin('stations', 'equipment.station_id', '=', 'stations.id');
 
         // Apply filters (support both single and multiple selections)
-        if ($request->filled('station_ids')) {
-            $stationIds = is_array($request->station_ids) ? $request->station_ids : [$request->station_ids];
-            $query->whereIn('equipment.station_id', $stationIds);
+        if ($request->filled('station_codes')) {
+            $stationCodes = is_array($request->station_codes) ? $request->station_codes : [$request->station_codes];
+
+            // If we have station codes, we need to filter by plant + station code combination
+            if ($request->filled('plant_ids')) {
+                $plantIds = is_array($request->plant_ids) ? $request->plant_ids : [$request->plant_ids];
+                $query->whereIn('equipment.plant_id', $plantIds);
+
+                // Filter stations by cost_center (plant_code + station_code)
+                $query->whereHas('station', function (Builder $q) use ($stationCodes, $plantIds) {
+                    $q->where(function (Builder $subQ) use ($stationCodes, $plantIds) {
+                        foreach ($plantIds as $plantId) {
+                            $plant = Plant::find($plantId);
+                            if ($plant) {
+                                foreach ($stationCodes as $stationCode) {
+                                    $subQ->orWhere('cost_center', $plant->plant_code . $stationCode);
+                                }
+                            }
+                        }
+                    });
+                });
+            } else {
+                // If no plant filter, show all stations with these codes across all plants
+                $query->whereHas('station', function (Builder $q) use ($stationCodes) {
+                    $q->where(function (Builder $subQ) use ($stationCodes) {
+                        foreach ($stationCodes as $stationCode) {
+                            $subQ->orWhere('cost_center', 'like', '%' . $stationCode);
+                        }
+                    });
+                });
+            }
         } elseif ($request->filled('plant_ids')) {
             $plantIds = is_array($request->plant_ids) ? $request->plant_ids : [$request->plant_ids];
             $query->whereIn('equipment.plant_id', $plantIds);
@@ -139,7 +167,7 @@ class MonitoringController extends Controller
             'filters' => [
                 'regional_ids' => $request->get('regional_ids'),
                 'plant_ids' => $request->get('plant_ids'),
-                'station_ids' => $request->get('station_ids'),
+                'station_codes' => $request->get('station_codes'),
                 'date_start' => $dateStart,
                 'date_end' => $dateEnd,
                 'search' => $request->get('search'),

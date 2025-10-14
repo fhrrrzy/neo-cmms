@@ -72,20 +72,35 @@ const pageNumbers = computed(() => {
 </script>
 
 <template>
-    <div class="flex items-center justify-between px-2">
-        <div class="flex-1 text-sm text-muted-foreground">
-            Showing {{ pagination.from }} to {{ pagination.to }} of
-            {{ pagination.total }} results
+    <div
+        class="flex flex-col gap-4 px-2 sm:flex-row sm:items-center sm:justify-between"
+    >
+        <!-- Results info -->
+        <div class="text-sm text-muted-foreground">
+            <span class="hidden sm:inline">
+                Showing {{ pagination.from }} to {{ pagination.to }} of
+                {{ pagination.total }} results
+            </span>
+            <span class="sm:hidden">
+                {{ pagination.from }}-{{ pagination.to }} of
+                {{ pagination.total }}
+            </span>
         </div>
-        <div class="flex items-center space-x-6 lg:space-x-8">
+
+        <!-- Pagination controls -->
+        <div
+            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:space-x-6 lg:space-x-8"
+        >
+            <!-- Rows per page selector -->
             <div class="flex items-center space-x-2">
-                <p class="text-sm font-medium">Rows per page</p>
+                <p class="hidden text-sm font-medium sm:block">Rows per page</p>
+                <p class="text-sm font-medium sm:hidden">Per page</p>
                 <Select
                     v-model:open="selectOpen"
                     :model-value="`${pagination.per_page}`"
                     @update:model-value="handlePageSizeChange"
                 >
-                    <SelectTrigger class="h-8 w-[100px]">
+                    <SelectTrigger class="h-8 w-[80px] sm:w-[100px]">
                         <SelectValue :placeholder="`${pagination.per_page}`" />
                     </SelectTrigger>
                     <SelectContent side="top">
@@ -99,7 +114,10 @@ const pageNumbers = computed(() => {
                     </SelectContent>
                 </Select>
             </div>
-            <div class="flex items-center space-x-2">
+
+            <!-- Navigation buttons -->
+            <div class="flex items-center justify-center space-x-2">
+                <!-- First page button - hidden on mobile -->
                 <Button
                     variant="outline"
                     class="hidden h-8 w-8 p-0 lg:flex"
@@ -109,6 +127,8 @@ const pageNumbers = computed(() => {
                     <span class="sr-only">Go to first page</span>
                     <ChevronsLeft class="h-4 w-4" />
                 </Button>
+
+                <!-- Previous page button -->
                 <Button
                     variant="outline"
                     class="h-8 w-8 p-0"
@@ -119,7 +139,7 @@ const pageNumbers = computed(() => {
                     <ChevronLeft class="h-4 w-4" />
                 </Button>
 
-                <!-- Page Numbers -->
+                <!-- Page Numbers - Desktop -->
                 <div class="hidden items-center space-x-1 md:flex">
                     <Button
                         v-for="page in pageNumbers"
@@ -138,12 +158,12 @@ const pageNumbers = computed(() => {
 
                 <!-- Mobile: Show current page -->
                 <div
-                    class="flex items-center justify-center px-2 text-sm font-medium md:hidden"
+                    class="flex items-center justify-center px-3 text-sm font-medium md:hidden"
                 >
-                    Page {{ pagination.current_page }} of
-                    {{ pagination.last_page }}
+                    {{ pagination.current_page }} / {{ pagination.last_page }}
                 </div>
 
+                <!-- Next page button -->
                 <Button
                     variant="outline"
                     class="h-8 w-8 p-0"
@@ -153,6 +173,8 @@ const pageNumbers = computed(() => {
                     <span class="sr-only">Go to next page</span>
                     <ChevronRight class="h-4 w-4" />
                 </Button>
+
+                <!-- Last page button - hidden on mobile -->
                 <Button
                     variant="outline"
                     class="hidden h-8 w-8 p-0 lg:flex"

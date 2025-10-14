@@ -10,7 +10,7 @@ function loadPersisted() {
     return {
       regional_ids: Array.isArray(parsed?.regional_ids) ? parsed.regional_ids : [],
       plant_ids: Array.isArray(parsed?.plant_ids) ? parsed.plant_ids : [],
-      station_ids: Array.isArray(parsed?.station_ids) ? parsed.station_ids : [],
+      station_codes: Array.isArray(parsed?.station_codes) ? parsed.station_codes : [],
       search: parsed?.search ?? '',
     }
   } catch {
@@ -23,7 +23,7 @@ function savePersisted(filters) {
     const payload = {
       regional_ids: Array.isArray(filters?.regional_ids) ? filters.regional_ids : [],
       plant_ids: Array.isArray(filters?.plant_ids) ? filters.plant_ids : [],
-      station_ids: Array.isArray(filters?.station_ids) ? filters.station_ids : [],
+      station_codes: Array.isArray(filters?.station_codes) ? filters.station_codes : [],
       search: filters?.search ?? '',
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
@@ -36,7 +36,7 @@ export const useMonitoringFilterStore = defineStore('monitoringFilters', {
   state: () => ({
     regional_ids: [],
     plant_ids: [],
-    station_ids: [],
+    station_codes: [],
     search: '',
   }),
   actions: {
@@ -45,14 +45,14 @@ export const useMonitoringFilterStore = defineStore('monitoringFilters', {
       if (persisted) {
         this.regional_ids = persisted.regional_ids
         this.plant_ids = persisted.plant_ids
-        this.station_ids = persisted.station_ids
+        this.station_codes = persisted.station_codes
         this.search = persisted.search
       }
     },
     setFilters(next) {
       this.regional_ids = Array.isArray(next?.regional_ids) ? next.regional_ids : []
       this.plant_ids = Array.isArray(next?.plant_ids) ? next.plant_ids : []
-      this.station_ids = Array.isArray(next?.station_ids) ? next.station_ids : []
+      this.station_codes = Array.isArray(next?.station_codes) ? next.station_codes : []
       if (typeof next?.search === 'string') this.search = next.search
       savePersisted(this)
     },
@@ -63,7 +63,7 @@ export const useMonitoringFilterStore = defineStore('monitoringFilters', {
     clear() {
       this.regional_ids = []
       this.plant_ids = []
-      this.station_ids = []
+      this.station_codes = []
       this.search = ''
       savePersisted(this)
     },
