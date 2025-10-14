@@ -53,9 +53,10 @@ class WorkOrderResource extends Resource
                         Forms\Components\Select::make('order_type')
                             ->prefixIcon('heroicon-o-tag')
                             ->options([
-                                'PM01' => 'Preventive Maintenance',
-                                'PM02' => 'Corrective Maintenance',
-                                'PM03' => 'Emergency Maintenance',
+                                'PM01' => 'PM01 - Preventive Maintenance',
+                                'PM02' => 'PM02 - Corrective Maintenance',
+                                'PM03' => 'PM03 - Emergency Maintenance',
+                                'PM04' => 'PM04 - Project Maintenance',
                             ])
                             ->label('Tipe Order'),
                         Forms\Components\Textarea::make('description')
@@ -147,14 +148,10 @@ class WorkOrderResource extends Resource
                         'PM01' => 'success',
                         'PM02' => 'warning',
                         'PM03' => 'danger',
+                        'PM04' => 'info',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'PM01' => 'Preventive',
-                        'PM02' => 'Corrective',
-                        'PM03' => 'Emergency',
-                        default => $state,
-                    })
+                    ->formatStateUsing(fn($record): string => $record->order_type_label)
                     ->label('Tipe'),
                 Tables\Columns\TextColumn::make('description')
                     ->searchable()
@@ -217,9 +214,10 @@ class WorkOrderResource extends Resource
                     ->label('Pabrik'),
                 Tables\Filters\SelectFilter::make('order_type')
                     ->options([
-                        'PM01' => 'Preventive Maintenance',
-                        'PM02' => 'Corrective Maintenance',
-                        'PM03' => 'Emergency Maintenance',
+                        'PM01' => 'PM01 - Preventive Maintenance',
+                        'PM02' => 'PM02 - Corrective Maintenance',
+                        'PM03' => 'PM03 - Emergency Maintenance',
+                        'PM04' => 'PM04 - Project Maintenance',
                     ])
                     ->label('Tipe Order'),
                 Tables\Filters\SelectFilter::make('order_status')
@@ -263,12 +261,7 @@ class WorkOrderResource extends Resource
                     ->collapsible(),
                 Tables\Grouping\Group::make('order_type')
                     ->label('Tipe Order')
-                    ->getTitleFromRecordUsing(fn($record) => match ($record->order_type) {
-                        'PM01' => 'Preventive Maintenance',
-                        'PM02' => 'Corrective Maintenance',
-                        'PM03' => 'Emergency Maintenance',
-                        default => $record->order_type ?? 'Unknown',
-                    })
+                    ->getTitleFromRecordUsing(fn($record) => $record->order_type_label)
                     ->collapsible(),
                 Tables\Grouping\Group::make('order_status')
                     ->label('Status Order')
@@ -296,7 +289,7 @@ class WorkOrderResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\EquipmentWorkOrdersRelationManager::class,
         ];
     }
 

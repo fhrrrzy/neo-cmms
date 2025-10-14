@@ -12,12 +12,42 @@ class WorkOrderApiController extends Controller
     {
         $query = WorkOrder::with(['plant', 'station']);
 
-        if ($request->filled('plant_id')) {
+        // Filter by equipment number when provided (preferred over plant)
+        if ($request->filled('equipment_number')) {
+            $query->where('equipment_number', $request->equipment_number);
+        } elseif ($request->filled('plant_id')) {
+            // Backward-compat: allow plant filter if equipment is not specified
             $query->where('plant_id', $request->plant_id);
         }
 
         if ($request->filled('date_start') && $request->filled('date_end')) {
             $query->whereBetween('created_on', [$request->date_start, $request->date_end]);
+        }
+
+        // Optional order_type filter (supports numeric 1-4 mapping and "ANOMALY")
+        if ($request->filled('order_type')) {
+            $ot = (string) $request->order_type;
+            $map = [
+                '1' => 'PM01',
+                '2' => 'PM02',
+                '3' => 'PM03',
+                '4' => 'PM04',
+            ];
+            if (strtoupper($ot) === 'ANOMALY') {
+                $query->whereNotIn('order_type', array_values($map));
+            } else {
+                $query->where('order_type', $map[$ot] ?? $ot);
+            }
+        }
+
+        // Text search across key fields
+        if ($request->filled('search')) {
+            $term = '%' . $request->search . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('description', 'like', $term)
+                    ->orWhere('cause_text', 'like', $term)
+                    ->orWhere('item_text', 'like', $term);
+            });
         }
 
         // Sorting support
@@ -51,6 +81,9 @@ class WorkOrderApiController extends Controller
                 'created_on' => optional($wo->created_on)->toDateString(),
                 'order_status' => $wo->order_status,
                 'order_status_label' => $wo->order_status_label,
+                'cause_text' => $wo->cause_text,
+                'item_text' => $wo->item_text,
+                'equipment_number' => $wo->equipment_number,
                 'plant' => $wo->plant ? ['id' => $wo->plant->id, 'name' => $wo->plant->name] : null,
                 'station' => $wo->station ? ['id' => $wo->station->id, 'description' => $wo->station->description] : null,
             ];

@@ -100,9 +100,10 @@ class WorkOrder extends Model
     public function getOrderTypeLabelAttribute(): string
     {
         return match ($this->order_type) {
-            'PM01' => 'Preventive Maintenance',
-            'PM02' => 'Corrective Maintenance',
-            'PM03' => 'Emergency Maintenance',
+            'PM01' => 'PM01 - Preventive Maintenance',
+            'PM02' => 'PM02 - Corrective Maintenance',
+            'PM03' => 'PM03 - Emergency Maintenance',
+            'PM04' => 'PM04 - Project Maintenance',
             default => $this->order_type ?? 'Unknown',
         };
     }

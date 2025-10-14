@@ -8,6 +8,7 @@ use App\Models\EquipmentMaterial;
 use Illuminate\Support\Arr;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class EquipmentMaterialProcessor
 {
@@ -19,7 +20,8 @@ class EquipmentMaterialProcessor
         try {
             $plantCode = Arr::get($item, 'plant');
             if (!$plantCode) {
-                throw new Exception('Missing plant in equipment_material item');
+                Log::warning('Skipping equipment_material item due to missing plant code', ['item' => $item]);
+                return; // skip instead of throwing to avoid marking as failed
             }
 
             if (!empty($allowedPlantCodes) && !in_array($plantCode, $allowedPlantCodes, true)) {
@@ -28,7 +30,11 @@ class EquipmentMaterialProcessor
 
             $plant = Plant::where('plant_code', $plantCode)->first();
             if (!$plant) {
-                throw new Exception('Plant not found for equipment_material: ' . (string) $plantCode);
+                Log::warning('Skipping equipment_material item due to unknown plant code', [
+                    'plant_code' => $plantCode,
+                    'item_id' => Arr::get($item, 'id') ?? Arr::get($item, 'reservation_number'),
+                ]);
+                return; // skip items for plants not present locally
             }
 
             // Find the equipment work order by reservation number to get the equipment number
@@ -44,10 +50,18 @@ class EquipmentMaterialProcessor
                 // The relationship can be established later when equipment work orders are synced
             }
 
+            // Build unique keys: prefer ims_id when present; otherwise use a natural composite key
+            $imsId = Arr::get($item, 'id');
+            $naturalKey = [
+                'plant_id' => $plant->id,
+                'reservation_number' => Arr::get($item, 'reservation_number') ?? Arr::get($item, 'reservation'),
+                'reservation_item' => Arr::get($item, 'reservation_item') ?? Arr::get($item, 'reservation_item'),
+                'material_number' => Arr::get($item, 'material_number') ?? Arr::get($item, 'material'),
+            ];
+            $where = $imsId ? ['ims_id' => (string) $imsId] : $naturalKey;
+
             EquipmentMaterial::updateOrCreate(
-                [
-                    'ims_id' => (string) (Arr::get($item, 'id') ?? ''),
-                ],
+                $where,
                 [
                     'plant_id' => $plant->id,
                     'equipment_number' => $equipmentNumber,
@@ -84,15 +98,30 @@ class EquipmentMaterialProcessor
                     'gl_account' => Arr::get($item, 'gl_account'),
                     'receiving_storage_loc' => Arr::get($item, 'receiving_storage_loc') ?? Arr::get($item, 'receiving_storage_location'),
                     'receiving_plant' => Arr::get($item, 'receiving_plant'),
-                    'api_created_at' => Arr::get($item, 'api_created_at') ? Carbon::parse(Arr::get($item, 'api_created_at')) : null,
+                    'api_created_at' => self::parseApiDateTime(Arr::get($item, 'api_created_at') ?? Arr::get($item, 'created_at')),
+                    // Persist ims_id as nullable when missing to avoid unique conflicts on empty string
+                    'ims_id' => $imsId ? (string) $imsId : null,
                 ]
             );
         } catch (Exception $e) {
-            \Log::error('EquipmentMaterialProcessor error: ' . $e->getMessage(), [
+            Log::error('EquipmentMaterialProcessor error: ' . $e->getMessage(), [
                 'item' => $item,
                 'trace' => $e->getTraceAsString()
             ]);
             throw $e;
+        }
+    }
+
+    private static function parseApiDateTime($value): ?Carbon
+    {
+        if (!$value) {
+            return null;
+        }
+        try {
+            return Carbon::parse((string) $value);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to parse equipment_material api_created_at', ['value' => $value]);
+            return null;
         }
     }
 

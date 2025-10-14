@@ -1,6 +1,10 @@
 <script setup>
 import Highcharts from 'highcharts';
+import HighchartsBoost from 'highcharts/modules/boost';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+
+// Initialize Boost module
+typeof HighchartsBoost === 'function' && HighchartsBoost(Highcharts);
 
 const props = defineProps({
     data: { type: Array, default: () => [] },
@@ -67,6 +71,12 @@ const createChart = () => {
     const theme = getTheme();
     chart = Highcharts.chart(container.value, {
         chart: { type: 'line', height: 400, backgroundColor: 'transparent' },
+        boost: {
+            useGPUTranslations: true,
+            enabled: true,
+            // Boost when there are more than 1000 points
+            seriesThreshold: 10,
+        },
         title: { text: 'Running Time Analysis', style: { color: theme.text } },
         subtitle: { text: props.subtitle, style: { color: theme.mutedText } },
         xAxis: {
@@ -120,6 +130,7 @@ const createChart = () => {
                 data: chartData.map((i) => [i.x, i.counterReading]),
                 color: theme.series[0],
                 marker: { enabled: true, radius: 4 },
+                boostThreshold: 500, // Boost when more than 500 points
             },
             {
                 name: 'Running Hours',
@@ -128,6 +139,7 @@ const createChart = () => {
                 data: chartData.map((i) => [i.x, i.runningHours]),
                 color: theme.series[1],
                 marker: { enabled: true, radius: 4 },
+                boostThreshold: 500, // Boost when more than 500 points
             },
         ],
         responsive: {

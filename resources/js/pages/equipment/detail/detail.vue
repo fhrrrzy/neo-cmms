@@ -3,135 +3,18 @@
 
     <!-- Guest view: render without App shell -->
     <div v-if="props.isGuest" class="p-4">
-        <div class="space-y-6">
-            <!-- Header -->
-            <div
-                class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"
-            >
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-3xl font-bold tracking-tight">
-                            {{ equipment.equipment_description || 'N/A' }}
-                        </h1>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            class="h-8 w-8"
-                            @click="isQrOpen = true"
-                            aria-label="Open QR code"
-                        >
-                            <QrCode class="h-4 w-4" />
-                        </Button>
-                    </div>
-                    <p class="text-muted-foreground">
-                        #{{ equipment.equipment_number }}
-                    </p>
-                    <p class="text-xs text-muted-foreground">
-                        {{ regionalName }} - {{ plantName }} - {{ stationName }}
-                    </p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <Popover v-model:open="popoverOpen">
-                        <PopoverTrigger as-child>
-                            <Button
-                                variant="outline"
-                                :class="[
-                                    'w-[280px] justify-start text-left font-normal',
-                                    isRangeEmpty ? 'text-muted-foreground' : '',
-                                ]"
-                            >
-                                <Calendar class="mr-2 h-4 w-4" />
-                                {{ rangeDisplay }}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent class="w-auto p-0">
-                            <RangeCalendar
-                                v-model="rangeValue"
-                                :number-of-months="2"
-                            />
-                        </PopoverContent>
-                    </Popover>
-                    <Button
-                        v-if="!props.isGuest"
-                        variant="outline"
-                        @click="goBack"
-                    >
-                        <ArrowLeft class="mr-2 h-4 w-4" />
-                        Back to Monitoring
-                    </Button>
-                </div>
-            </div>
-
-            <Tabs default-value="running">
-                <TabsList class="grid w-fit grid-cols-3">
-                    <TabsTrigger value="running">Running Time</TabsTrigger>
-                    <TabsTrigger value="workorders">Work Orders</TabsTrigger>
-                    <TabsTrigger value="material">Material</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="running" class="space-y-6 pt-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle class="flex items-center gap-2">
-                                <BarChart3 class="h-5 w-5" />
-                                Running Time Analysis
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <RunningTimeChart
-                                :data="equipment.recent_running_times"
-                                :subtitle="`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`"
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle class="flex items-center gap-2">
-                                <Clock class="h-5 w-5" />
-                                Running Times Data
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <RunningTimeTable
-                                :equipment-number="props.equipmentNumber"
-                                :date-range="dateRange"
-                            />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="workorders" class="pt-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Work Orders</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <WorkOrderTable
-                                :plant-id="equipment?.plant?.id"
-                                :date-range="dateRange"
-                                max-height-class="max-h-[60vh]"
-                            />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="material" class="pt-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Material</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <EquipmentWorkOrderTable
-                                :equipment-number="props.equipmentNumber"
-                                :date-range="dateRange"
-                                max-height-class="max-h-[60vh]"
-                            />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
-        </div>
+        <EquipmentContent
+            :equipment="equipment"
+            :equipment-number="props.equipmentNumber"
+            :date-range="dateRange"
+            :range-value="rangeValue"
+            :popover-open="popoverOpen"
+            :show-back-button="false"
+            @open-qr="isQrOpen = true"
+            @go-back="goBack"
+            @update:range-value="rangeValue = $event"
+            @update:popover-open="popoverOpen = $event"
+        />
         <QrShare
             :open="isQrOpen"
             :qrcode="qrcode"
@@ -143,135 +26,18 @@
 
     <!-- Authenticated view: keep App shell -->
     <AppLayout v-else :breadcrumbs="breadcrumbs">
-        <div class="space-y-6">
-            <!-- Header -->
-            <div
-                class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"
-            >
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-3xl font-bold tracking-tight">
-                            {{ equipment.equipment_description || 'N/A' }}
-                        </h1>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            class="h-8 w-8"
-                            @click="isQrOpen = true"
-                            aria-label="Open QR code"
-                        >
-                            <QrCode class="h-4 w-4" />
-                        </Button>
-                    </div>
-                    <p class="text-muted-foreground">
-                        #{{ equipment.equipment_number }}
-                    </p>
-                    <p class="text-xs text-muted-foreground">
-                        {{ regionalName }} - {{ plantName }} - {{ stationName }}
-                    </p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <Popover v-model:open="popoverOpen">
-                        <PopoverTrigger as-child>
-                            <Button
-                                variant="outline"
-                                :class="[
-                                    'w-[280px] justify-start text-left font-normal',
-                                    isRangeEmpty ? 'text-muted-foreground' : '',
-                                ]"
-                            >
-                                <Calendar class="mr-2 h-4 w-4" />
-                                {{ rangeDisplay }}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent class="w-auto p-0">
-                            <RangeCalendar
-                                v-model="rangeValue"
-                                :number-of-months="2"
-                            />
-                        </PopoverContent>
-                    </Popover>
-                    <Button
-                        v-if="!props.isGuest"
-                        variant="outline"
-                        @click="goBack"
-                    >
-                        <ArrowLeft class="mr-2 h-4 w-4" />
-                        Back to Monitoring
-                    </Button>
-                </div>
-            </div>
-
-            <Tabs default-value="running">
-                <TabsList class="grid w-fit grid-cols-3">
-                    <TabsTrigger value="running">Running Time</TabsTrigger>
-                    <TabsTrigger value="workorders">Work Orders</TabsTrigger>
-                    <TabsTrigger value="material">Material</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="running" class="space-y-6 pt-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle class="flex items-center gap-2">
-                                <BarChart3 class="h-5 w-5" />
-                                Running Time Analysis
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <RunningTimeChart
-                                :data="equipment.recent_running_times"
-                                :subtitle="`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`"
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle class="flex items-center gap-2">
-                                <Clock class="h-5 w-5" />
-                                Running Times Data
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <RunningTimeTable
-                                :equipment-number="props.equipmentNumber"
-                                :date-range="dateRange"
-                            />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="workorders" class="pt-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Work Orders</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <WorkOrderTable
-                                :plant-id="equipment?.plant?.id"
-                                :date-range="dateRange"
-                                max-height-class="max-h-[60vh]"
-                            />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                <TabsContent value="material" class="pt-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Material</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <EquipmentWorkOrderTable
-                                :equipment-number="props.equipmentNumber"
-                                :date-range="dateRange"
-                                max-height-class="max-h-[60vh]"
-                            />
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
-        </div>
+        <EquipmentContent
+            :equipment="equipment"
+            :equipment-number="props.equipmentNumber"
+            :date-range="dateRange"
+            :range-value="rangeValue"
+            :popover-open="popoverOpen"
+            :show-back-button="true"
+            @open-qr="isQrOpen = true"
+            @go-back="goBack"
+            @update:range-value="rangeValue = $event"
+            @update:popover-open="popoverOpen = $event"
+        />
         <QrShare
             :open="isQrOpen"
             :qrcode="qrcode"
@@ -283,18 +49,6 @@
 </template>
 
 <script setup>
-import EquipmentWorkOrderTable from '@/components/tables/equipment-work-order/EquipmentWorkOrderTable.vue';
-import RunningTimeTable from '@/components/tables/running-time/RunningTimeTable.vue';
-import WorkOrderTable from '@/components/tables/work-order/WorkOrderTable.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import { RangeCalendar } from '@/components/ui/range-calendar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { useDateRangeStore } from '@/stores/useDateRangeStore';
 import { Head, router } from '@inertiajs/vue3';
@@ -302,10 +56,9 @@ import { parseDate } from '@internationalized/date';
 import { useQRCode } from '@vueuse/integrations/useQRCode';
 import axios from 'axios';
 import Highcharts from 'highcharts';
-import { ArrowLeft, BarChart3, Calendar, Clock, QrCode } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
+import EquipmentContent from './components/EquipmentContent.vue';
 import QrShare from './components/QrShare.vue';
-import RunningTimeChart from './components/RunningTimeChart.vue';
 
 const props = defineProps({
     equipmentNumber: {
@@ -385,27 +138,6 @@ const rangeValue = ref({
     start: dateRange.value.start ? parseDate(dateRange.value.start) : undefined,
     end: dateRange.value.end ? parseDate(dateRange.value.end) : undefined,
 });
-
-const isRangeEmpty = computed(
-    () => !rangeValue.value.start && !rangeValue.value.end,
-);
-const rangeDisplay = computed(() => {
-    if (!rangeValue.value.start && !rangeValue.value.end)
-        return 'Select date range';
-    if (rangeValue.value.start && rangeValue.value.end)
-        return `${rangeValue.value.start.toString()} - ${rangeValue.value.end.toString()}`;
-    if (rangeValue.value.start) return rangeValue.value.start.toString();
-    return 'Select date range';
-});
-
-// Location display helpers
-const regionalName = computed(
-    () => equipment.value?.plant?.regional?.name || 'N/A',
-);
-const plantName = computed(() => equipment.value?.plant?.name || 'N/A');
-const stationName = computed(
-    () => equipment.value?.station?.description || 'N/A',
-);
 
 const goBack = () => {
     router.visit('/monitoring');
