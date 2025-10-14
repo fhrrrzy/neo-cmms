@@ -131,6 +131,12 @@ const createChart = () => {
                 color: theme.series[0],
                 marker: { enabled: true, radius: 4 },
                 boostThreshold: 500, // Boost when more than 500 points
+                opacity: 0.5,
+                states: {
+                    hover: {
+                        opacity: 1,
+                    },
+                },
             },
             {
                 name: 'Running Hours',
@@ -140,6 +146,12 @@ const createChart = () => {
                 color: theme.series[1],
                 marker: { enabled: true, radius: 4 },
                 boostThreshold: 500, // Boost when more than 500 points
+                opacity: 0.5,
+                states: {
+                    hover: {
+                        opacity: 1,
+                    },
+                },
             },
         ],
         responsive: {
