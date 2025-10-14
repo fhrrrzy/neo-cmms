@@ -18,21 +18,19 @@ const props = defineProps({
         type: Object,
         required: true,
     },
-    // Tailwind class for max height; default to 70vh to account for sticky header
-    maxHeightClass: { type: String, default: 'max-h-[70vh]' },
 });
 
 const rows = ref([]);
 const loading = ref(false);
 const page = ref(1);
-const perPage = ref(50);
+const perPage = ref(10);
 const sortBy = ref('date');
-const sortDirection = ref('asc');
+const sortDirection = ref('desc');
 
 const pagination = ref({
     total: 0,
     current_page: 1,
-    per_page: 50,
+    per_page: 10,
     last_page: 1,
 });
 
@@ -110,12 +108,9 @@ watch(
 </script>
 
 <template>
-    <div
-        v-if="rows?.length > 0"
-        :class="['w-full', props.maxHeightClass, 'overflow-hidden']"
-    >
+    <div class="w-full">
         <Table>
-            <TableHeader class="sticky top-0 z-10 bg-background">
+            <TableHeader>
                 <TableRow>
                     <TableHead
                         v-for="col in runningTimeColumns"
@@ -130,34 +125,35 @@ watch(
                     </TableHead>
                 </TableRow>
             </TableHeader>
+            <TableBody>
+                <TableRow v-if="rows.length === 0">
+                    <TableCell
+                        :colspan="runningTimeColumns.length"
+                        class="h-24 text-center"
+                    >
+                        No running times data available
+                    </TableCell>
+                </TableRow>
+                <TableRow v-else v-for="(time, index) in rows" :key="index">
+                    <TableCell
+                        v-for="col in runningTimeColumns"
+                        :key="col.id || col.accessorKey || col.key"
+                    >
+                        <component
+                            :is="col.cell"
+                            v-bind="{
+                                row: {
+                                    getValue: (key) => time[key],
+                                    index: index,
+                                    original: time,
+                                },
+                                table: tableContext,
+                            }"
+                        />
+                    </TableCell>
+                </TableRow>
+            </TableBody>
         </Table>
-        <div
-            class="overflow-y-auto"
-            :style="{ maxHeight: 'calc(100% - 6rem)' }"
-        >
-            <Table>
-                <TableBody>
-                    <TableRow v-for="(time, index) in rows" :key="index">
-                        <TableCell
-                            v-for="col in runningTimeColumns"
-                            :key="col.id || col.accessorKey || col.key"
-                        >
-                            <component
-                                :is="col.cell"
-                                v-bind="{
-                                    row: {
-                                        getValue: (key) => time[key],
-                                        index: index,
-                                        original: time,
-                                    },
-                                    table: tableContext,
-                                }"
-                            />
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
-        </div>
 
         <!-- Pagination -->
         <div class="mt-4">
@@ -167,8 +163,5 @@ watch(
                 @page-size-change="handlePageSizeChange"
             />
         </div>
-    </div>
-    <div v-else class="py-8 text-center text-muted-foreground">
-        <p>No running times data available</p>
     </div>
 </template>

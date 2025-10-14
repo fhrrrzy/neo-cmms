@@ -377,6 +377,11 @@ class ConcurrentApiSyncService
                         $success++;
                     } catch (\Throwable $e) {
                         $failed++;
+                        \Illuminate\Support\Facades\Log::error('Sync item failed', [
+                            'api_type' => $apiType,
+                            'error' => $e->getMessage(),
+                            'item_preview' => is_array($item) ? array_intersect_key($item, array_flip(['id', 'reservation_number', 'material_number', 'plant', 'created_at'])) : $item,
+                        ]);
                         report($e);
                     }
                 }

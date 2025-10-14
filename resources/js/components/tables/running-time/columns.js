@@ -64,42 +64,7 @@ export const runningTimeColumns = [
             return h('div', { class: 'text-left font-medium' }, formattedDate);
         },
     },
-    {
-        accessorKey: 'counter_reading',
-        header: ({ column, table }) => {
-            const sorting = table.options.meta?.sorting;
-            const isSorted = sorting?.sort_by === 'counter_reading';
-            const isAsc = sorting?.sort_direction === 'asc';
-            
-            return h(
-                Button,
-                {
-                    variant: 'ghost',
-                    onClick: () => {
-                        const newDirection = isSorted && isAsc ? 'desc' : 'asc';
-                        table.options.meta?.onSortChange?.('counter_reading', newDirection);
-                    },
-                    class: 'h-8 w-full px-2 lg:px-3 justify-end',
-                },
-                () => [
-                    'Pembacaan Counter',
-                    h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
-                ],
-            );
-        },
-        cell: ({ row }) => {
-            const reading = row.getValue('counter_reading');
-            if (!reading || reading === 0) {
-                return h('div', { class: 'text-right text-muted-foreground' }, 'N/A');
-            }
-            const formatted = Number(reading).toLocaleString('id-ID', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-            });
-            return h('div', { class: 'text-right font-mono' }, formatted);
-        },
-    },
-    {
+        {
         accessorKey: 'running_hours',
         header: ({ column, table }) => {
             const sorting = table.options.meta?.sorting;
@@ -134,6 +99,42 @@ export const runningTimeColumns = [
             return h('div', { class: 'text-right font-mono' }, `${formatted} Jam`);
         },
     },
+    {
+        accessorKey: 'counter_reading',
+        header: ({ column, table }) => {
+            const sorting = table.options.meta?.sorting;
+            const isSorted = sorting?.sort_by === 'counter_reading';
+            const isAsc = sorting?.sort_direction === 'asc';
+            
+            return h(
+                Button,
+                {
+                    variant: 'ghost',
+                    onClick: () => {
+                        const newDirection = isSorted && isAsc ? 'desc' : 'asc';
+                        table.options.meta?.onSortChange?.('counter_reading', newDirection);
+                    },
+                    class: 'h-8 w-full px-2 lg:px-3 justify-end',
+                },
+                () => [
+                    'Jam jalan Cummulative',
+                    h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                ],
+            );
+        },
+        cell: ({ row }) => {
+            const reading = row.getValue('counter_reading');
+            if (!reading || reading === 0) {
+                return h('div', { class: 'text-right text-muted-foreground' }, 'N/A');
+            }
+            const formatted = Number(reading).toLocaleString('id-ID', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            });
+            return h('div', { class: 'text-right font-mono' }, formatted);
+        },
+    },
+
 ];
 
 

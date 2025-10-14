@@ -26,6 +26,14 @@ export const workOrderColumns = [
     accessorKey: 'description',
     label: 'Deskripsi',
   },
+  {
+    accessorKey: 'cause_text',
+    label: 'Cause',
+  },
+  {
+    accessorKey: 'item_text',
+    label: 'Item',
+  },
 ];
 
 

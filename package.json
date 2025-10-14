@@ -47,6 +47,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dlx": "^0.2.1",
+    "gsap": "^3.13.0",
     "highcharts": "^12.4.0",
     "laravel-vite-plugin": "^2.0.0",
     "lucide-vue-next": "^0.468.0",

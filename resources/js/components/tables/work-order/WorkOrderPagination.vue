@@ -27,7 +27,6 @@ const emit = defineEmits(['page-change', 'page-size-change']);
 const selectOpen = ref(false);
 
 const handlePageSizeChange = (value) => {
-    // Close the select after value change
     selectOpen.value = false;
     emit('page-size-change', Number(value));
 };
@@ -39,30 +38,25 @@ const handlePageChange = (page) => {
 const pageNumbers = computed(() => {
     const current = props.pagination.current_page;
     const last = props.pagination.last_page;
-    const totalButtons = 5; // Total number of page buttons to show
+    const totalButtons = 5;
     const pages = [];
 
     let start, end;
 
     if (last <= totalButtons) {
-        // If total pages is less than or equal to totalButtons, show all pages
         start = 1;
         end = last;
     } else if (current <= 3) {
-        // Near the start, show first 5 pages
         start = 1;
         end = totalButtons;
     } else if (current >= last - 2) {
-        // Near the end, show last 5 pages
         start = last - totalButtons + 1;
         end = last;
     } else {
-        // In the middle, show 2 pages on each side
         start = current - 2;
         end = current + 2;
     }
 
-    // Add pages to array
     for (let i = start; i <= end; i++) {
         pages.push(i);
     }
@@ -131,7 +125,6 @@ const pageNumbers = computed(() => {
                     <ChevronLeft class="h-4 w-4" />
                 </Button>
 
-                <!-- Page Numbers -->
                 <div class="hidden items-center space-x-1 md:flex">
                     <Button
                         v-for="page in pageNumbers"
@@ -148,7 +141,6 @@ const pageNumbers = computed(() => {
                     </Button>
                 </div>
 
-                <!-- Mobile: Show current page -->
                 <div
                     class="flex items-center justify-center px-2 text-sm font-medium md:hidden"
                 >
