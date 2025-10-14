@@ -50,7 +50,7 @@ const filters = ref({
     },
     regional_ids: monitoringFilterStore.regional_ids || [],
     plant_ids: monitoringFilterStore.plant_ids || [],
-    station_ids: monitoringFilterStore.station_ids || [],
+    station_codes: monitoringFilterStore.station_codes || [],
     search: monitoringFilterStore.search,
 });
 
@@ -83,9 +83,12 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
                 params.append('plant_ids[]', id.toString());
             });
         }
-        if (filters.value.station_ids && filters.value.station_ids.length > 0) {
-            filters.value.station_ids.forEach((id) => {
-                params.append('station_ids[]', id.toString());
+        if (
+            filters.value.station_codes &&
+            filters.value.station_codes.length > 0
+        ) {
+            filters.value.station_codes.forEach((code) => {
+                params.append('station_codes[]', code);
             });
         }
         if (filters.value.date_range.start) {
@@ -125,7 +128,7 @@ const handleFilterChange = (newFilters) => {
     monitoringFilterStore.setFilters({
         regional_ids: filters.value.regional_ids || [],
         plant_ids: filters.value.plant_ids || [],
-        station_ids: filters.value.station_ids || [],
+        station_codes: filters.value.station_codes || [],
         search: filters.value.search,
     });
     if (newFilters?.date_range?.start && newFilters?.date_range?.end) {
@@ -178,26 +181,29 @@ onMounted(() => {
     <Head title="Monitoring Equipment" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="space-y-6">
-            <!-- Filter and View Toggle -->
-            <div class="">
-                <div class="flex items-end justify-between gap-4">
-                    <MonitoringFilter
-                        :filters="filters"
-                        @filter-change="handleFilterChange"
+        <div class="space-y-4 md:space-y-6">
+            <!-- Filter and Controls Section -->
+            <div class="space-y-4">
+                <!-- Filter Component -->
+                <MonitoringFilter
+                    :filters="filters"
+                    @filter-change="handleFilterChange"
+                />
+            </div>
+
+            <!-- Search and View Controls -->
+            <div class="flex w-full items-center justify-end gap-3 md:w-fit">
+                <div class="max-w-sm flex-1">
+                    <input
+                        type="text"
+                        class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+                        :value="filters.search"
+                        @input="handleSearchInput"
+                        placeholder="Search equipment..."
+                        aria-label="Search equipment"
                     />
-                    <div class="flex items-center gap-3">
-                        <input
-                            type="text"
-                            class="h-9 w-48 rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
-                            :value="filters.search"
-                            @input="handleSearchInput"
-                            placeholder="Search..."
-                            aria-label="Search equipment"
-                        />
-                        <DataTableViewOptions :table="dataTableRef?.table" />
-                    </div>
                 </div>
+                <DataTableViewOptions :table="dataTableRef?.table" />
             </div>
 
             <!-- Equipment Data Table -->
