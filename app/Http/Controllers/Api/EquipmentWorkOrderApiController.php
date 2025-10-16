@@ -40,7 +40,21 @@ class EquipmentWorkOrderApiController extends Controller
         $paginated = $query->paginate($perPage);
 
         return response()->json([
-            'data' => $paginated->items(),
+            'data' => array_map(function ($item) {
+                return [
+                    'id' => $item['id'] ?? null,
+                    'requirements_date' => $item['requirements_date'] ?? null,
+                    'order_number' => $item['order_number'] ?? null,
+                    'reservation' => $item['reservation'] ?? null,
+                    'material' => $item['material'] ?? null,
+                    'material_description' => $item['material_description'] ?? null,
+                    'requirement_quantity' => $item['requirement_quantity'] ?? null,
+                    'base_unit_of_measure' => $item['base_unit_of_measure'] ?? null,
+                    'quantity_withdrawn' => $item['quantity_withdrawn'] ?? null,
+                    'value_withdrawn' => $item['value_withdrawn'] ?? null,
+                    'currency' => $item['currency'] ?? null,
+                ];
+            }, $paginated->items()),
             'total' => $paginated->total(),
             'per_page' => $paginated->perPage(),
             'current_page' => $paginated->currentPage(),

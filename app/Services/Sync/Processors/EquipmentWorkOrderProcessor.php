@@ -69,6 +69,7 @@ class EquipmentWorkOrderProcessor
                 'final_issue' => Arr::get($item, 'final_issue'),
                 'missing_part' => Arr::get($item, 'missing_part'),
                 'material' => Arr::get($item, 'material'),
+                'material_description' => Arr::get($item, 'material_description') ?? Arr::get($item, 'material_text') ?? null,
                 'plant_id' => $plant->id,
                 'storage_location' => Arr::get($item, 'storage_location'),
                 'requirements_date' => Arr::get($item, 'requirements_date'),

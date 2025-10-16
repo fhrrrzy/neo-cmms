@@ -21,6 +21,7 @@ class EquipmentWorkOrder extends Model
         'final_issue',
         'missing_part',
         'material',
+        'material_description',
         'plant_id',
         'storage_location',
         'requirements_date',
