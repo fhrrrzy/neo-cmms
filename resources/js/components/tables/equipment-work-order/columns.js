@@ -15,6 +15,7 @@ export const equipmentWorkOrderColumns = [
   },
   { key: 'reservation', label: 'Reservation' },
   { key: 'material', label: 'Material' },
+  { key: 'material_description', label: 'Material Description' },
   { key: 'requirement_quantity', label: 'Qty', align: 'right', numeric: true },
   { key: 'base_unit_of_measure', label: 'UoM' },
   { key: 'quantity_withdrawn', label: 'Qty Withdrawn', align: 'right', numeric: true },

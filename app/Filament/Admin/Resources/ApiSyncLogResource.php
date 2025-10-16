@@ -41,15 +41,7 @@ class ApiSyncLogResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('sync_type')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'equipment' => 'info',
-                        'equipment_material' => 'info',
-                        'equipment_work_orders' => 'info',
-                        'running_time' => 'warning',
-                        'work_order' => 'primary',
-                        'full' => 'success',
-                        default => 'gray',
-                    })
+                    ->color('gray')
                     ->label('Tipe Sinkronisasi'),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()

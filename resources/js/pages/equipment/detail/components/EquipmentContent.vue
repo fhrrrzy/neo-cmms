@@ -169,7 +169,7 @@
                                     Running Time Analysis
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent class="!px-0 md:px-6">
                                 <div
                                     v-if="isLoadingRunningTime"
                                     class="space-y-4"

@@ -98,7 +98,8 @@ class EquipmentMaterialProcessor
                 'item' => $item,
                 'trace' => $e->getTraceAsString()
             ]);
-            throw $e;
+            // Do not rethrow; allow sync to continue and mark item as handled.
+            return;
         }
     }
 

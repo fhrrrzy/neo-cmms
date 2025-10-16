@@ -25,7 +25,7 @@ class EquipmentMaterialResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('equipment_number')->label('Equipment'),
+                Tables\Columns\TextColumn::make('workOrder.equipment_number')->label('Equipment')->placeholder('N/A'),
                 Tables\Columns\TextColumn::make('material_number')->label('Material'),
                 Tables\Columns\TextColumn::make('reservation_number')->label('Reservation'),
                 Tables\Columns\TextColumn::make('requirement_date')->date()->label('Requirement Date'),
