@@ -18,11 +18,6 @@ export const workOrderColumns = [
     label: 'Jenis',
   },
   {
-    accessorKey: 'order_status_label',
-    header: makeSortableHeader('Status', 'order_status_label'),
-    label: 'Status',
-  },
-  {
     accessorKey: 'description',
     label: 'Deskripsi',
   },

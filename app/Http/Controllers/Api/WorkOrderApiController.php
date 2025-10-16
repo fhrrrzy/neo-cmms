@@ -40,11 +40,12 @@ class WorkOrderApiController extends Controller
             }
         }
 
-        // Text search across key fields
+        // Text search across key fields (includes order number)
         if ($request->filled('search')) {
             $term = '%' . $request->search . '%';
             $query->where(function ($q) use ($term) {
-                $q->where('description', 'like', $term)
+                $q->where('order', 'like', $term)
+                    ->orWhere('description', 'like', $term)
                     ->orWhere('cause_text', 'like', $term)
                     ->orWhere('item_text', 'like', $term);
             });

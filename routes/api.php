@@ -31,3 +31,4 @@ Route::get('/workorders', [WorkOrderApiController::class, 'index']);
 
 // Equipment work orders (materials issued per equipment)
 Route::get('/equipment-work-orders', [EquipmentWorkOrderApiController::class, 'index']);
+Route::get('/equipment-work-orders/{orderNumber}', [EquipmentWorkOrderApiController::class, 'show']);
