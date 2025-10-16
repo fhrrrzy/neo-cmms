@@ -21,20 +21,22 @@ const props = defineProps({
     open: { type: Boolean, default: false },
     qrcode: { type: String, default: '' },
     description: { type: String, default: '' },
+    equipmentUrl: { type: String, default: '' },
 });
-const emit = defineEmits(['update:open']);
+const emit = defineEmits(['update:open', 'print']);
 
 const close = () => emit('update:open', false);
+const onPrint = () => emit('print');
 
 const shareToWhatsApp = () => {
-    const url = window.location.href;
+    const url = props.equipmentUrl || window.location.href;
     const text = `Check out this equipment: ${props.description || 'Equipment Details'}\n\n${url}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(whatsappUrl, '_blank');
 };
 
 const shareToTelegram = () => {
-    const url = window.location.href;
+    const url = props.equipmentUrl || window.location.href;
     const text = `Check out this equipment: ${props.description || 'Equipment Details'}\n\n${url}`;
     const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
     window.open(telegramUrl, '_blank');
@@ -121,6 +123,34 @@ onBeforeUnmount(() => {
                             Telegram
                         </Button>
                     </div>
+
+                    <!-- Print Button -->
+                    <div class="flex justify-center">
+                        <Button
+                            variant="outline"
+                            class="flex h-10 items-center justify-center gap-2"
+                            @click="onPrint"
+                        >
+                            <svg
+                                class="h-4 w-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <polyline points="6,9 6,2 18,2 18,9"></polyline>
+                                <path
+                                    d="m6,18h-2a2,2 0 0,1 -2,-2v-5a2,2 0 0,1 2,-2h16a2,2 0 0,1 2,2v5a2,2 0 0,1 -2,2h-2"
+                                ></path>
+                                <polyline
+                                    points="6,14 18,14 18,22 6,22 6,14"
+                                ></polyline>
+                            </svg>
+                            Print QR Code
+                        </Button>
+                    </div>
                 </div>
             </div>
         </DialogContent>
@@ -187,6 +217,35 @@ onBeforeUnmount(() => {
                             Telegram
                         </Button>
                     </div>
+
+                    <!-- Print Button -->
+                    <div class="flex justify-center">
+                        <Button
+                            variant="outline"
+                            class="flex h-10 items-center justify-center gap-2"
+                            @click="onPrint"
+                        >
+                            <svg
+                                class="h-4 w-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <polyline points="6,9 6,2 18,2 18,9"></polyline>
+                                <path
+                                    d="m6,18h-2a2,2 0 0,1 -2,-2v-5a2,2 0 0,1 2,-2h16a2,2 0 0,1 2,2v5a2,2 0 0,1 -2,2h-2"
+                                ></path>
+                                <polyline
+                                    points="6,14 18,14 18,22 6,22 6,14"
+                                ></polyline>
+                            </svg>
+                            Print QR Code
+                        </Button>
+                    </div>
+
                     <DrawerClose as-child>
                         <Button variant="ghost" class="w-full">Close</Button>
                     </DrawerClose>

@@ -37,6 +37,7 @@ class ApiSyncLogResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('sync_type')
                     ->badge()
@@ -120,10 +121,10 @@ class ApiSyncLogResource extends Resource
                         Forms\Components\CheckboxList::make('types')
                             ->options([
                                 'equipment' => 'Equipment',
-                                'equipment_material' => 'Equipment Material',
-                                'equipment_work_orders' => 'Equipment Work Orders',
                                 'running_time' => 'Running Time',
                                 'work_orders' => 'Work Orders',
+                                'equipment_work_orders' => 'Equipment Work Orders',
+                                'equipment_material' => 'Equipment Material',
                             ]),
                         Forms\Components\DatePicker::make('start_date')
                             ->native(false)

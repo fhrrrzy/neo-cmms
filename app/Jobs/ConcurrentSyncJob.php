@@ -151,23 +151,42 @@ class ConcurrentSyncJob implements ShouldQueue
             // Notify superadmins via Filament database notifications
             $recipients = User::superadmin()->get();
 
-            // Detailed notification for tracking
+            // Detailed notification for tracking - only show synced types
+            $syncedResults = [];
+            if ($this->types === null) {
+                // All types synced
+                $syncedResults[] = 'Equipment: ' . ($results['equipment']['success'] ?? 0);
+                $syncedResults[] = 'Equipment Material: ' . ($results['equipment_material']['success'] ?? 0);
+                $syncedResults[] = 'Equipment Work Orders: ' . ($results['equipment_work_orders']['success'] ?? 0);
+                $syncedResults[] = 'Running Time: ' . ($results['running_time']['success'] ?? 0);
+                $syncedResults[] = 'Work Orders: ' . ($results['work_orders']['success'] ?? 0);
+            } else {
+                // Only show selected types
+                foreach ($this->types as $type) {
+                    $typeLabel = match ($type) {
+                        'equipment' => 'Equipment',
+                        'equipment_material' => 'Equipment Material',
+                        'equipment_work_orders' => 'Equipment Work Orders',
+                        'running_time' => 'Running Time',
+                        'work_orders' => 'Work Orders',
+                        default => ucfirst($type)
+                    };
+                    $syncedResults[] = $typeLabel . ': ' . ($results[$type]['success'] ?? 0);
+                }
+            }
+
             FilamentNotification::make()
                 ->title('Sequential API Sync Completed Successfully')
-                ->body('Detailed Results: Equipment: ' . ($results['equipment']['success'] ?? 0)
-                    . ', Equipment Material: ' . ($results['equipment_material']['success'] ?? 0)
-                    . ', Equipment Work Orders: ' . ($results['equipment_work_orders']['success'] ?? 0)
-                    . ', Running Time: ' . ($results['running_time']['success'] ?? 0)
-                    . ', Work Orders: ' . ($results['work_orders']['success'] ?? 0)
-                    . ' | Duration: ' . $duration . 's | Plants: ' . count($plantCodes))
+                ->body('Results: ' . implode(', ', $syncedResults) . ' | Duration: ' . $duration . 's | Plants: ' . count($plantCodes))
                 ->icon('heroicon-o-check-circle')
                 ->iconColor('success')
                 ->sendToDatabase($recipients);
 
             // Summary notification for quick awareness
+            $syncTypesText = $this->types === null ? 'All APIs' : implode(', ', array_map('ucfirst', $this->types));
             FilamentNotification::make()
                 ->title('API Sync Completed')
-                ->body('All APIs synced successfully in ' . $duration . ' seconds')
+                ->body($syncTypesText . ' synced successfully in ' . $duration . ' seconds')
                 ->icon('heroicon-o-check-circle')
                 ->iconColor('success')
                 ->sendToDatabase($recipients);
