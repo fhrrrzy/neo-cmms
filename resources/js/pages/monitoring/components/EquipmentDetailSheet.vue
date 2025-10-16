@@ -88,6 +88,7 @@
                 :open="isQrOpen"
                 :qrcode="qrcode"
                 :description="equipment.equipment_description"
+                :equipment-url="equipmentUrl"
                 @update:open="(v) => (isQrOpen = v)"
                 @print="printQr"
             />
@@ -147,10 +148,13 @@ const error = ref(null);
 
 // QR Code state
 const isQrOpen = ref(false);
-const currentUrl = ref(
-    typeof window !== 'undefined' ? window.location.href : '',
-);
-const qrcode = useQRCode(currentUrl, {
+const equipmentUrl = computed(() => {
+    if (typeof window !== 'undefined' && props.equipmentNumber) {
+        return `${window.location.origin}/equipment/${props.equipmentNumber}`;
+    }
+    return '';
+});
+const qrcode = useQRCode(equipmentUrl, {
     errorCorrectionLevel: 'H',
     margin: 3,
 });
@@ -179,7 +183,7 @@ const printQr = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
     printWindow.document.write(
-        `<!doctype html><html><head><title>QR Code</title><style>body{margin:0} .container{display:flex;align-items:center;justify-content:center;height:100vh;padding:16px;} .content{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center} img{width:320px;height:320px} p{margin:0;white-space:pre-line;color:#000}@media print{img{width:320px;height:320px}}</style></head><body><div class="container"><div class="content"><img src="${qrSrc}" alt="QR Code" /><p>${equipment.value?.equipment_description || ''}</p></div></div><script>window.onload=()=>{window.focus();window.print();window.close();};<\/script></body></html>`,
+        `<!doctype html><html><head><title>QR Code</title><style>body{margin:0} .container{display:flex;align-items:center;justify-content:center;height:100vh;padding:16px;} .content{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center} img{width:320px;height:320px} p{margin:0;white-space:pre-line;color:#000}@media print{img{width:320px;height:320px}}</style></head><body><div class="container"><div class="content"><img src="${qrSrc}" alt="QR Code" /><p>${equipment.value?.equipment_description || ''}</p><p class="text-xs text-gray-500">${equipmentUrl.value}</p></div></div><script>window.onload=()=>{window.focus();window.print();window.close();};<\/script></body></html>`,
     );
     printWindow.document.close();
 };
