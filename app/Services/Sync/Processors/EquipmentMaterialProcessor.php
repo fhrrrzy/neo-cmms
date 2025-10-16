@@ -66,6 +66,7 @@ class EquipmentMaterialProcessor
                     'plant_id' => $plant->id,
                     'equipment_number' => $equipmentNumber,
                     'material_number' => Arr::get($item, 'material_number') ?? Arr::get($item, 'material'),
+                    'material_description' => Arr::get($item, 'material_description'),
                     'reservation_number' => Arr::get($item, 'reservation_number') ?? Arr::get($item, 'reservation'),
                     'reservation_item' => Arr::get($item, 'reservation_item') ?? Arr::get($item, 'reservation_item'),
                     'reservation_type' => Arr::get($item, 'reservation_type'),

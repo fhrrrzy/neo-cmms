@@ -15,6 +15,7 @@ class EquipmentMaterial extends Model
         'plant_id',
         'equipment_number',
         'material_number',
+        'material_description',
         'reservation_number',
         'reservation_item',
         'reservation_type',

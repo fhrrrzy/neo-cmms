@@ -80,6 +80,18 @@ class EquipmentApiController extends Controller
                 'company_code' => $equipment->company_code,
                 'object_number' => $equipment->object_number,
                 'point' => $equipment->point,
+                // Additional SAP fields
+                'baujj' => $equipment->baujj,
+                'groes' => $equipment->groes,
+                'herst' => $equipment->herst,
+                'mrnug' => $equipment->mrnug,
+                'eqart' => $equipment->eqart,
+                'description_func_location' => $equipment->description_func_location,
+                'functional_location' => $equipment->functional_location,
+                'maintenance_planner_group' => $equipment->maintenance_planner_group,
+                'maintenance_work_center' => $equipment->maintenance_work_center,
+                'eqtyp' => $equipment->eqtyp,
+                'equipment_type' => $equipment->equipment_type, // This is the computed attribute
                 'plant' => $equipment->plant ? [
                     'id' => $equipment->plant->id,
                     'name' => $equipment->plant->name,

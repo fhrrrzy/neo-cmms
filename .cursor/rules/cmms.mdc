@@ -1,0 +1,8 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+Use js for our pages,
+always use mobile first approach for responsivenes,

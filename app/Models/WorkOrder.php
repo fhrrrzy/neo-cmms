@@ -46,6 +46,8 @@ class WorkOrder extends Model
         'close',
         'api_updated_at',
         'equipment_number',
+        'functional_location',
+        'functional_location_description',
         'opertn_task_list_no',
     ];
 
