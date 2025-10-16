@@ -20,6 +20,9 @@ class EquipmentWorkOrderApiController extends Controller
             if ($request->filled('date_start') && $request->filled('date_end')) {
                 $query->whereBetween('requirements_date', [$request->date_start, $request->date_end]);
             }
+            if ($request->filled('material')) {
+                $query->where('material', $request->material);
+            }
 
             $query->selectRaw('material, material_description, COUNT(*) as count')
                 ->groupBy('material', 'material_description');
@@ -63,6 +66,9 @@ class EquipmentWorkOrderApiController extends Controller
         }
         if ($request->filled('date_start') && $request->filled('date_end')) {
             $query->whereBetween('requirements_date', [$request->date_start, $request->date_end]);
+        }
+        if ($request->filled('material')) {
+            $query->where('material', $request->material);
         }
 
         // Sorting

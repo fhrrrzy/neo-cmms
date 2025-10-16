@@ -2,6 +2,7 @@
 import type { StepperIndicatorProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
+
 import { StepperIndicator, useForwardProps } from "reka-ui"
 import { cn } from "@/lib/utils"
 
@@ -17,7 +18,7 @@ const forwarded = useForwardProps(delegatedProps)
     v-slot="slotProps"
     v-bind="forwarded"
     :class="cn(
-      'inline-flex items-center justify-center rounded-full text-muted-foreground/50 w-8 h-8',
+      'inline-flex items-center justify-center rounded-full text-muted-foreground/50 w-10 h-10',
       // Disabled
       'group-data-[disabled]:text-muted-foreground group-data-[disabled]:opacity-50',
       // Active

@@ -11,6 +11,7 @@ import {
 import axios from 'axios';
 import { computed, h, onMounted, ref, watch } from 'vue';
 import { equipmentWorkOrderGroupedByMaterialColumns } from './columns';
+import MaterialUsageSheet from './MaterialUsageSheet.vue';
 
 const props = defineProps({
     equipmentNumber: { type: String, required: false },
@@ -122,6 +123,17 @@ const handlePageSizeChange = (per) => {
     fetchData();
 };
 
+// Sheet state
+const sheetOpen = ref(false);
+const selectedMaterial = ref('');
+const selectedMaterialDesc = ref('');
+
+const openMaterialSheet = (row) => {
+    selectedMaterial.value = row?.material || '';
+    selectedMaterialDesc.value = row?.material_description || '';
+    sheetOpen.value = true;
+};
+
 onMounted(fetchData);
 watch(
     () => [
@@ -164,6 +176,8 @@ watch(
                 <TableRow
                     v-for="(item, idx) in rows"
                     :key="item.id || `${item.material}-${idx}`"
+                    class="cursor-pointer hover:bg-muted/50"
+                    @click="openMaterialSheet(item)"
                 >
                     <TableCell class="text-center font-medium">
                         {{
@@ -196,11 +210,7 @@ watch(
                                         : h(
                                               'span',
                                               null,
-                                              renderOrNA(
-                                                  item[
-                                                      col.accessorKey || col.key
-                                                  ],
-                                              ),
+                                              item[col.accessorKey || col.key],
                                           )
                                 "
                             />
@@ -214,6 +224,15 @@ watch(
             :pagination="pagination"
             @page-change="handlePageChange"
             @page-size-change="handlePageSizeChange"
+        />
+
+        <MaterialUsageSheet
+            :open="sheetOpen"
+            :material="selectedMaterial"
+            :material-description="selectedMaterialDesc"
+            :equipment-number="equipmentNumber"
+            :date-range="dateRange"
+            @update:open="(v) => (sheetOpen = v)"
         />
     </div>
     <div v-else class="py-8 text-center text-muted-foreground">
