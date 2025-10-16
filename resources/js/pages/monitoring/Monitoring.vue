@@ -5,15 +5,20 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { monitoring } from '@/routes';
 import { useMonitoringFilterStore } from '@/stores/monitoringFilterStore';
 import { useDateRangeStore } from '@/stores/useDateRangeStore';
-import { Head, router } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import { nextTick, onMounted, ref } from 'vue';
+import EquipmentDetailSheet from './components/EquipmentDetailSheet.vue';
 import MonitoringFilter from './components/MonitoringFilter.vue';
 
 const loading = ref(false);
 const error = ref(null);
 const equipment = ref([]);
 const dataTableRef = ref();
+
+// Sheet state
+const isSheetOpen = ref(false);
+const selectedEquipmentNumber = ref('');
 
 // Pagination state
 const pagination = ref({
@@ -26,10 +31,10 @@ const pagination = ref({
     has_more_pages: false,
 });
 
-// Sorting state
+// Sorting state - default to cumulative jam jalan desc when loading from stored state
 const sorting = ref({
-    sort_by: 'equipment_number',
-    sort_direction: 'asc',
+    sort_by: 'cumulative_jam_jalan',
+    sort_direction: 'desc',
 });
 
 const breadcrumbs = [
@@ -161,15 +166,27 @@ const handlePageSizeChange = (perPage) => {
 };
 
 const handleSortChange = (sortBy, sortDirection) => {
-    sorting.value.sort_by = sortBy;
-    sorting.value.sort_direction = sortDirection;
+    if (sortBy && sortDirection) {
+        sorting.value.sort_by = sortBy;
+        sorting.value.sort_direction = sortDirection;
+    } else {
+        // Remove sorting - use default
+        sorting.value.sort_by = 'equipment_number';
+        sorting.value.sort_direction = 'asc';
+    }
     // Reset to first page when sorting changes
     fetchEquipment(1, pagination.value.per_page);
 };
 
 const handleRowClick = (equipment) => {
-    // Navigate to equipment detail page
-    router.visit(`/equipment/${equipment.equipment_number}`);
+    // Open equipment detail in sheet
+    selectedEquipmentNumber.value = equipment.equipment_number;
+    isSheetOpen.value = true;
+};
+
+const handleSheetClose = () => {
+    isSheetOpen.value = false;
+    selectedEquipmentNumber.value = '';
 };
 
 onMounted(() => {
@@ -182,28 +199,56 @@ onMounted(() => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-4 md:space-y-6">
-            <!-- Filter and Controls Section -->
-            <div class="space-y-4">
+            <!-- Mobile/Tablet: Stacked Layout -->
+            <div class="space-y-4 lg:hidden">
                 <!-- Filter Component -->
                 <MonitoringFilter
                     :filters="filters"
                     @filter-change="handleFilterChange"
                 />
+
+                <!-- Search and View Controls -->
+                <div class="flex w-full items-center justify-between gap-3">
+                    <div class="w-full flex-1">
+                        <input
+                            type="text"
+                            class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+                            :value="filters.search"
+                            @input="handleSearchInput"
+                            placeholder="Search equipment..."
+                            aria-label="Search equipment"
+                        />
+                    </div>
+                    <DataTableViewOptions :table="dataTableRef?.table" />
+                </div>
             </div>
 
-            <!-- Search and View Controls -->
-            <div class="flex w-full items-center justify-end gap-3 md:w-fit">
-                <div class="max-w-sm flex-1">
-                    <input
-                        type="text"
-                        class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
-                        :value="filters.search"
-                        @input="handleSearchInput"
-                        placeholder="Search equipment..."
-                        aria-label="Search equipment"
-                    />
+            <!-- Large+ Screens: Side by Side Layout -->
+            <div class="hidden lg:block">
+                <div class="flex items-end gap-4">
+                    <!-- Filter Component -->
+                    <div class="flex-1">
+                        <MonitoringFilter
+                            :filters="filters"
+                            @filter-change="handleFilterChange"
+                        />
+                    </div>
+
+                    <!-- Search and View Controls -->
+                    <div class="flex items-center gap-3">
+                        <div class="w-80">
+                            <input
+                                type="text"
+                                class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+                                :value="filters.search"
+                                @input="handleSearchInput"
+                                placeholder="Search equipment..."
+                                aria-label="Search equipment"
+                            />
+                        </div>
+                        <DataTableViewOptions :table="dataTableRef?.table" />
+                    </div>
                 </div>
-                <DataTableViewOptions :table="dataTableRef?.table" />
             </div>
 
             <!-- Equipment Data Table -->
@@ -222,5 +267,12 @@ onMounted(() => {
                 />
             </div>
         </div>
+
+        <!-- Equipment Detail Sheet -->
+        <EquipmentDetailSheet
+            :is-open="isSheetOpen"
+            :equipment-number="selectedEquipmentNumber"
+            @close="handleSheetClose"
+        />
     </AppLayout>
 </template>

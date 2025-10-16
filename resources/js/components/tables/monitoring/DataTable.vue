@@ -1,4 +1,4 @@
-<script setup lang="js">
+<script setup>
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -16,7 +16,7 @@ import {
     useVueTable,
 } from '@tanstack/vue-table';
 import { AlertCircle } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { columns } from './columns';
 import DataTablePagination from './DataTablePagination.vue';
 
@@ -61,7 +61,17 @@ const emit = defineEmits([
     'row-click',
 ]);
 
-const tableSorting = ref([]);
+// Sheet state management
+const isSheetOpen = ref(false);
+const selectedEquipment = ref(null);
+
+// Initialize sorting state from props
+const tableSorting = ref([
+    {
+        id: props.sorting.sort_by,
+        desc: props.sorting.sort_direction === 'desc',
+    },
+]);
 const columnFilters = ref([]);
 const columnVisibility = ref({});
 const rowSelection = ref({});
@@ -76,6 +86,16 @@ const table = useVueTable({
             typeof updaterOrValue === 'function'
                 ? updaterOrValue(tableSorting.value)
                 : updaterOrValue;
+
+        // Emit sort change to parent component
+        if (tableSorting.value.length > 0) {
+            const sort = tableSorting.value[0];
+            const sortDirection = sort.desc ? 'desc' : 'asc';
+            emit('sort-change', sort.id, sortDirection);
+        } else {
+            // No sorting - emit null to remove sorting
+            emit('sort-change', null, null);
+        }
     },
     onColumnFiltersChange: (updaterOrValue) => {
         columnFilters.value =
@@ -130,8 +150,30 @@ const hasError = computed(() => props.error);
 const hasData = computed(() => props.data.length > 0);
 
 const handleRowClick = (equipment) => {
+    selectedEquipment.value = equipment;
+    isSheetOpen.value = true;
+    // Still emit for backward compatibility if needed
     emit('row-click', equipment);
 };
+
+// Watch for sorting changes from parent and update table sorting
+watch(
+    () => props.sorting,
+    (newSorting) => {
+        if (newSorting.sort_by && newSorting.sort_direction) {
+            tableSorting.value = [
+                {
+                    id: newSorting.sort_by,
+                    desc: newSorting.sort_direction === 'desc',
+                },
+            ];
+        } else {
+            // No sorting
+            tableSorting.value = [];
+        }
+    },
+    { deep: true },
+);
 
 // Expose table instance for parent components
 defineExpose({
@@ -320,14 +362,22 @@ defineExpose({
                                 </div>
                                 <div>
                                     <span class="text-muted-foreground"
-                                        >Data Periode:</span
+                                        >Total Periode:</span
                                     >
-                                    <p>
+                                    <p class="font-mono">
                                         {{
-                                            row.original.running_times_count
-                                                ? row.original
-                                                      .running_times_count +
-                                                  ' Jam'
+                                            row.original.running_times_count &&
+                                            row.original.running_times_count > 0
+                                                ? new Intl.NumberFormat(
+                                                      'id-ID',
+                                                      {
+                                                          minimumFractionDigits: 2,
+                                                          maximumFractionDigits: 2,
+                                                      },
+                                                  ).format(
+                                                      row.original
+                                                          .running_times_count,
+                                                  ) + ' Jam'
                                                 : 'N/A'
                                         }}
                                     </p>
@@ -344,6 +394,13 @@ defineExpose({
             :pagination="pagination"
             @page-change="emit('page-change', $event)"
             @page-size-change="emit('page-size-change', $event)"
+        />
+
+        <!-- Equipment Detail Sheet -->
+        <EquipmentDetailSheet
+            :is-open="isSheetOpen"
+            :equipment-number="selectedEquipment?.equipment_number || ''"
+            @close="isSheetOpen = false"
         />
     </div>
 </template>

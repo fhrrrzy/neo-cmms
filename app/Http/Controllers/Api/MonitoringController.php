@@ -94,7 +94,7 @@ class MonitoringController extends Controller
         // Add running hours calculation
         $query->addSelect([
             'running_times_count' => DB::table('running_times')
-                ->selectRaw('COUNT(*)')
+                ->selectRaw('COALESCE(SUM(running_hours), 0)')
                 ->whereColumn('running_times.equipment_number', 'equipment.equipment_number')
                 ->whereBetween('date', [$dateStart, $dateEnd]),
             'cumulative_jam_jalan' => DB::table('running_times')

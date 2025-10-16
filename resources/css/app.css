@@ -187,4 +187,16 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* Custom slim scrollbar styles */
+    * {
+        @apply [&::-webkit-scrollbar]:w-1;
+        @apply [&::-webkit-scrollbar]:h-1;
+        @apply [&::-webkit-scrollbar-track]:rounded-full;
+        @apply [&::-webkit-scrollbar-track]:bg-gray-100;
+        @apply [&::-webkit-scrollbar-thumb]:rounded-full;
+        @apply [&::-webkit-scrollbar-thumb]:bg-gray-300;
+        @apply dark:[&::-webkit-scrollbar-track]:bg-neutral-700;
+        @apply dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500;
+    }
 }
