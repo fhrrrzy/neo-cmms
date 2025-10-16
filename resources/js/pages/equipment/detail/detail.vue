@@ -5,6 +5,8 @@
     <div v-if="props.isGuest" class="p-4">
         <EquipmentContent
             :equipment="equipment"
+            :loading="loading"
+            :not-found="notFound"
             :equipment-number="props.equipmentNumber"
             :date-range="dateRange"
             :range-value="rangeValue"
@@ -28,6 +30,8 @@
     <AppLayout v-else :breadcrumbs="breadcrumbs">
         <EquipmentContent
             :equipment="equipment"
+            :loading="loading"
+            :not-found="notFound"
             :equipment-number="props.equipmentNumber"
             :date-range="dateRange"
             :range-value="rangeValue"
@@ -82,6 +86,9 @@ const equipment = ref({
     cumulative_running_hours: 0,
     recent_running_times: [],
 });
+
+const loading = ref(false);
+const notFound = ref(false);
 
 const chartContainer = ref(null);
 const chart = ref(null);
@@ -180,10 +187,32 @@ const fetchEquipmentDetail = async () => {
     if (dateRange.value.start)
         params.append('date_start', dateRange.value.start);
     if (dateRange.value.end) params.append('date_end', dateRange.value.end);
-    const { data } = await axios.get(
-        `/api/equipment/${props.equipmentNumber}?${params}`,
-    );
-    equipment.value = data.equipment;
+    loading.value = true;
+    notFound.value = false;
+    try {
+        const { data } = await axios.get(
+            `/api/equipment/${props.equipmentNumber}?${params}`,
+        );
+        equipment.value = data.equipment;
+    } catch (err) {
+        if (err?.response?.status === 404) {
+            notFound.value = true;
+            equipment.value = {
+                equipment_number: '',
+                equipment_description: '',
+                company_code: '',
+                object_number: '',
+                point: '',
+                plant: null,
+                station: null,
+                cumulative_running_hours: 0,
+                recent_running_times: [],
+            };
+        }
+        // otherwise leave as loading false and let UI handle gracefully
+    } finally {
+        loading.value = false;
+    }
 };
 
 const createChart = () => {

@@ -1,4 +1,5 @@
 <script setup>
+import WorkOrderItemsDialog from '@/components/tables/work-order/WorkOrderItemsDialog.vue';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -156,6 +157,21 @@ const handlePageSizeChange = (perPageValue) => {
     page.value = 1; // reset to first page when page size changes
     fetchData();
 };
+const isDesktop = ref(true);
+const showSheet = ref(false);
+const selectedOrderNumber = ref('');
+
+if (typeof window !== 'undefined') {
+    const mql = window.matchMedia('(min-width: 768px)');
+    const updateMatch = () => (isDesktop.value = mql.matches);
+    updateMatch();
+    mql.addEventListener('change', updateMatch);
+}
+
+const openWorkOrder = async (wo) => {
+    selectedOrderNumber.value = String(wo.order || wo.order_number || '');
+    showSheet.value = true;
+};
 
 const displayedRows = computed(() => {
     const term = (search.value || '').toString().toLowerCase().trim();
@@ -179,6 +195,8 @@ const displayedRows = computed(() => {
         }
         if (!term) return matchesType;
         const haystack = [
+            String(wo.order || ''),
+            String(wo.order_number || ''),
             wo.description || '',
             wo.cause_text || '',
             wo.item_text || '',
@@ -197,7 +215,7 @@ const displayedRows = computed(() => {
                 <Input
                     v-model="search"
                     type="text"
-                    placeholder="Search deskripsi, cause, item..."
+                    placeholder="Cari order, deskripsi, cause, item..."
                     class="h-9"
                 />
             </div>
@@ -312,6 +330,8 @@ const displayedRows = computed(() => {
                     v-else
                     v-for="(wo, idx) in displayedRows"
                     :key="wo.id"
+                    class="cursor-pointer hover:bg-muted/50"
+                    @click="openWorkOrder(wo)"
                 >
                     <TableCell class="text-center font-medium">
                         {{
@@ -339,9 +359,6 @@ const displayedRows = computed(() => {
                         renderOrNA(wo.order)
                     }}</TableCell>
                     <TableCell>{{ orderTypeToLabel(wo.order_type) }}</TableCell>
-                    <TableCell>{{
-                        renderOrNA(wo.order_status_label)
-                    }}</TableCell>
                     <TableCell
                         class="max-w-[320px] truncate"
                         :title="wo.description"
@@ -372,5 +389,12 @@ const displayedRows = computed(() => {
                 @page-size-change="handlePageSizeChange"
             />
         </div>
+
+        <!-- Dialog with items table -->
+        <WorkOrderItemsDialog
+            :open="showSheet"
+            :order-number="selectedOrderNumber"
+            @update:open="(v) => (showSheet = v)"
+        />
     </div>
 </template>

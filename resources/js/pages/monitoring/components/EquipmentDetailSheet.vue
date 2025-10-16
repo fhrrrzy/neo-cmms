@@ -11,7 +11,7 @@
             >
                 <div class="flex items-center gap-4">
                     <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         @click="close"
                         class="h-8 w-8"
@@ -54,21 +54,35 @@
                 </div>
                 <div
                     v-else-if="error"
-                    class="flex h-96 items-center justify-center"
+                    class="flex h-96 items-center justify-center px-6"
                 >
-                    <div class="space-y-4 text-center">
-                        <AlertCircle
-                            class="mx-auto h-12 w-12 text-destructive"
-                        />
-                        <p class="text-destructive">{{ error }}</p>
-                        <Button @click="fetchEquipmentDetail" variant="outline">
-                            Try Again
-                        </Button>
+                    <div class="space-y-3 text-center">
+                        <div
+                            class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10"
+                        >
+                            <AlertCircle class="h-6 w-6 text-destructive" />
+                        </div>
+                        <p class="text-base font-medium text-destructive">
+                            {{ error }}
+                        </p>
+                        <div class="flex items-center justify-center gap-2">
+                            <Button
+                                @click="fetchEquipmentDetail"
+                                variant="outline"
+                            >
+                                Try Again
+                            </Button>
+                            <Button variant="ghost" @click="close"
+                                >Close</Button
+                            >
+                        </div>
                     </div>
                 </div>
-                <div v-else class="p-6">
+                <div class="p-6">
                     <EquipmentContent
                         :equipment="equipment"
+                        :loading="loading"
+                        :not-found="error === 'Equipment not found'"
                         :equipment-number="equipmentNumber"
                         :date-range="dateRange"
                         :range-value="rangeValue"
@@ -105,7 +119,7 @@ import { useDateRangeStore } from '@/stores/useDateRangeStore';
 import { parseDate } from '@internationalized/date';
 import { useQRCode } from '@vueuse/integrations/useQRCode';
 import axios from 'axios';
-import { AlertCircle, ArrowLeft, ExternalLink, QrCode } from 'lucide-vue-next';
+import { ArrowLeft, ExternalLink, QrCode } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
@@ -213,8 +227,13 @@ const fetchEquipmentDetail = async () => {
         );
         equipment.value = data.equipment;
     } catch (err) {
-        error.value =
-            err.response?.data?.message || 'Terjadi kesalahan saat memuat data';
+        if (err?.response?.status === 404) {
+            error.value = 'Equipment not found';
+        } else {
+            error.value =
+                err.response?.data?.message ||
+                'Terjadi kesalahan saat memuat data';
+        }
         console.error('Error fetching equipment:', err);
     } finally {
         loading.value = false;

@@ -1,285 +1,351 @@
 <template>
     <div class="space-y-6">
-        <!-- Header -->
-        <div
-            class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
-        >
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-3xl font-bold tracking-tight">
-                        {{ equipment.equipment_description || 'N/A' }}
-                    </h1>
-                    <Button
-                        v-if="showQrButton"
-                        variant="outline"
-                        size="icon"
-                        class="h-8 w-8"
-                        @click="$emit('openQr')"
-                        aria-label="Open QR code"
-                    >
-                        <QrCode class="h-4 w-4" />
-                    </Button>
+        <!-- Loading State (skeletons) -->
+        <div v-if="loading" class="space-y-6">
+            <div
+                class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+            >
+                <div class="w-full space-y-2">
+                    <Skeleton class="h-8 w-2/3" />
+                    <Skeleton class="h-4 w-40" />
+                    <Skeleton class="h-3 w-56" />
+                    <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                        <Skeleton class="h-10 w-full" />
+                        <Skeleton class="h-10 w-full" />
+                        <Skeleton class="h-10 w-full" />
+                        <Skeleton class="h-10 w-full" />
+                    </div>
                 </div>
-                <p class="text-muted-foreground">
-                    #{{ equipment.equipment_number }}
-                </p>
-                <p class="text-xs text-muted-foreground">
-                    {{ regionalName }} - {{ plantName }} - {{ stationName }}
-                </p>
-
-                <!-- Equipment Details Grid -->
-                <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-muted-foreground">
-                            Year
-                        </p>
-                        <p class="text-sm font-semibold">
-                            {{
-                                equipment.baujj && equipment.baujj !== '-'
-                                    ? equipment.baujj
-                                    : 'N/A'
-                            }}
-                        </p>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-muted-foreground">
-                            Capacity
-                        </p>
-                        <p class="text-sm font-semibold">
-                            {{
-                                equipment.groes && equipment.groes !== '-'
-                                    ? equipment.groes
-                                    : 'N/A'
-                            }}
-                        </p>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-muted-foreground">
-                            Manufacturer
-                        </p>
-                        <p class="text-sm font-semibold">
-                            {{
-                                equipment.herst && equipment.herst !== '-'
-                                    ? equipment.herst
-                                    : 'N/A'
-                            }}
-                        </p>
-                    </div>
-
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-muted-foreground">
-                            Equipment Type
-                        </p>
-                        <p class="text-sm font-semibold">
-                            {{
-                                equipment.eqart && equipment.eqart !== '-'
-                                    ? equipment.eqart
-                                    : 'N/A'
-                            }}
-                        </p>
-                    </div>
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-muted-foreground">
-                            Functional Location
-                        </p>
-                        <p class="text-sm font-semibold">
-                            {{
-                                equipment.description_func_location &&
-                                equipment.description_func_location !== '-'
-                                    ? equipment.description_func_location
-                                    : 'N/A'
-                            }}
-                        </p>
-                    </div>
+                <div class="hidden w-72 md:block">
+                    <Skeleton class="h-10 w-full" />
                 </div>
             </div>
-            <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
-                <Popover
-                    :open="popoverOpen"
-                    class="w-full md:w-auto"
-                    @update:open="$emit('update:popoverOpen', $event)"
-                >
-                    <PopoverTrigger as-child>
-                        <Button
-                            variant="outline"
-                            :class="[
-                                'w-full justify-start text-left font-normal md:w-[280px]',
-                                isRangeEmpty ? 'text-muted-foreground' : '',
-                            ]"
-                        >
-                            <Calendar class="mr-2 h-4 w-4" />
-                            {{ rangeDisplay }}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                        class="w-auto p-0"
-                        :side="'bottom'"
-                        :align="'end'"
-                        :side-offset="4"
-                        :avoid-collisions="true"
-                        :collision-boundary="'viewport'"
-                        :sticky="'partial'"
-                    >
-                        <RangeCalendar
-                            :model-value="rangeValue"
-                            @update:model-value="
-                                $emit('update:rangeValue', $event)
-                            "
-                            :number-of-months="2"
-                        />
-                    </PopoverContent>
-                </Popover>
-                <Button
-                    v-if="showBackButton"
-                    variant="outline"
-                    class="w-full md:w-auto"
-                    @click="$emit('goBack')"
-                >
-                    <ArrowLeft class="mr-2 h-4 w-4" />
-                    Back to Monitoring
-                </Button>
+            <div>
+                <Skeleton class="h-10 w-64" />
+                <div class="mt-4 space-y-3">
+                    <Skeleton class="h-48 w-full" />
+                    <Skeleton class="h-10 w-full" />
+                    <Skeleton class="h-10 w-full" />
+                </div>
             </div>
         </div>
 
-        <!-- Tabs Content -->
-        <Tabs default-value="running" v-model="activeTab">
-            <TabsList class="grid w-full grid-cols-3 md:w-fit">
-                <TabsTrigger value="running">Running Time</TabsTrigger>
-                <TabsTrigger value="workorders">Work Orders</TabsTrigger>
-                <TabsTrigger value="material">Material</TabsTrigger>
-            </TabsList>
-
-            <div class="relative overflow-hidden">
-                <Transition
-                    :name="getTransitionName()"
-                    mode="out-in"
-                    enter-active-class="transition-all duration-150 ease-out"
-                    leave-active-class="transition-all duration-100 ease-in"
+        <!-- Not Found State: hide everything else -->
+        <div
+            v-else-if="notFound"
+            class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6"
+        >
+            <Noise
+                :pattern-size="250"
+                :pattern-scale-x="1"
+                :pattern-scale-y="1"
+                :pattern-alpha="30"
+            />
+            <div class="space-y-4 text-center">
+                <p
+                    class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl"
                 >
-                    <TabsContent
-                        v-if="activeTab === 'running'"
-                        key="running"
-                        value="running"
-                        class="space-y-6 pt-4"
-                    >
-                        <Card>
-                            <CardHeader>
-                                <CardTitle class="flex items-center gap-2">
-                                    <BarChart3 class="h-5 w-5" />
-                                    Running Time Analysis
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent class="!px-0 md:px-6">
-                                <div
-                                    v-if="isLoadingRunningTime"
-                                    class="space-y-4"
-                                >
-                                    <Skeleton class="h-[300px] w-full" />
-                                    <div class="flex gap-4">
-                                        <Skeleton class="h-4 w-20" />
-                                        <Skeleton class="h-4 w-16" />
-                                    </div>
-                                </div>
-                                <RunningTimeChart
-                                    v-else
-                                    :data="equipment.recent_running_times"
-                                    :subtitle="`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`"
-                                />
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle class="flex items-center gap-2">
-                                    <Clock class="h-5 w-5" />
-                                    Running Times Data
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div
-                                    v-if="isLoadingRunningTime"
-                                    class="space-y-3"
-                                >
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                </div>
-                                <RunningTimeTable
-                                    v-else
-                                    :equipment-number="equipmentNumber"
-                                    :date-range="dateRange"
-                                />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent
-                        v-else-if="activeTab === 'workorders'"
-                        key="workorders"
-                        value="workorders"
-                        class="pt-4"
-                    >
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Work Orders</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div
-                                    v-if="isLoadingWorkOrders"
-                                    class="space-y-3"
-                                >
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                </div>
-                                <WorkOrderTable
-                                    v-else
-                                    :equipment-number="equipmentNumber"
-                                    :date-range="dateRange"
-                                    max-height-class="max-h-[60vh]"
-                                />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent
-                        v-else-if="activeTab === 'material'"
-                        key="material"
-                        value="material"
-                        class="pt-4"
-                    >
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Material</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div v-if="isLoadingMaterial" class="space-y-3">
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                    <Skeleton class="h-10 w-full" />
-                                </div>
-                                <EquipmentWorkOrderTable
-                                    v-else
-                                    :equipment-number="equipmentNumber"
-                                    :date-range="dateRange"
-                                    max-height-class="max-h-[60vh]"
-                                />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Transition>
+                    Peralatan tidak ditemukan
+                </p>
             </div>
-        </Tabs>
+        </div>
+
+        <template v-else>
+            <!-- Header -->
+            <div
+                class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+            >
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-3xl font-bold tracking-tight">
+                            {{ equipment.equipment_description || 'N/A' }}
+                        </h1>
+                        <Button
+                            v-if="showQrButton"
+                            variant="outline"
+                            size="icon"
+                            class="h-8 w-8"
+                            @click="$emit('openQr')"
+                            aria-label="Open QR code"
+                        >
+                            <QrCode class="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <p class="text-muted-foreground">
+                        #{{ equipment.equipment_number }}
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                        {{ regionalName }} - {{ plantName }} - {{ stationName }}
+                    </p>
+
+                    <!-- Equipment Details Grid -->
+                    <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                        <div class="space-y-1">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
+                                Year
+                            </p>
+                            <p class="text-sm font-semibold">
+                                {{
+                                    equipment.baujj && equipment.baujj !== '-'
+                                        ? equipment.baujj
+                                        : 'N/A'
+                                }}
+                            </p>
+                        </div>
+                        <div class="space-y-1">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
+                                Capacity
+                            </p>
+                            <p class="text-sm font-semibold">
+                                {{
+                                    equipment.groes && equipment.groes !== '-'
+                                        ? equipment.groes
+                                        : 'N/A'
+                                }}
+                            </p>
+                        </div>
+                        <div class="space-y-1">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
+                                Manufacturer
+                            </p>
+                            <p class="text-sm font-semibold">
+                                {{
+                                    equipment.herst && equipment.herst !== '-'
+                                        ? equipment.herst
+                                        : 'N/A'
+                                }}
+                            </p>
+                        </div>
+
+                        <div class="space-y-1">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
+                                Equipment Type
+                            </p>
+                            <p class="text-sm font-semibold">
+                                {{
+                                    equipment.eqart && equipment.eqart !== '-'
+                                        ? equipment.eqart
+                                        : 'N/A'
+                                }}
+                            </p>
+                        </div>
+                        <div class="space-y-1">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
+                                Functional Location
+                            </p>
+                            <p class="text-sm font-semibold">
+                                {{
+                                    equipment.description_func_location &&
+                                    equipment.description_func_location !== '-'
+                                        ? equipment.description_func_location
+                                        : 'N/A'
+                                }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
+                    <Popover
+                        :open="popoverOpen"
+                        class="w-full md:w-auto"
+                        @update:open="$emit('update:popoverOpen', $event)"
+                    >
+                        <PopoverTrigger as-child>
+                            <Button
+                                variant="outline"
+                                :class="[
+                                    'w-full justify-start text-left font-normal md:w-[280px]',
+                                    isRangeEmpty ? 'text-muted-foreground' : '',
+                                ]"
+                            >
+                                <Calendar class="mr-2 h-4 w-4" />
+                                {{ rangeDisplay }}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                            class="w-auto p-0"
+                            :side="'bottom'"
+                            :align="'end'"
+                            :side-offset="4"
+                            :avoid-collisions="true"
+                            :collision-boundary="'viewport'"
+                            :sticky="'partial'"
+                        >
+                            <RangeCalendar
+                                :model-value="rangeValue"
+                                @update:model-value="
+                                    $emit('update:rangeValue', $event)
+                                "
+                                :number-of-months="2"
+                            />
+                        </PopoverContent>
+                    </Popover>
+                    <Button
+                        v-if="showBackButton"
+                        variant="outline"
+                        class="w-full md:w-auto"
+                        @click="$emit('goBack')"
+                    >
+                        <ArrowLeft class="mr-2 h-4 w-4" />
+                        Back to Monitoring
+                    </Button>
+                </div>
+            </div>
+
+            <!-- Tabs Content -->
+            <Tabs default-value="running" v-model="activeTab">
+                <TabsList class="grid w-full grid-cols-3 md:w-fit">
+                    <TabsTrigger value="running">Running Time</TabsTrigger>
+                    <TabsTrigger value="workorders">Work Orders</TabsTrigger>
+                    <TabsTrigger value="material">Material</TabsTrigger>
+                </TabsList>
+
+                <div class="relative overflow-hidden">
+                    <Transition
+                        :name="getTransitionName()"
+                        mode="out-in"
+                        enter-active-class="transition-all duration-150 ease-out"
+                        leave-active-class="transition-all duration-100 ease-in"
+                    >
+                        <TabsContent
+                            v-if="activeTab === 'running'"
+                            key="running"
+                            value="running"
+                            class="space-y-6 pt-4"
+                        >
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle class="flex items-center gap-2">
+                                        <BarChart3 class="h-5 w-5" />
+                                        Running Time Analysis
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent class="!px-0 md:px-6">
+                                    <div
+                                        v-if="isLoadingRunningTime"
+                                        class="space-y-4"
+                                    >
+                                        <Skeleton class="h-[300px] w-full" />
+                                        <div class="flex gap-4">
+                                            <Skeleton class="h-4 w-20" />
+                                            <Skeleton class="h-4 w-16" />
+                                        </div>
+                                    </div>
+                                    <RunningTimeChart
+                                        v-else
+                                        :data="equipment.recent_running_times"
+                                        :subtitle="`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`"
+                                    />
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle class="flex items-center gap-2">
+                                        <Clock class="h-5 w-5" />
+                                        Running Times Data
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div
+                                        v-if="isLoadingRunningTime"
+                                        class="space-y-3"
+                                    >
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                    </div>
+                                    <RunningTimeTable
+                                        v-else
+                                        :equipment-number="equipmentNumber"
+                                        :date-range="dateRange"
+                                    />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent
+                            v-else-if="activeTab === 'workorders'"
+                            key="workorders"
+                            value="workorders"
+                            class="pt-4"
+                        >
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Work Orders</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div
+                                        v-if="isLoadingWorkOrders"
+                                        class="space-y-3"
+                                    >
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                    </div>
+                                    <WorkOrderTable
+                                        v-else
+                                        :equipment-number="equipmentNumber"
+                                        :date-range="dateRange"
+                                        max-height-class="max-h-[60vh]"
+                                    />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent
+                            v-else-if="activeTab === 'material'"
+                            key="material"
+                            value="material"
+                            class="pt-4"
+                        >
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Material</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div
+                                        v-if="isLoadingMaterial"
+                                        class="space-y-3"
+                                    >
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                    </div>
+                                    <EquipmentWorkOrderTable
+                                        v-else
+                                        :equipment-number="equipmentNumber"
+                                        :date-range="dateRange"
+                                        max-height-class="max-h-[60vh]"
+                                    />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Transition>
+                </div>
+            </Tabs>
+        </template>
     </div>
 </template>
 
 <script setup>
+import Noise from '@/components/blocks/Animations/Noise/Noise.vue';
 import EquipmentWorkOrderTable from '@/components/tables/equipment-work-order/EquipmentWorkOrderTable.vue';
 import RunningTimeTable from '@/components/tables/running-time/RunningTimeTable.vue';
 import WorkOrderTable from '@/components/tables/work-order/WorkOrderTable.vue';
@@ -302,6 +368,8 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    loading: { type: Boolean, default: false },
+    notFound: { type: Boolean, default: false },
     equipmentNumber: {
         type: String,
         required: true,
