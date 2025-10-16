@@ -22,7 +22,6 @@ import {
     ChevronDown,
     ChevronsUpDown,
     Filter,
-    RotateCcw,
     Search,
     X,
 } from 'lucide-vue-next';
@@ -598,8 +597,8 @@ onMounted(async () => {
 
 <template>
     <div class="space-y-4">
-        <!-- Mobile: Collapsible Filter -->
-        <div class="md:hidden">
+        <!-- Mobile/Tablet: Collapsible Filter -->
+        <div class="lg:hidden">
             <Collapsible v-model:open="isFilterOpen" class="w-full">
                 <CollapsibleTrigger as-child>
                     <Button variant="outline" class="w-full justify-between">
@@ -621,16 +620,13 @@ onMounted(async () => {
                         <div class="space-y-2">
                             <div class="relative">
                                 <Label>Regional</Label>
-                                <Button
+                                <button
                                     v-if="localFilters.regional_ids.length > 0"
-                                    variant="ghost"
-                                    size="sm"
-                                    class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                                    class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
                                     @click="resetRegional"
                                 >
-                                    <RotateCcw class="h-3 w-3" />
-                                    <span class="sr-only">Reset Regional</span>
-                                </Button>
+                                    Reset
+                                </button>
                             </div>
                             <Popover v-model:open="regionalOpen">
                                 <PopoverTrigger as-child>
@@ -719,16 +715,13 @@ onMounted(async () => {
                         <div class="space-y-2">
                             <div class="relative">
                                 <Label>Pabrik</Label>
-                                <Button
+                                <button
                                     v-if="localFilters.plant_ids.length > 0"
-                                    variant="ghost"
-                                    size="sm"
-                                    class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                                    class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
                                     @click="resetPlant"
                                 >
-                                    <RotateCcw class="h-3 w-3" />
-                                    <span class="sr-only">Reset Pabrik</span>
-                                </Button>
+                                    Reset
+                                </button>
                             </div>
                             <Popover v-model:open="plantOpen">
                                 <PopoverTrigger as-child>
@@ -817,16 +810,13 @@ onMounted(async () => {
                         <div class="space-y-2">
                             <div class="relative">
                                 <Label>Stasiun</Label>
-                                <Button
+                                <button
                                     v-if="localFilters.station_codes.length > 0"
-                                    variant="ghost"
-                                    size="sm"
-                                    class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                                    class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
                                     @click="resetStation"
                                 >
-                                    <RotateCcw class="h-3 w-3" />
-                                    <span class="sr-only">Reset Stasiun</span>
-                                </Button>
+                                    Reset
+                                </button>
                             </div>
                             <Popover v-model:open="stationOpen">
                                 <PopoverTrigger as-child>
@@ -944,14 +934,23 @@ onMounted(async () => {
                         </div>
 
                         <!-- Process Button -->
-                        <div class="space-y-2">
+                        <div class="group relative space-y-2">
                             <Button
                                 variant="default"
+                                size="icon"
                                 class="w-full"
                                 @click="applyFilters"
+                                title="Apply filters"
                             >
-                                Proses
+                                <Search class="h-4 w-4" />
+                                <span class="sr-only">Apply filters</span>
                             </Button>
+                            <!-- Apply text overlay - appears on hover without taking space -->
+                            <span
+                                class="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 transform text-xs whitespace-nowrap text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                            >
+                                Apply
+                            </span>
                         </div>
                     </div>
                 </CollapsibleContent>
@@ -959,24 +958,19 @@ onMounted(async () => {
         </div>
 
         <!-- Desktop: Always Visible Filter Controls -->
-        <div class="hidden md:block">
-            <div
-                class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5"
-            >
+        <div class="hidden lg:block">
+            <div class="flex flex-wrap items-end gap-4">
                 <!-- Regional Filter -->
-                <div class="space-y-2">
+                <div class="w-[260px] min-w-[140px] space-y-2">
                     <div class="relative">
                         <Label>Regional</Label>
-                        <Button
+                        <button
                             v-if="localFilters.regional_ids.length > 0"
-                            variant="ghost"
-                            size="sm"
-                            class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                            class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
                             @click="resetRegional"
                         >
-                            <RotateCcw class="h-3 w-3" />
-                            <span class="sr-only">Reset Regional</span>
-                        </Button>
+                            Reset
+                        </button>
                     </div>
                     <Popover v-model:open="regionalOpen">
                         <PopoverTrigger as-child>
@@ -1059,19 +1053,16 @@ onMounted(async () => {
                 </div>
 
                 <!-- Plant Filter -->
-                <div class="space-y-2">
+                <div class="w-[250px] min-w-[180px] space-y-2">
                     <div class="relative">
                         <Label>Pabrik</Label>
-                        <Button
+                        <button
                             v-if="localFilters.plant_ids.length > 0"
-                            variant="ghost"
-                            size="sm"
-                            class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                            class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
                             @click="resetPlant"
                         >
-                            <RotateCcw class="h-3 w-3" />
-                            <span class="sr-only">Reset Pabrik</span>
-                        </Button>
+                            Reset
+                        </button>
                     </div>
                     <Popover v-model:open="plantOpen">
                         <PopoverTrigger as-child>
@@ -1152,19 +1143,16 @@ onMounted(async () => {
                 </div>
 
                 <!-- Station Filter -->
-                <div class="space-y-2">
+                <div class="w-[240px] min-w-[200px] space-y-2">
                     <div class="relative">
                         <Label>Stasiun</Label>
-                        <Button
+                        <button
                             v-if="localFilters.station_codes.length > 0"
-                            variant="ghost"
-                            size="sm"
-                            class="absolute top-0 right-0 h-5 w-5 p-0 text-xs hover:bg-muted"
+                            class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
                             @click="resetStation"
                         >
-                            <RotateCcw class="h-3 w-3" />
-                            <span class="sr-only">Reset Stasiun</span>
-                        </Button>
+                            Reset
+                        </button>
                     </div>
                     <Popover v-model:open="stationOpen">
                         <PopoverTrigger as-child>
@@ -1247,7 +1235,7 @@ onMounted(async () => {
                 </div>
 
                 <!-- Date Range Filter -->
-                <div class="space-y-2">
+                <div class="w-[260px] min-w-[220px] space-y-2">
                     <Label>Periode Jam Jalan</Label>
                     <Popover v-model:open="datePopoverOpen">
                         <PopoverTrigger as-child>
@@ -1277,15 +1265,23 @@ onMounted(async () => {
                 </div>
 
                 <!-- Process Button -->
-                <div class="space-y-2">
-                    <Label class="opacity-0 select-none">Proses</Label>
+                <div class="group relative space-y-2">
+                    <Label class="opacity-0 select-none">Apply</Label>
                     <Button
                         variant="default"
-                        class="w-full"
+                        size="icon"
                         @click="applyFilters"
+                        title="Apply filters"
                     >
-                        Proses
+                        <Search class="h-4 w-4" />
+                        <span class="sr-only">Apply filters</span>
                     </Button>
+                    <!-- Apply text overlay - appears on hover without taking space -->
+                    <!-- <span
+                        class="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 transform text-xs whitespace-nowrap text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                    >
+                        Apply
+                    </span> -->
                 </div>
             </div>
         </div>

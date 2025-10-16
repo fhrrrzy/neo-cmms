@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown } from 'lucide-vue-next';
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-vue-next';
 import { h } from 'vue';
 
 function renderValueOrNA(value, extraClass = '') {
@@ -41,20 +41,30 @@ export const columns = [
             const sorting = table.options.meta?.sorting;
             const isSorted = sorting?.sort_by === 'equipment_number';
             const isAsc = sorting?.sort_direction === 'asc';
+            const isDesc = sorting?.sort_direction === 'desc';
             
             return h(
                 Button,
                 {
                     variant: 'ghost',
                     onClick: () => {
-                        const newDirection = isSorted && isAsc ? 'desc' : 'asc';
+                        let newDirection;
+                        if (!isSorted) {
+                            newDirection = 'asc';
+                        } else if (isAsc) {
+                            newDirection = 'desc';
+                        } else if (isDesc) {
+                            newDirection = null; // Remove sorting
+                        }
                         table.options.meta?.onSortChange?.('equipment_number', newDirection);
                     },
                     class: 'h-8 px-2 lg:px-3',
                 },
                 () => [
                     'Nomor Equipment',
-                    h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                    isSorted 
+                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
                 ],
             );
         },
@@ -115,20 +125,30 @@ export const columns = [
             const sorting = table.options.meta?.sorting;
             const isSorted = sorting?.sort_by === 'cumulative_jam_jalan';
             const isAsc = sorting?.sort_direction === 'asc';
+            const isDesc = sorting?.sort_direction === 'desc';
             
             return h(
                 Button,
                 {
                     variant: 'ghost',
                     onClick: () => {
-                        const newDirection = isSorted && isAsc ? 'desc' : 'asc';
+                        let newDirection;
+                        if (!isSorted) {
+                            newDirection = 'asc';
+                        } else if (isAsc) {
+                            newDirection = 'desc';
+                        } else if (isDesc) {
+                            newDirection = null; // Remove sorting
+                        }
                         table.options.meta?.onSortChange?.('cumulative_jam_jalan', newDirection);
                     },
                     class: 'h-8 w-full px-2 lg:px-3 justify-end',
                 },
                 () => [
                     'Jam Jalan Cummulative',
-                    h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                    isSorted 
+                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
                 ],
             );
         },
@@ -150,29 +170,43 @@ export const columns = [
             const sorting = table.options.meta?.sorting;
             const isSorted = sorting?.sort_by === 'running_times_count';
             const isAsc = sorting?.sort_direction === 'asc';
+            const isDesc = sorting?.sort_direction === 'desc';
             
             return h(
                 Button,
                 {
                     variant: 'ghost',
                     onClick: () => {
-                        const newDirection = isSorted && isAsc ? 'desc' : 'asc';
+                        let newDirection;
+                        if (!isSorted) {
+                            newDirection = 'asc';
+                        } else if (isAsc) {
+                            newDirection = 'desc';
+                        } else if (isDesc) {
+                            newDirection = null; // Remove sorting
+                        }
                         table.options.meta?.onSortChange?.('running_times_count', newDirection);
                     },
                     class: 'h-8 w-full px-2 lg:px-3 justify-end',
                 },
                 () => [
-                    'Data Jam Jalan (Periode)',
-                    h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                    'Total Jam Jalan (Periode)',
+                    isSorted 
+                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
                 ],
             );
         },
         cell: ({ row }) => {
-            const count = Number(row.getValue('running_times_count'));
-            if (!count || count <= 0) {
+            const totalHours = Number(row.getValue('running_times_count'));
+            if (!totalHours || totalHours <= 0) {
                 return h('div', { class: 'text-right text-muted-foreground' }, 'N/A');
             }
-            return h('div', { class: 'text-right' }, `${count} Jam`);
+            const formatted = new Intl.NumberFormat('id-ID', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(totalHours);
+            return h('div', { class: 'text-right font-mono' }, `${formatted} Jam`);
         },
     },
 ];

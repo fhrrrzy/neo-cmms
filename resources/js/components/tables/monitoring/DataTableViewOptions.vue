@@ -30,9 +30,9 @@ const columns = computed(() =>
 
 <template>
     <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-            <Button variant="outline" size="sm" class="ml-auto h-8">
-                <Settings class="mr-2 h-4 w-4" />
+        <DropdownMenuTrigger as-child class="">
+            <Button variant="outline" size="default" class="h-9">
+                <Settings class="h-4 w-4" />
                 <span class="hidden sm:inline">View</span>
             </Button>
         </DropdownMenuTrigger>
