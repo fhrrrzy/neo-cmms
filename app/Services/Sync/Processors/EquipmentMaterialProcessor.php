@@ -37,18 +37,9 @@ class EquipmentMaterialProcessor
                 return; // skip items for plants not present locally
             }
 
-            // Find the equipment work order by reservation number to get the equipment number
-            $reservationNumber = Arr::get($item, 'reservation_number');
-            $equipmentNumber = null;
-
-            if ($reservationNumber) {
-                $equipmentWorkOrder = \App\Models\EquipmentWorkOrder::where('reservation', $reservationNumber)->first();
-                if ($equipmentWorkOrder) {
-                    $equipmentNumber = $equipmentWorkOrder->equipment_number;
-                }
-                // If no equipment work order found, equipment_number will remain null
-                // The relationship can be established later when equipment work orders are synced
-            }
+            // Note: Equipment materials don't have equipment_number in the API response
+            // The relationship to equipment can be established through equipment work orders
+            // via reservation_number or material_number when needed
 
             // Build unique keys: prefer ims_id when present; otherwise use a natural composite key
             $imsId = Arr::get($item, 'id');
@@ -64,9 +55,7 @@ class EquipmentMaterialProcessor
                 $where,
                 [
                     'plant_id' => $plant->id,
-                    'equipment_number' => $equipmentNumber,
                     'material_number' => Arr::get($item, 'material_number') ?? Arr::get($item, 'material'),
-                    'material_description' => Arr::get($item, 'material_description'),
                     'reservation_number' => Arr::get($item, 'reservation_number') ?? Arr::get($item, 'reservation'),
                     'reservation_item' => Arr::get($item, 'reservation_item') ?? Arr::get($item, 'reservation_item'),
                     'reservation_type' => Arr::get($item, 'reservation_type'),

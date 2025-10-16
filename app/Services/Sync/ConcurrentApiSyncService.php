@@ -116,7 +116,7 @@ class ConcurrentApiSyncService
                         $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
 
                         $response = Http::withHeaders([
-                            'Authorization' => $token,
+                            'Authorization' => str_replace('Bearer ', '', $token),
                             'Content-Type' => 'application/json'
                         ])
                             ->timeout($this->timeoutSeconds)
@@ -153,7 +153,7 @@ class ConcurrentApiSyncService
                         $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
 
                         $response = Http::withHeaders([
-                            'Authorization' => $token,
+                            'Authorization' => str_replace('Bearer ', '', $token),
                             'Content-Type' => 'application/json'
                         ])
                             ->timeout($this->timeoutSeconds)
@@ -190,7 +190,7 @@ class ConcurrentApiSyncService
                         $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
 
                         $response = Http::withHeaders([
-                            'Authorization' => $token,
+                            'Authorization' => str_replace('Bearer ', '', $token),
                             'Content-Type' => 'application/json'
                         ])
                             ->timeout($this->timeoutSeconds)
@@ -228,7 +228,7 @@ class ConcurrentApiSyncService
                         $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
 
                         $response = Http::withHeaders([
-                            'Authorization' => $token,
+                            'Authorization' => str_replace('Bearer ', '', $token),
                             'Content-Type' => 'application/json'
                         ])
                             ->timeout($this->timeoutSeconds)
@@ -265,7 +265,7 @@ class ConcurrentApiSyncService
                         $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
 
                         $response = Http::withHeaders([
-                            'Authorization' => $token,
+                            'Authorization' => str_replace('Bearer ', '', $token),
                             'Content-Type' => 'application/json'
                         ])
                             ->timeout($this->timeoutSeconds)

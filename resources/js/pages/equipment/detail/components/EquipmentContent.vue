@@ -111,7 +111,15 @@
                             {{ rangeDisplay }}
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent class="w-auto p-0">
+                    <PopoverContent
+                        class="w-auto p-0"
+                        :side="'bottom'"
+                        :align="'end'"
+                        :side-offset="4"
+                        :avoid-collisions="true"
+                        :collision-boundary="'viewport'"
+                        :sticky="'partial'"
+                    >
                         <RangeCalendar
                             :model-value="rangeValue"
                             @update:model-value="

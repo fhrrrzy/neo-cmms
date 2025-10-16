@@ -21,6 +21,12 @@ class EquipmentWorkOrderProcessor
             return;
         }
 
+        // Validate required fields
+        $imsId = (string) (Arr::get($item, 'id') ?? '');
+        if (empty($imsId)) {
+            throw new Exception('Missing ims_id in equipment_work_orders item');
+        }
+
         $plant = Plant::where('plant_code', $plantCode)->first();
         if (!$plant) {
             throw new Exception('Plant not found for equipment_work_orders: ' . (string) $plantCode);
@@ -53,7 +59,7 @@ class EquipmentWorkOrderProcessor
         }
 
         EquipmentWorkOrder::updateOrCreate(
-            ['ims_id' => (string) (Arr::get($item, 'id') ?? '')],
+            ['ims_id' => $imsId],
             [
                 'reservation' => Arr::get($item, 'reservation'),
                 'requirement_type' => Arr::get($item, 'requirement_type'),

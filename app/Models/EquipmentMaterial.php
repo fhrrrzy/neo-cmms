@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class EquipmentMaterial extends Model
 {
@@ -13,9 +14,7 @@ class EquipmentMaterial extends Model
     protected $fillable = [
         'ims_id',
         'plant_id',
-        'equipment_number',
         'material_number',
-        'material_description',
         'reservation_number',
         'reservation_item',
         'reservation_type',
@@ -59,27 +58,31 @@ class EquipmentMaterial extends Model
         return $this->belongsTo(Plant::class);
     }
 
+
     /**
-     * Get the equipment associated with the equipment material.
+     * Link to the work order via production_order → work_orders.order.
      */
-    public function equipment(): BelongsTo
+    public function workOrder(): BelongsTo
     {
-        return $this->belongsTo(Equipment::class, 'equipment_number', 'equipment_number');
+        return $this->belongsTo(WorkOrder::class, 'production_order', 'order');
+    }
+
+
+    /**
+     * Get the equipment work orders associated with the equipment material (by material number).
+     * Note: This returns a collection since multiple work orders can have the same material.
+     */
+    public function equipmentWorkOrdersByMaterial()
+    {
+        return $this->hasMany(EquipmentWorkOrder::class, 'material', 'material_number');
     }
 
     /**
-     * Get the equipment work order associated with the equipment material (by reservation).
+     * Get the equipment work orders associated with the equipment material (by reservation number).
+     * Note: This returns a collection since multiple work orders can have the same reservation.
      */
-    public function equipmentWorkOrderByReservation(): BelongsTo
+    public function equipmentWorkOrdersByReservation()
     {
-        return $this->belongsTo(EquipmentWorkOrder::class, 'reservation_number', 'reservation');
-    }
-
-    /**
-     * Get the equipment work order associated with the equipment material (by material number).
-     */
-    public function equipmentWorkOrderByMaterial(): BelongsTo
-    {
-        return $this->belongsTo(EquipmentWorkOrder::class, 'material_number', 'material');
+        return $this->hasMany(EquipmentWorkOrder::class, 'reservation', 'reservation_number');
     }
 }
