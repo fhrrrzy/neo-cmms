@@ -74,6 +74,7 @@
                         :range-value="rangeValue"
                         :popover-open="popoverOpen"
                         :show-back-button="false"
+                        :show-qr-button="false"
                         @open-qr="isQrOpen = true"
                         @go-back="close"
                         @update:range-value="rangeValue = $event"
@@ -100,12 +101,11 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import EquipmentContent from '@/pages/equipment/detail/components/EquipmentContent.vue';
 import QrShare from '@/pages/equipment/detail/components/QrShare.vue';
 import { useDateRangeStore } from '@/stores/useDateRangeStore';
-import { router } from '@inertiajs/vue3';
 import { parseDate } from '@internationalized/date';
 import { useQRCode } from '@vueuse/integrations/useQRCode';
 import axios from 'axios';
 import { AlertCircle, ArrowLeft, ExternalLink, QrCode } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
     isOpen: {
@@ -189,7 +189,7 @@ const close = () => {
 };
 
 const goToDetailPage = () => {
-    router.visit(`/equipment/${props.equipmentNumber}`);
+    window.open(`/equipment/${props.equipmentNumber}`, '_blank');
 };
 
 const fetchEquipmentDetail = async () => {
@@ -217,31 +217,14 @@ const fetchEquipmentDetail = async () => {
     }
 };
 
-// Watch for equipment number changes
+// Watch for both equipment number and sheet open state changes
 watch(
-    () => props.equipmentNumber,
-    (newNumber) => {
-        if (newNumber && props.isOpen) {
+    [() => props.equipmentNumber, () => props.isOpen],
+    ([newNumber, isOpen]) => {
+        if (newNumber && isOpen) {
             fetchEquipmentDetail();
         }
     },
     { immediate: true },
 );
-
-// Watch for sheet open/close
-watch(
-    () => props.isOpen,
-    (isOpen) => {
-        if (isOpen && props.equipmentNumber) {
-            fetchEquipmentDetail();
-        }
-    },
-);
-
-// Cleanup on unmount
-onMounted(() => {
-    if (props.isOpen && props.equipmentNumber) {
-        fetchEquipmentDetail();
-    }
-});
 </script>

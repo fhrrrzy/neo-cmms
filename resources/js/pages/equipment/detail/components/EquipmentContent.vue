@@ -2,7 +2,7 @@
     <div class="space-y-6">
         <!-- Header -->
         <div
-            class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between"
+            class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
         >
             <div>
                 <div class="flex items-center gap-2">
@@ -10,6 +10,7 @@
                         {{ equipment.equipment_description || 'N/A' }}
                     </h1>
                     <Button
+                        v-if="showQrButton"
                         variant="outline"
                         size="icon"
                         class="h-8 w-8"
@@ -25,17 +26,84 @@
                 <p class="text-xs text-muted-foreground">
                     {{ regionalName }} - {{ plantName }} - {{ stationName }}
                 </p>
+
+                <!-- Equipment Details Grid -->
+                <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-muted-foreground">
+                            Year
+                        </p>
+                        <p class="text-sm font-semibold">
+                            {{
+                                equipment.baujj && equipment.baujj !== '-'
+                                    ? equipment.baujj
+                                    : 'N/A'
+                            }}
+                        </p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-muted-foreground">
+                            Capacity
+                        </p>
+                        <p class="text-sm font-semibold">
+                            {{
+                                equipment.groes && equipment.groes !== '-'
+                                    ? equipment.groes
+                                    : 'N/A'
+                            }}
+                        </p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-muted-foreground">
+                            Manufacturer
+                        </p>
+                        <p class="text-sm font-semibold">
+                            {{
+                                equipment.herst && equipment.herst !== '-'
+                                    ? equipment.herst
+                                    : 'N/A'
+                            }}
+                        </p>
+                    </div>
+
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-muted-foreground">
+                            Equipment Type
+                        </p>
+                        <p class="text-sm font-semibold">
+                            {{
+                                equipment.eqart && equipment.eqart !== '-'
+                                    ? equipment.eqart
+                                    : 'N/A'
+                            }}
+                        </p>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-muted-foreground">
+                            Functional Location
+                        </p>
+                        <p class="text-sm font-semibold">
+                            {{
+                                equipment.description_func_location &&
+                                equipment.description_func_location !== '-'
+                                    ? equipment.description_func_location
+                                    : 'N/A'
+                            }}
+                        </p>
+                    </div>
+                </div>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
                 <Popover
                     :open="popoverOpen"
+                    class="w-full md:w-auto"
                     @update:open="$emit('update:popoverOpen', $event)"
                 >
                     <PopoverTrigger as-child>
                         <Button
                             variant="outline"
                             :class="[
-                                'w-[280px] justify-start text-left font-normal',
+                                'w-full justify-start text-left font-normal md:w-[280px]',
                                 isRangeEmpty ? 'text-muted-foreground' : '',
                             ]"
                         >
@@ -56,6 +124,7 @@
                 <Button
                     v-if="showBackButton"
                     variant="outline"
+                    class="w-full md:w-auto"
                     @click="$emit('goBack')"
                 >
                     <ArrowLeft class="mr-2 h-4 w-4" />
@@ -66,7 +135,7 @@
 
         <!-- Tabs Content -->
         <Tabs default-value="running" v-model="activeTab">
-            <TabsList class="grid w-fit grid-cols-3">
+            <TabsList class="grid w-full grid-cols-3 md:w-fit">
                 <TabsTrigger value="running">Running Time</TabsTrigger>
                 <TabsTrigger value="workorders">Work Orders</TabsTrigger>
                 <TabsTrigger value="material">Material</TabsTrigger>
@@ -244,6 +313,10 @@ const props = defineProps({
     showBackButton: {
         type: Boolean,
         default: false,
+    },
+    showQrButton: {
+        type: Boolean,
+        default: true,
     },
 });
 

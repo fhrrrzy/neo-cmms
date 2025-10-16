@@ -72,49 +72,130 @@ const pageNumbers = computed(() => {
 </script>
 
 <template>
-    <div class="flex items-center justify-between px-2">
-        <div class="flex-1 text-sm text-muted-foreground">
-            Showing
-            {{
-                pagination.from ||
-                (pagination.current_page - 1) * pagination.per_page + 1
-            }}
-            to
-            {{
-                pagination.to ||
-                Math.min(
-                    pagination.current_page * pagination.per_page,
-                    pagination.total,
-                )
-            }}
-            of {{ pagination.total }} results
-        </div>
-        <div class="flex items-center space-x-6 lg:space-x-8">
-            <div class="flex items-center space-x-2">
-                <p class="text-sm font-medium">Rows per page</p>
+    <div class="space-y-4 px-2">
+        <!-- Mobile: Compact view -->
+        <div class="flex flex-col space-y-3 sm:hidden">
+            <!-- Results info -->
+            <div class="text-center text-xs text-muted-foreground">
+                {{
+                    pagination.from ||
+                    (pagination.current_page - 1) * pagination.per_page + 1
+                }}-{{
+                    pagination.to ||
+                    Math.min(
+                        pagination.current_page * pagination.per_page,
+                        pagination.total,
+                    )
+                }}
+                of {{ pagination.total }}
+            </div>
+
+            <!-- Page size selector -->
+            <div class="flex items-center justify-center space-x-2">
+                <p class="text-xs font-medium">Per page:</p>
                 <Select
                     v-model:open="selectOpen"
                     :model-value="`${pagination.per_page}`"
                     @update:model-value="handlePageSizeChange"
                 >
-                    <SelectTrigger class="h-8 w-[100px]">
+                    <SelectTrigger class="h-7 w-16 text-xs">
                         <SelectValue :placeholder="`${pagination.per_page}`" />
                     </SelectTrigger>
                     <SelectContent side="top">
                         <SelectItem
-                            v-for="pageSize in [10, 15, 25, 50, 100]"
+                            v-for="pageSize in [10, 15, 25, 50]"
                             :key="pageSize"
                             :value="`${pageSize}`"
+                            class="text-xs"
                         >
                             {{ pageSize }}
                         </SelectItem>
                     </SelectContent>
                 </Select>
             </div>
-            <div class="flex items-center space-x-2">
+
+            <!-- Navigation -->
+            <div class="flex items-center justify-center space-x-2">
                 <Button
                     variant="outline"
-                    class="hidden h-8 w-8 p-0 lg:flex"
+                    size="sm"
+                    class="h-7 w-7 p-0"
+                    :disabled="pagination.current_page <= 1"
+                    @click="handlePageChange(pagination.current_page - 1)"
+                >
+                    <span class="sr-only">Previous</span>
+                    <ChevronLeft class="h-3 w-3" />
+                </Button>
+
+                <div
+                    class="flex items-center justify-center px-3 py-1 text-xs font-medium"
+                >
+                    {{ pagination.current_page }} / {{ pagination.last_page }}
+                </div>
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    class="h-7 w-7 p-0"
+                    :disabled="pagination.current_page >= pagination.last_page"
+                    @click="handlePageChange(pagination.current_page + 1)"
+                >
+                    <span class="sr-only">Next</span>
+                    <ChevronRight class="h-3 w-3" />
+                </Button>
+            </div>
+        </div>
+
+        <!-- Tablet and Desktop: Full view -->
+        <div class="hidden flex-col space-y-4 sm:flex">
+            <!-- Top row: Results info and page size -->
+            <div class="flex items-center justify-between">
+                <div class="text-sm text-muted-foreground">
+                    Showing
+                    {{
+                        pagination.from ||
+                        (pagination.current_page - 1) * pagination.per_page + 1
+                    }}
+                    to
+                    {{
+                        pagination.to ||
+                        Math.min(
+                            pagination.current_page * pagination.per_page,
+                            pagination.total,
+                        )
+                    }}
+                    of {{ pagination.total }} results
+                </div>
+                <div class="flex items-center space-x-2">
+                    <p class="text-sm font-medium">Rows per page</p>
+                    <Select
+                        v-model:open="selectOpen"
+                        :model-value="`${pagination.per_page}`"
+                        @update:model-value="handlePageSizeChange"
+                    >
+                        <SelectTrigger class="h-8 w-[100px]">
+                            <SelectValue
+                                :placeholder="`${pagination.per_page}`"
+                            />
+                        </SelectTrigger>
+                        <SelectContent side="top">
+                            <SelectItem
+                                v-for="pageSize in [10, 15, 25, 50, 100]"
+                                :key="pageSize"
+                                :value="`${pageSize}`"
+                            >
+                                {{ pageSize }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <!-- Bottom row: Navigation -->
+            <div class="flex items-center justify-center space-x-1">
+                <Button
+                    variant="outline"
+                    class="hidden h-8 w-8 p-0 md:flex"
                     :disabled="pagination.current_page <= 1"
                     @click="handlePageChange(1)"
                 >
@@ -131,8 +212,8 @@ const pageNumbers = computed(() => {
                     <ChevronLeft class="h-4 w-4" />
                 </Button>
 
-                <!-- Page Numbers -->
-                <div class="hidden items-center space-x-1 md:flex">
+                <!-- Page Numbers - Show on tablet and up -->
+                <div class="hidden items-center space-x-1 lg:flex">
                     <Button
                         v-for="page in pageNumbers"
                         :key="page"
@@ -148,9 +229,9 @@ const pageNumbers = computed(() => {
                     </Button>
                 </div>
 
-                <!-- Mobile: Show current page -->
+                <!-- Tablet: Show current page -->
                 <div
-                    class="flex items-center justify-center px-2 text-sm font-medium md:hidden"
+                    class="flex items-center justify-center px-2 text-sm font-medium lg:hidden"
                 >
                     Page {{ pagination.current_page }} of
                     {{ pagination.last_page }}
@@ -167,7 +248,7 @@ const pageNumbers = computed(() => {
                 </Button>
                 <Button
                     variant="outline"
-                    class="hidden h-8 w-8 p-0 lg:flex"
+                    class="hidden h-8 w-8 p-0 md:flex"
                     :disabled="pagination.current_page >= pagination.last_page"
                     @click="handlePageChange(pagination.last_page)"
                 >
