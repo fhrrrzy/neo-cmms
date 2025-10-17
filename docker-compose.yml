@@ -13,6 +13,8 @@ services:
       - storage_data:/var/www/html/storage
       - cache_data:/var/www/html/bootstrap/cache
     environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
       - DB_CONNECTION=mysql
       - DB_HOST=103.197.188.18
       - DB_PORT=6969
@@ -56,6 +58,8 @@ services:
         '/etc/supervisor/conf.d/supervisord-worker.conf',
       ]
     environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
       - DB_CONNECTION=mysql
       - DB_HOST=103.197.188.18
       - DB_PORT=6969
