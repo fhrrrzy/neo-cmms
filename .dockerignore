@@ -14,8 +14,9 @@ docker-compose.yml
 .dockerignore
 
 # Environment
-.env
+# .env - needed for frontend build (wayfinder plugin)
 .env.*
+!.env
 !.env.example
 
 # IDE
@@ -58,7 +59,7 @@ vendor/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
+# .env - needed for frontend build (wayfinder plugin)
 
 # next.js build output
 .next
