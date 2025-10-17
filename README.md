@@ -21,26 +21,21 @@ Laravel-based maintenance management system running on Docker.
 # - REVERB_HOST, REVERB_PORT
 ```
 
-### 2. Build Frontend Assets
+### 2. Start Services
 
-```bash
-pnpm install
-pnpm run build
-```
-
-### 3. Start Services
+**Note**: Frontend assets are built automatically inside Docker (multi-stage build)
 
 ```bash
 docker-compose up -d
 ```
 
-### 4. Run Migrations & Seed
+### 3. Run Migrations & Seed
 
 ```bash
 docker exec cmms-app php artisan migrate:fresh --seed --force
 ```
 
-### 5. Create Admin User
+### 4. Create Admin User
 
 ```bash
 docker exec -it cmms-app php artisan make:filament-user
@@ -80,10 +75,7 @@ docker-compose down
 ### Rebuild After Code Changes
 
 ```bash
-# Build frontend
-pnpm run build
-
-# Rebuild Docker images
+# Rebuild Docker images (includes frontend build)
 docker-compose build
 
 # Restart containers
