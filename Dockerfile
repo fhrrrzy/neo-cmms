@@ -69,8 +69,9 @@ RUN mkdir -p /var/www/html/storage/logs \
     /var/log/nginx \
     /run/nginx
 
-# Copy supervisor configuration
+# Copy supervisor configurations
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/supervisor/supervisord-worker.conf /etc/supervisor/conf.d/supervisord-worker.conf
 
 # Copy and setup scripts
 COPY docker/set-permissions.sh /usr/local/bin/set-permissions.sh
