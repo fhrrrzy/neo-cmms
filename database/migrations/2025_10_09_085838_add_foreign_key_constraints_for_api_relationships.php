@@ -70,11 +70,17 @@ return new class extends Migration
         }
 
         // 6. equipment_materials.reservation_number → equipment_work_orders.reservation
+        // SKIPPED: MySQL requires foreign keys to reference PRIMARY or UNIQUE keys
+        // The 'reservation' column in equipment_work_orders is not unique (multiple materials per reservation)
+        // This relationship will be handled at the application level instead
+        /*
         if (!$this->foreignKeyExists('equipment_materials', 'reservation_number')) {
-            // First, ensure the referenced column has an index
-            Schema::table('equipment_work_orders', function (Blueprint $table) {
-                $table->index('reservation', 'equipment_work_orders_reservation_index');
-            });
+            // First, ensure the referenced column has an index (check if it doesn't exist)
+            if (!$this->indexExists('equipment_work_orders', 'reservation')) {
+                Schema::table('equipment_work_orders', function (Blueprint $table) {
+                    $table->index('reservation', 'equipment_work_orders_reservation_index');
+                });
+            }
 
             Schema::table('equipment_materials', function (Blueprint $table) {
                 $table->foreign('reservation_number')
@@ -84,6 +90,7 @@ return new class extends Migration
                     ->onUpdate('cascade');
             });
         }
+        */
     }
 
     /**
@@ -101,6 +108,22 @@ return new class extends Migration
         );
 
         return count($constraints) > 0;
+    }
+
+    /**
+     * Check if an index exists on a column
+     */
+    private function indexExists(string $table, string $column): bool
+    {
+        $indexes = DB::select(
+            "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS 
+             WHERE TABLE_SCHEMA = DATABASE() 
+             AND TABLE_NAME = ? 
+             AND COLUMN_NAME = ?",
+            [$table, $column]
+        );
+
+        return count($indexes) > 0;
     }
 
     /**
@@ -125,11 +148,15 @@ return new class extends Migration
 
         Schema::table('equipment_materials', function (Blueprint $table) {
             $table->dropForeign(['equipment_number']);
-            $table->dropForeign(['reservation_number']);
+            // reservation_number foreign key was not created (see up() method)
+            // $table->dropForeign(['reservation_number']);
         });
 
+        // Index dropping not needed as it wasn't created
+        /*
         Schema::table('equipment_work_orders', function (Blueprint $table) {
             $table->dropIndex('equipment_work_orders_reservation_index');
         });
+        */
     }
 };
