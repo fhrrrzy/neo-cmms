@@ -99,6 +99,6 @@ bootstrap/cache/*
 !bootstrap/cache/.gitignore
 
 # Build artifacts
-public/build/
+# public/build/ - commented out because we build assets locally now
 public/hot
 public/storage
