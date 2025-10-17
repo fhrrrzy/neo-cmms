@@ -29,7 +29,7 @@ RUN pnpm install --frozen-lockfile
 
 # Copy necessary files for frontend build (wayfinder needs Laravel)
 COPY artisan ./
-COPY .env ./
+COPY .env.example .env
 COPY database ./database
 COPY bootstrap ./bootstrap
 COPY config ./config
@@ -39,15 +39,28 @@ COPY resources ./resources
 COPY public ./public
 COPY vite.config.ts tsconfig.json ./
 
+# Ensure Laravel has sane defaults for build-time artisan usage
+ENV APP_ENV=production \
+    APP_DEBUG=false \
+    CACHE_DRIVER=file \
+    SESSION_DRIVER=file \
+    QUEUE_CONNECTION=sync \
+    VIEW_COMPILED_PATH=/app/storage/framework/views
+
 # Setup temporary SQLite database for wayfinder plugin
 RUN apk add --no-cache sqlite-dev \
     && docker-php-ext-install -j$(nproc) pdo_sqlite \
-    && mkdir -p storage/framework/{cache,sessions,views} storage/logs \
+    && mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
     && touch database/database.sqlite \
-    && chmod -R 777 storage database \
+    && chmod -R 777 storage database bootstrap \
     && sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env \
     && sed -i 's|DB_DATABASE=.*|DB_DATABASE=/app/database/database.sqlite|' .env \
+    && php artisan key:generate --force \
     && php artisan config:clear \
+    && php artisan cache:clear \
+    && php artisan view:clear \
+    && php artisan route:clear \
+    && php artisan wayfinder:generate --with-form \
     && php artisan migrate --force --no-interaction 2>&1 || true
 
 # Build frontend assets (wayfinder will use the migrated SQLite database)
@@ -119,9 +132,7 @@ COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
 RUN rm -f /etc/nginx/http.d/default.conf.default
 
 # Run Laravel optimization commands
-RUN php artisan storage:link --force \
-    # && php artisan filament:optimize \
-    # && php artisan optimize
+RUN php artisan storage:link --force
 # Configure PHP for production (opcache)
 RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini \
