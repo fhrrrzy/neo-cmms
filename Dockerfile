@@ -1,47 +1,15 @@
 # ====================================
-# Stage 1: Frontend Builder
+# Stage 1: Dependencies Builder (PHP + Node)
 # ====================================
-FROM node:20-alpine AS frontend-builder
+FROM php:8.4-fpm-alpine AS builder
 
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install Node.js and pnpm
+RUN apk add --no-cache nodejs npm \
+    && npm install -g pnpm
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
-
-# Install dependencies
-RUN pnpm install --frozen-lockfile
-
-# Copy necessary Laravel files for wayfinder plugin
-COPY artisan composer.json composer.lock ./
-COPY bootstrap ./bootstrap
-COPY config ./config
-COPY routes ./routes
-COPY app ./app
-
-# Install Composer dependencies (needed for wayfinder)
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-RUN apk add --no-cache php83 php83-dom php83-xml php83-xmlwriter php83-tokenizer php83-fileinfo \
-    && composer install --no-dev --no-scripts --no-interaction
-
-# Copy source files needed for build
-COPY resources ./resources
-COPY public ./public
-COPY vite.config.ts tsconfig.json ./
-
-# Build frontend assets
-RUN pnpm run build
-
-# ====================================
-# Stage 2: PHP Dependencies Builder
-# ====================================
-FROM php:8.4-fpm-alpine AS php-builder
-
-WORKDIR /app
-
-# Install system dependencies for PHP extensions
+# Install PHP dependencies for Composer
 RUN apk add --no-cache \
     libpng-dev libjpeg-turbo-dev freetype-dev \
     libzip-dev libxml2-dev icu-dev \
@@ -51,14 +19,42 @@ RUN apk add --no-cache \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy composer files
+# Copy composer files and install PHP dependencies
 COPY composer.json composer.lock ./
-
-# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
 
+# Copy package files and install node dependencies
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Copy necessary files for frontend build (wayfinder needs Laravel)
+COPY artisan ./
+COPY .env ./
+COPY database ./database
+COPY bootstrap ./bootstrap
+COPY config ./config
+COPY routes ./routes
+COPY app ./app
+COPY resources ./resources
+COPY public ./public
+COPY vite.config.ts tsconfig.json ./
+
+# Setup temporary SQLite database for wayfinder plugin
+RUN apk add --no-cache sqlite-dev \
+    && docker-php-ext-install -j$(nproc) pdo_sqlite \
+    && mkdir -p storage/framework/{cache,sessions,views} storage/logs \
+    && touch database/database.sqlite \
+    && chmod -R 777 storage database \
+    && sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env \
+    && sed -i 's|DB_DATABASE=.*|DB_DATABASE=/app/database/database.sqlite|' .env \
+    && php artisan config:clear \
+    && php artisan migrate --force --no-interaction 2>&1 || true
+
+# Build frontend assets (wayfinder will use the migrated SQLite database)
+RUN pnpm run build
+
 # ====================================
-# Stage 3: Final Production Image
+# Stage 2: Final Production Image
 # ====================================
 FROM php:8.4-fpm-alpine
 
@@ -91,13 +87,13 @@ RUN apk add --no-cache \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copy PHP dependencies from builder
-COPY --from=php-builder /app/vendor ./vendor
+COPY --from=builder /app/vendor ./vendor
 
 # Copy application code
 COPY . .
 
-# Copy built frontend assets from frontend-builder
-COPY --from=frontend-builder /app/public/build ./public/build
+# Copy built frontend assets from builder
+COPY --from=builder /app/public/build ./public/build
 
 # Create necessary directories
 RUN mkdir -p /var/www/html/storage/logs \
