@@ -76,6 +76,10 @@ RUN mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstra
     && php artisan wayfinder:generate --with-form \
     && php artisan migrate --force --no-interaction 2>&1 || true
 
+# Install and start Redis for build process
+RUN apk add --no-cache redis \
+    && redis-server --daemonize yes
+
 # Build frontend assets (Wayfinder can now generate routes/actions)
 RUN mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache \
     && chmod -R 777 storage bootstrap \
