@@ -40,7 +40,7 @@ services:
       retries: 3
       start_period: 40s
 
-  worker-queue:
+  worker-queue-high:
     build:
       context: .
       dockerfile: Dockerfile
@@ -53,7 +53,7 @@ services:
       [
         'sh',
         '-lc',
-        '/usr/local/bin/set-permissions.sh && php artisan queue:work --sleep=1 --tries=3 --memory=256',
+        '/usr/local/bin/set-permissions.sh && php artisan queue:work --queue=high --sleep=1 --tries=3 --memory=256',
       ]
     environment:
       - APP_ENV=${APP_ENV:-local}
@@ -73,7 +73,91 @@ services:
     networks:
       - cmms-network
     deploy:
-      replicas: 3
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  worker-queue-default:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - storage_data:/var/www/html/storage
+      - cache_data:/var/www/html/bootstrap/cache
+    command:
+      [
+        'sh',
+        '-lc',
+        '/usr/local/bin/set-permissions.sh && php artisan queue:work --queue=default --sleep=1 --tries=3 --memory=256',
+      ]
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - CACHE_DRIVER=${CACHE_DRIVER:-redis}
+      - SESSION_DRIVER=${SESSION_DRIVER:-redis}
+      - QUEUE_CONNECTION=${QUEUE_CONNECTION:-redis}
+    env_file:
+      - .env
+    networks:
+      - cmms-network
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  worker-queue-low:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - storage_data:/var/www/html/storage
+      - cache_data:/var/www/html/bootstrap/cache
+    command:
+      [
+        'sh',
+        '-lc',
+        '/usr/local/bin/set-permissions.sh && php artisan queue:work --queue=low --sleep=1 --tries=3 --memory=256',
+      ]
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - CACHE_DRIVER=${CACHE_DRIVER:-redis}
+      - SESSION_DRIVER=${SESSION_DRIVER:-redis}
+      - QUEUE_CONNECTION=${QUEUE_CONNECTION:-redis}
+    env_file:
+      - .env
+    networks:
+      - cmms-network
+    deploy:
+      replicas: 1
       resources:
         limits:
           memory: 512M
@@ -139,7 +223,7 @@ services:
       [
         'sh',
         '-lc',
-        '/usr/local/bin/set-permissions.sh && php artisan reverb:start --host=0.0.0.0 --port=8080',
+        '/usr/local/bin/set-permissions.sh && php artisan reverb:install --no-interaction && php artisan reverb:start --host=0.0.0.0 --port=8080',
       ]
     environment:
       - APP_ENV=${APP_ENV:-local}
