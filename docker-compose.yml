@@ -1,9 +1,9 @@
 services:
   app:
-    image: new-cmms_app:latest
     build:
       context: .
       dockerfile: Dockerfile.optimized
+    image: new-cmms_app:latest
     container_name: cmms-app
     restart: unless-stopped
     working_dir: /var/www/html
