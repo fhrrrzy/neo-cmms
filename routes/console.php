@@ -24,7 +24,7 @@ Artisan::command('inspire', function () {
 Schedule::job(new ConcurrentSyncJob())
     ->cron('0 */6 * * *')
     ->name('sequential-sync-job-6h')
-    ->description('Sequential synchronization of all APIs (equipment → running_time → work_orders → equipment_work_orders → equipment_material) every 6 hours with 3-day range')
+    ->description('Sequential synchronization of all APIs (equipment → running_time → work_orders → equipment_work_order_materials) every 6 hours with 3-day range')
     ->onFailure(function () {
         \Illuminate\Support\Facades\Log::critical('Scheduled sequential sync job failed');
     })

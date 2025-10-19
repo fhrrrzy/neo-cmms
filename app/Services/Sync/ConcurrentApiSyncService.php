@@ -32,7 +32,7 @@ class ConcurrentApiSyncService
 
     /**
      * Sync all data types sequentially in dependency order
-     * Order: equipment -> running_time -> work_orders -> equipment_work_orders -> equipment_material
+     * Order: equipment -> running_time -> work_orders -> equipment_work_order_materials
      */
     public function syncAllSequentially(array $plantCodes = [], ?string $runningTimeStartDate = null, ?string $runningTimeEndDate = null, ?string $workOrderStartDate = null, ?string $workOrderEndDate = null, ?array $types = null): array
     {
@@ -275,8 +275,8 @@ class ConcurrentApiSyncService
                     $this->info("Total equipment_material items: " . count($allMaterialItems));
 
                     // Process both types with the unified processor
-                    $workOrderResults = !empty($allWorkOrderItems) ? $this->processApiData('equipment_work_orders', $allWorkOrderItems) : ['processed' => 0, 'success' => 0, 'failed' => 0];
-                    $materialResults = !empty($allMaterialItems) ? $this->processApiData('equipment_materials', $allMaterialItems) : ['processed' => 0, 'success' => 0, 'failed' => 0];
+                    $workOrderResults = !empty($allWorkOrderItems) ? $this->processApiData('equipment_work_order_materials', $allWorkOrderItems) : ['processed' => 0, 'success' => 0, 'failed' => 0];
+                    $materialResults = !empty($allMaterialItems) ? $this->processApiData('equipment_work_order_materials', $allMaterialItems) : ['processed' => 0, 'success' => 0, 'failed' => 0];
 
                     // Combine results
                     return [
@@ -355,11 +355,8 @@ class ConcurrentApiSyncService
                             case 'equipment':
                                 (new EquipmentProcessor())->process($item);
                                 break;
-                            case 'equipment_materials':
-                                (new EquipmentWorkOrderMaterialProcessor())->process($item, $this->allowedPlantCodes, 'equipment_materials');
-                                break;
-                            case 'equipment_work_orders':
-                                (new EquipmentWorkOrderMaterialProcessor())->process($item, $this->allowedPlantCodes, 'equipment_work_orders');
+                            case 'equipment_work_order_materials':
+                                (new EquipmentWorkOrderMaterialProcessor())->process($item, $this->allowedPlantCodes, 'equipment_work_order_materials');
                                 break;
                             case 'running_time':
                                 (new RunningTimeProcessor())->process($item, $this->allowedPlantCodes);

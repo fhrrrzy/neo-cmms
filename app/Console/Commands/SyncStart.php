@@ -18,8 +18,8 @@ class SyncStart extends Command
                             {--plants= : Comma-separated list of plant codes to sync (optional, defaults to all active plants)}
                             {--running-time-start= : YYYY-MM-DD start date for running_time API (defaults to 3 days ago)}
                             {--running-time-end= : YYYY-MM-DD end date for running_time API (defaults to now)}
-                            {--work-order-start= : YYYY-MM-DD start date for work_orders, equipment_work_orders, equipment_material APIs (defaults to 3 days ago)}
-                            {--work-order-end= : YYYY-MM-DD end date for work_orders, equipment_work_orders, equipment_material APIs (defaults to now)}
+                            {--work-order-start= : YYYY-MM-DD start date for work_orders, equipment_work_order_materials APIs (defaults to 3 days ago)}
+                            {--work-order-end= : YYYY-MM-DD end date for work_orders, equipment_work_order_materials APIs (defaults to now)}
                             {--types= : Comma-separated list of data types to sync (defaults to ALL 4: equipment,running_time,work_orders,equipment_work_order_materials)}';
 
     /**

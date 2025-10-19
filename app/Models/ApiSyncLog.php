@@ -44,8 +44,7 @@ class ApiSyncLog extends Model
     public const SYNC_TYPE_EQUIPMENT = 'equipment';
     public const SYNC_TYPE_RUNNING_TIME = 'running_time';
     public const SYNC_TYPE_WORK_ORDER = 'work_order';
-    public const SYNC_TYPE_EQUIPMENT_MATERIAL = 'equipment_material';
-    public const SYNC_TYPE_EQUIPMENT_WORK_ORDERS = 'equipment_work_orders';
+    public const SYNC_TYPE_EQUIPMENT_WORK_ORDER_MATERIALS = 'equipment_work_order_materials';
     public const SYNC_TYPE_FULL = 'full';
 
     /**
