@@ -85,12 +85,11 @@ RUN apk add --no-cache sqlite-dev \
     && php artisan migrate --force --no-interaction 2>&1 || true
 
 # Build frontend assets (Wayfinder can now generate routes/actions)
-RUN mkdir -p storage/framework/cache/data bootstrap/cache \
+RUN mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache \
     && chmod -R 777 storage bootstrap \
     && sed -i 's/CACHE_STORE=.*/CACHE_STORE=file/' .env \
     && sed -i 's/SESSION_DRIVER=.*/SESSION_DRIVER=file/' .env \
     && php artisan config:clear \
-    && php artisan package:discover --no-interaction \
     && pnpm run build
 
 # ====================================
