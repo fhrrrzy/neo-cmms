@@ -85,7 +85,9 @@ RUN apk add --no-cache sqlite-dev \
     && php artisan migrate --force --no-interaction 2>&1 || true
 
 # Build frontend assets (Wayfinder can now generate routes/actions)
-RUN pnpm run build
+RUN php artisan package:discover --no-interaction \
+    && php artisan optimize \
+    && pnpm run build
 
 # ====================================
 # Stage 4: Final Production Image

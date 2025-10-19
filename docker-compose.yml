@@ -41,9 +41,7 @@ services:
       start_period: 40s
 
   worker-queue-high:
-    build:
-      context: .
-      dockerfile: Dockerfile.optimized
+    image: new-cmms_app:latest
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -83,9 +81,7 @@ services:
           cpus: '0.25'
 
   worker-queue-default:
-    build:
-      context: .
-      dockerfile: Dockerfile.optimized
+    image: new-cmms_app:latest
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -125,9 +121,7 @@ services:
           cpus: '0.25'
 
   worker-queue-low:
-    build:
-      context: .
-      dockerfile: Dockerfile.optimized
+    image: new-cmms_app:latest
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -167,9 +161,7 @@ services:
           cpus: '0.25'
 
   worker-schedule:
-    build:
-      context: .
-      dockerfile: Dockerfile.optimized
+    image: new-cmms_app:latest
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -209,9 +201,7 @@ services:
           cpus: '0.1'
 
   reverb:
-    build:
-      context: .
-      dockerfile: Dockerfile.optimized
+    image: new-cmms_app:latest
     restart: unless-stopped
     working_dir: /var/www/html
     ports:
