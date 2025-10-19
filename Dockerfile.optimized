@@ -56,6 +56,7 @@ RUN pnpm install --frozen-lockfile
 
 # Copy necessary files for Wayfinder (needs Laravel context)
 COPY artisan ./
+COPY .env.example .env
 COPY database ./database
 COPY bootstrap ./bootstrap
 COPY config ./config
@@ -66,8 +67,13 @@ COPY public ./public
 COPY vite.config.ts tsconfig.json ./
 
 # Setup Laravel environment for Wayfinder
-RUN mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache \
-    && chmod -R 777 storage bootstrap \
+RUN apk add --no-cache sqlite-dev \
+    && docker-php-ext-install -j$(nproc) pdo_sqlite \
+    && mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+    && touch database/database.sqlite \
+    && chmod -R 777 storage database bootstrap \
+    && sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env \
+    && sed -i 's|DB_DATABASE=.*|DB_DATABASE=/app/database/database.sqlite|' .env \
     && php artisan key:generate --force \
     && php artisan config:clear \
     && php artisan cache:clear \
@@ -77,12 +83,7 @@ RUN mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstra
     && php artisan migrate --force --no-interaction 2>&1 || true
 
 # Build frontend assets (Wayfinder can now generate routes/actions)
-RUN apk add --no-cache redis \
-    && mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache \
-    && chmod -R 777 storage bootstrap \
-    && redis-server --daemonize yes \
-    && php artisan config:clear \
-    && pnpm run build
+RUN pnpm run build
 
 # ====================================
 # Stage 4: Final Production Image
