@@ -69,12 +69,12 @@ COPY vite.config.ts tsconfig.json ./
 # Setup temporary SQLite database for Wayfinder
 RUN apk add --no-cache sqlite-dev \
     && docker-php-ext-install -j$(nproc) pdo_sqlite \
-    && mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+    && mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache \
     && touch database/database.sqlite \
     && chmod -R 777 storage database bootstrap \
     && sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env \
     && sed -i 's|DB_DATABASE=.*|DB_DATABASE=/app/database/database.sqlite|' .env \
-    && sed -i 's/CACHE_DRIVER=.*/CACHE_DRIVER=file/' .env \
+    && sed -i 's/CACHE_STORE=.*/CACHE_STORE=file/' .env \
     && sed -i 's/SESSION_DRIVER=.*/SESSION_DRIVER=file/' .env \
     && php artisan key:generate --force \
     && php artisan config:clear \
