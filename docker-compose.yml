@@ -223,7 +223,7 @@ services:
       [
         'sh',
         '-lc',
-        '/usr/local/bin/set-permissions.sh && php artisan reverb:install --no-interaction && php artisan reverb:start --host=0.0.0.0 --port=8080',
+        '/usr/local/bin/set-permissions.sh && php artisan package:discover --no-interaction && php artisan config:clear && php artisan cache:clear && php artisan reverb:install --no-interaction && php artisan reverb:start --host=0.0.0.0 --port=8080',
       ]
     environment:
       - APP_ENV=${APP_ENV:-local}
