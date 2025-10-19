@@ -1,5 +1,6 @@
 services:
   app:
+    image: new-cmms_app:latest
     build:
       context: .
       dockerfile: Dockerfile.optimized
