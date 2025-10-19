@@ -28,7 +28,6 @@ class WorkOrderProcessor
         WorkOrder::updateOrCreate(
             ['order' => Arr::get($item, 'order')],
             [
-                'ims_id' => Arr::get($item, 'id'),
                 'mandt' => Arr::get($item, 'mandt'),
                 'order_type' => Arr::get($item, 'order_type'),
                 'created_on' => Arr::get($item, 'created_on') ? Carbon::parse(Arr::get($item, 'created_on')) : null,

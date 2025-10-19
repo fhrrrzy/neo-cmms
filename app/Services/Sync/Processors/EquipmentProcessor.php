@@ -52,7 +52,6 @@ class EquipmentProcessor
                 'point' => Arr::get($item, 'point') ?? Arr::get($item, 'POINT'),
                 'api_created_at' => ($ts = Arr::get($item, 'api_created_at') ?? Arr::get($item, 'CREATED_AT')) ? Carbon::parse($ts) : null,
                 // Complete API field mapping
-                'api_id' => Arr::get($item, 'ID'),
                 'mandt' => Arr::get($item, 'MANDT'),
                 'baujj' => Arr::get($item, 'BAUJJ'),
                 'groes' => Arr::get($item, 'GROES'),

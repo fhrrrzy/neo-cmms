@@ -156,8 +156,7 @@ class ConcurrentSyncJob implements ShouldQueue
             if ($this->types === null) {
                 // All types synced
                 $syncedResults[] = 'Equipment: ' . ($results['equipment']['success'] ?? 0);
-                $syncedResults[] = 'Equipment Material: ' . ($results['equipment_material']['success'] ?? 0);
-                $syncedResults[] = 'Equipment Work Orders: ' . ($results['equipment_work_orders']['success'] ?? 0);
+                $syncedResults[] = 'Equipment Work Order Materials: ' . ($results['equipment_work_order_materials']['success'] ?? 0);
                 $syncedResults[] = 'Running Time: ' . ($results['running_time']['success'] ?? 0);
                 $syncedResults[] = 'Work Orders: ' . ($results['work_orders']['success'] ?? 0);
             } else {
@@ -165,8 +164,7 @@ class ConcurrentSyncJob implements ShouldQueue
                 foreach ($this->types as $type) {
                     $typeLabel = match ($type) {
                         'equipment' => 'Equipment',
-                        'equipment_material' => 'Equipment Material',
-                        'equipment_work_orders' => 'Equipment Work Orders',
+                        'equipment_work_order_materials' => 'Equipment Work Order Materials',
                         'running_time' => 'Running Time',
                         'work_orders' => 'Work Orders',
                         default => ucfirst($type)

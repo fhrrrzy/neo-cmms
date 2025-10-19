@@ -2,9 +2,9 @@
 
 namespace App\Filament\Admin\Resources;
 
-use App\Filament\Admin\Resources\EquipmentWorkOrderResource\Pages;
-use App\Filament\Admin\Resources\EquipmentWorkOrderResource\RelationManagers;
-use App\Models\EquipmentWorkOrder;
+use App\Filament\Admin\Resources\EquipmentWorkOrderMaterialResource\Pages;
+use App\Filament\Admin\Resources\EquipmentWorkOrderMaterialResource\RelationManagers;
+use App\Models\EquipmentWorkOrderMaterial;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,21 +13,21 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class EquipmentWorkOrderResource extends Resource
+class EquipmentWorkOrderMaterialResource extends Resource
 {
-    protected static ?string $model = EquipmentWorkOrder::class;
+    protected static ?string $model = EquipmentWorkOrderMaterial::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationGroup = 'Equipment';
 
-    protected static ?string $navigationLabel = 'Equipment Work Order';
+    protected static ?string $navigationLabel = 'Equipment Work Order Materials';
 
-    protected static ?string $modelLabel = 'Equipment Work Order';
+    protected static ?string $modelLabel = 'Equipment Work Order Material';
 
-    protected static ?string $pluralModelLabel = 'Equipment Work Orders';
+    protected static ?string $pluralModelLabel = 'Equipment Work Order Materials';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 6;
 
     public static function getNavigationBadge(): ?string
     {
@@ -43,17 +43,39 @@ class EquipmentWorkOrderResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Equipment Work Order Information')
+                Forms\Components\Section::make('Basic Information')
                     ->schema([
-                        Forms\Components\TextInput::make('reservation')
-                            ->prefixIcon('heroicon-o-hashtag')
+                        Forms\Components\Select::make('plant_id')
+                            ->prefixIcon('heroicon-o-building-office-2')
+                            ->relationship('plant', 'name')
+                            ->searchable()
+                            ->preload()
                             ->required()
+                            ->label('Plant'),
+                        Forms\Components\TextInput::make('order_number')
+                            ->prefixIcon('heroicon-o-document-text')
                             ->maxLength(50)
-                            ->label('Reservation Number'),
-                        Forms\Components\TextInput::make('material')
+                            ->label('Order Number'),
+                        Forms\Components\TextInput::make('material_number')
                             ->prefixIcon('heroicon-o-cube')
                             ->maxLength(50)
                             ->label('Material Number'),
+                        Forms\Components\TextInput::make('equipment_number')
+                            ->prefixIcon('heroicon-o-cog-6-tooth')
+                            ->maxLength(50)
+                            ->label('Equipment Number'),
+                        Forms\Components\TextInput::make('reservation_number')
+                            ->prefixIcon('heroicon-o-hashtag')
+                            ->maxLength(50)
+                            ->label('Reservation Number'),
+                        Forms\Components\TextInput::make('material_description')
+                            ->maxLength(255)
+                            ->label('Material Description'),
+                    ])
+                    ->columns(2),
+
+                Forms\Components\Section::make('Material Details')
+                    ->schema([
                         Forms\Components\Select::make('requirement_type')
                             ->prefixIcon('heroicon-o-tag')
                             ->options([
@@ -71,55 +93,32 @@ class EquipmentWorkOrderResource extends Resource
                                 'D' => 'Deleted',
                             ])
                             ->label('Reservation Status'),
-                        Forms\Components\Select::make('plant_id')
-                            ->prefixIcon('heroicon-o-building-office-2')
-                            ->relationship('plant', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->label('Plant'),
-                        Forms\Components\TextInput::make('equipment_number')
-                            ->prefixIcon('heroicon-o-cog-6-tooth')
-                            ->maxLength(50)
-                            ->label('Equipment Number'),
-                        Forms\Components\TextInput::make('order_number')
-                            ->prefixIcon('heroicon-o-document-text')
-                            ->maxLength(50)
-                            ->label('Order Number'),
-                    ])
-                    ->columns(2),
-
-                Forms\Components\Section::make('Material Details')
-                    ->schema([
                         Forms\Components\TextInput::make('storage_location')
                             ->prefixIcon('heroicon-o-map-pin')
                             ->maxLength(50)
                             ->label('Storage Location'),
-                        Forms\Components\DatePicker::make('requirements_date')
-                            ->label('Requirements Date'),
-                        Forms\Components\TextInput::make('requirement_quantity')
+                        Forms\Components\DatePicker::make('requirement_date')
+                            ->label('Requirement Date'),
+                        Forms\Components\TextInput::make('requirement_qty')
                             ->prefixIcon('heroicon-o-calculator')
                             ->numeric()
                             ->label('Requirement Quantity'),
-                        Forms\Components\TextInput::make('base_unit_of_measure')
+                        Forms\Components\TextInput::make('unit_of_measure')
                             ->prefixIcon('heroicon-o-scale')
                             ->maxLength(20)
                             ->label('Unit of Measure'),
-                        Forms\Components\TextInput::make('quantity_withdrawn')
+                        Forms\Components\TextInput::make('withdrawn_qty')
                             ->prefixIcon('heroicon-o-arrow-down-tray')
                             ->numeric()
-                            ->label('Quantity Withdrawn'),
-                        Forms\Components\TextInput::make('value_withdrawn')
+                            ->label('Withdrawn Quantity'),
+                        Forms\Components\TextInput::make('withdrawn_value')
                             ->prefixIcon('heroicon-o-currency-dollar')
                             ->numeric()
-                            ->label('Value Withdrawn'),
+                            ->label('Withdrawn Value'),
                         Forms\Components\TextInput::make('currency')
                             ->prefixIcon('heroicon-o-banknotes')
                             ->maxLength(10)
                             ->label('Currency'),
-                        Forms\Components\TextInput::make('debit_credit_ind')
-                            ->prefixIcon('heroicon-o-arrow-path')
-                            ->maxLength(5)
-                            ->label('Debit/Credit Indicator'),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -152,17 +151,17 @@ class EquipmentWorkOrderResource extends Resource
 
                 Forms\Components\Section::make('Status Flags')
                     ->schema([
-                        Forms\Components\Toggle::make('item_deleted')
-                            ->label('Item Deleted')
+                        Forms\Components\Toggle::make('deletion_flag')
+                            ->label('Deletion Flag')
                             ->formatStateUsing(fn($state) => $state === 'X'),
-                        Forms\Components\Toggle::make('movement_allowed')
-                            ->label('Movement Allowed')
+                        Forms\Components\Toggle::make('goods_receipt_flag')
+                            ->label('Goods Receipt Flag')
                             ->formatStateUsing(fn($state) => $state === 'X'),
-                        Forms\Components\Toggle::make('final_issue')
-                            ->label('Final Issue')
+                        Forms\Components\Toggle::make('final_issue_flag')
+                            ->label('Final Issue Flag')
                             ->formatStateUsing(fn($state) => $state === 'X'),
-                        Forms\Components\Toggle::make('missing_part')
-                            ->label('Missing Part')
+                        Forms\Components\Toggle::make('error_flag')
+                            ->label('Error Flag')
                             ->formatStateUsing(fn($state) => $state === 'X'),
                         Forms\Components\Toggle::make('quantity_is_fixed')
                             ->label('Quantity is Fixed')
@@ -180,7 +179,7 @@ class EquipmentWorkOrderResource extends Resource
                             ->prefixIcon('heroicon-o-building-office')
                             ->maxLength(50)
                             ->label('Receiving Plant'),
-                        Forms\Components\TextInput::make('receiving_storage_location')
+                        Forms\Components\TextInput::make('receiving_storage_loc')
                             ->prefixIcon('heroicon-o-map-pin')
                             ->maxLength(50)
                             ->label('Receiving Storage Location'),
@@ -204,6 +203,10 @@ class EquipmentWorkOrderResource extends Resource
                             ->prefixIcon('heroicon-o-currency-dollar')
                             ->maxLength(50)
                             ->label('Funds Center'),
+                        Forms\Components\TextInput::make('production_order')
+                            ->prefixIcon('heroicon-o-document-text')
+                            ->maxLength(50)
+                            ->label('Production Order'),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -214,14 +217,22 @@ class EquipmentWorkOrderResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('reservation')
+                Tables\Columns\TextColumn::make('order_number')
                     ->searchable()
                     ->sortable()
-                    ->label('Reservation Number'),
-                Tables\Columns\TextColumn::make('material')
+                    ->label('Order Number'),
+                Tables\Columns\TextColumn::make('material_number')
                     ->searchable()
                     ->sortable()
                     ->label('Material Number'),
+                Tables\Columns\TextColumn::make('equipment_number')
+                    ->searchable()
+                    ->sortable()
+                    ->label('Equipment Number'),
+                Tables\Columns\TextColumn::make('reservation_number')
+                    ->searchable()
+                    ->sortable()
+                    ->label('Reservation Number'),
                 Tables\Columns\TextColumn::make('requirement_type')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -257,48 +268,32 @@ class EquipmentWorkOrderResource extends Resource
                 Tables\Columns\TextColumn::make('plant.name')
                     ->sortable()
                     ->label('Plant'),
-                Tables\Columns\TextColumn::make('equipment_number')
-                    ->searchable()
-                    ->sortable()
-                    ->label('Equipment Number'),
-                Tables\Columns\TextColumn::make('order_number')
-                    ->searchable()
-                    ->sortable()
-                    ->label('Order Number'),
-                Tables\Columns\TextColumn::make('requirement_quantity')
+                Tables\Columns\TextColumn::make('requirement_qty')
                     ->numeric()
                     ->sortable()
                     ->label('Required Qty'),
-                Tables\Columns\TextColumn::make('base_unit_of_measure')
+                Tables\Columns\TextColumn::make('unit_of_measure')
                     ->label('Unit'),
-                Tables\Columns\TextColumn::make('quantity_withdrawn')
+                Tables\Columns\TextColumn::make('withdrawn_qty')
                     ->numeric()
                     ->sortable()
                     ->label('Withdrawn Qty'),
-                Tables\Columns\TextColumn::make('value_withdrawn')
+                Tables\Columns\TextColumn::make('withdrawn_value')
                     ->money('IDR')
                     ->sortable()
                     ->label('Withdrawn Value'),
-                Tables\Columns\TextColumn::make('requirements_date')
+                Tables\Columns\TextColumn::make('requirement_date')
                     ->date()
                     ->sortable()
                     ->label('Requirements Date'),
-                Tables\Columns\IconColumn::make('item_deleted')
+                Tables\Columns\IconColumn::make('deletion_flag')
                     ->boolean()
-                    ->getStateUsing(fn($record) => $record->item_deleted === 'X')
+                    ->getStateUsing(fn($record) => $record->deletion_flag === 'X')
                     ->label('Deleted'),
-                Tables\Columns\IconColumn::make('movement_allowed')
+                Tables\Columns\IconColumn::make('error_flag')
                     ->boolean()
-                    ->getStateUsing(fn($record) => $record->movement_allowed === 'X')
-                    ->label('Movement Allowed'),
-                Tables\Columns\IconColumn::make('final_issue')
-                    ->boolean()
-                    ->getStateUsing(fn($record) => $record->final_issue === 'X')
-                    ->label('Final Issue'),
-                Tables\Columns\IconColumn::make('missing_part')
-                    ->boolean()
-                    ->getStateUsing(fn($record) => $record->missing_part === 'X')
-                    ->label('Missing Part'),
+                    ->getStateUsing(fn($record) => $record->error_flag === 'X')
+                    ->label('Error'),
                 Tables\Columns\TextColumn::make('start_time')
                     ->dateTime()
                     ->sortable()
@@ -348,33 +343,27 @@ class EquipmentWorkOrderResource extends Resource
                         'D' => 'Deleted',
                     ])
                     ->label('Reservation Status'),
-                Tables\Filters\TernaryFilter::make('item_deleted')
-                    ->label('Item Deleted')
+                Tables\Filters\TernaryFilter::make('deletion_flag')
+                    ->label('Deletion Flag')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('item_deleted', 'X'),
-                        false: fn(Builder $query) => $query->where('item_deleted', '!=', 'X'),
+                        true: fn(Builder $query) => $query->where('deletion_flag', 'X'),
+                        false: fn(Builder $query) => $query->where('deletion_flag', '!=', 'X'),
                     ),
-                Tables\Filters\TernaryFilter::make('movement_allowed')
-                    ->label('Movement Allowed')
+                Tables\Filters\TernaryFilter::make('error_flag')
+                    ->label('Error Flag')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('movement_allowed', 'X'),
-                        false: fn(Builder $query) => $query->where('movement_allowed', '!=', 'X'),
+                        true: fn(Builder $query) => $query->where('error_flag', 'X'),
+                        false: fn(Builder $query) => $query->where('error_flag', '!=', 'X'),
                     ),
-                Tables\Filters\TernaryFilter::make('missing_part')
-                    ->label('Missing Part')
-                    ->queries(
-                        true: fn(Builder $query) => $query->where('missing_part', 'X'),
-                        false: fn(Builder $query) => $query->where('missing_part', '!=', 'X'),
-                    ),
-                Tables\Filters\Filter::make('requirements_date')
+                Tables\Filters\Filter::make('requirement_date')
                     ->form([
                         Forms\Components\DatePicker::make('from')->label('From'),
                         Forms\Components\DatePicker::make('until')->label('Until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when($data['from'] ?? null, fn(Builder $q, $date) => $q->whereDate('requirements_date', '>=', $date))
-                            ->when($data['until'] ?? null, fn(Builder $q, $date) => $q->whereDate('requirements_date', '<=', $date));
+                            ->when($data['from'] ?? null, fn(Builder $q, $date) => $q->whereDate('requirement_date', '>=', $date))
+                            ->when($data['until'] ?? null, fn(Builder $q, $date) => $q->whereDate('requirement_date', '<=', $date));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
@@ -412,7 +401,6 @@ class EquipmentWorkOrderResource extends Resource
                     ->collapsible(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -420,12 +408,12 @@ class EquipmentWorkOrderResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->emptyStateHeading('No equipment work orders found')
-            ->emptyStateDescription('Start by creating your first equipment work order.')
-            ->emptyStateIcon('heroicon-o-cog-6-tooth')
+            ->emptyStateHeading('No equipment work order materials found')
+            ->emptyStateDescription('Start by creating your first equipment work order material.')
+            ->emptyStateIcon('heroicon-o-rectangle-stack')
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Create Equipment Work Order')
+                    ->label('Create Equipment Work Order Material')
                     ->icon('heroicon-o-plus'),
             ])
             ->paginated([25, 50, 100])
@@ -435,22 +423,21 @@ class EquipmentWorkOrderResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\EquipmentMaterialsRelationManager::class,
+            //
         ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListEquipmentWorkOrders::route('/'),
-            'create' => Pages\CreateEquipmentWorkOrder::route('/create'),
-            'view' => Pages\ViewEquipmentWorkOrder::route('/{record}'),
-            'edit' => Pages\EditEquipmentWorkOrder::route('/{record}/edit'),
+            'index' => Pages\ListEquipmentWorkOrderMaterials::route('/'),
+            'create' => Pages\CreateEquipmentWorkOrderMaterial::route('/create'),
+            'edit' => Pages\EditEquipmentWorkOrderMaterial::route('/{record}/edit'),
         ];
     }
 
     public static function getGloballySearchableAttributes(): array
     {
-        return ['reservation', 'material', 'order_number', 'equipment_number'];
+        return ['order_number', 'material_number', 'equipment_number', 'reservation_number'];
     }
 }

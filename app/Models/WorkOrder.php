@@ -12,7 +12,6 @@ class WorkOrder extends Model
     use HasFactory;
 
     protected $fillable = [
-        'ims_id',
         'mandt',
         'order',
         'order_type',

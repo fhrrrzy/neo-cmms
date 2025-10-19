@@ -55,41 +55,24 @@ class RunningTimeProcessor
             throw new Exception("Missing required fields: equipment_number={$equipmentNumber}, date={$date}");
         }
 
-        $apiId = Arr::get($item, 'api_id') ?? Arr::get($item, 'ID');
-
-        $runningTime = null;
-        if ($apiId) {
-            $runningTime = RunningTime::where('ims_id', $apiId)->first();
-        }
-        if (!$runningTime) {
-            $runningTime = RunningTime::where('equipment_number', $equipmentNumber)
-                ->where('date', $date)
-                ->first();
-        }
-
-        $attributes = [
-            'equipment_number' => $equipmentNumber,
-            'date' => $date,
-            'plant_id' => $plant->id,
-            'mandt' => Arr::get($item, 'MANDT'),
-            'point' => Arr::get($item, 'POINT'),
-            'date_time' => Arr::get($item, 'date_time') ?? Arr::get($item, 'DATE_TIME'),
-            'running_hours' => Arr::get($item, 'running_hours') ?? Arr::get($item, 'RECDV'),
-            'counter_reading' => Arr::get($item, 'counter_reading') ?? Arr::get($item, 'CNTRR'),
-            'maintenance_text' => Arr::get($item, 'maintenance_text') ?? Arr::get($item, 'MDTXT'),
-            'company_code' => Arr::get($item, 'company_code') ?? Arr::get($item, 'BUKRS'),
-            'equipment_description' => Arr::get($item, 'equipment_description') ?? Arr::get($item, 'EQKTU'),
-            'object_number' => Arr::get($item, 'object_number') ?? Arr::get($item, 'OBJNR'),
-            'api_created_at' => ($ts = Arr::get($item, 'api_created_at') ?? Arr::get($item, 'CREATED_AT')) ? Carbon::parse($ts) : null,
-        ];
-        if ($apiId) {
-            $attributes['ims_id'] = (string) $apiId;
-        }
-
-        if ($runningTime) {
-            $runningTime->fill($attributes)->save();
-        } else {
-            RunningTime::create($attributes);
-        }
+        RunningTime::updateOrCreate(
+            [
+                'equipment_number' => $equipmentNumber,
+                'date' => $date,
+            ],
+            [
+                'plant_id' => $plant->id,
+                'mandt' => Arr::get($item, 'MANDT'),
+                'point' => Arr::get($item, 'POINT'),
+                'date_time' => Arr::get($item, 'date_time') ?? Arr::get($item, 'DATE_TIME'),
+                'running_hours' => Arr::get($item, 'running_hours') ?? Arr::get($item, 'RECDV'),
+                'counter_reading' => Arr::get($item, 'counter_reading') ?? Arr::get($item, 'CNTRR'),
+                'maintenance_text' => Arr::get($item, 'maintenance_text') ?? Arr::get($item, 'MDTXT'),
+                'company_code' => Arr::get($item, 'company_code') ?? Arr::get($item, 'BUKRS'),
+                'equipment_description' => Arr::get($item, 'equipment_description') ?? Arr::get($item, 'EQKTU'),
+                'object_number' => Arr::get($item, 'object_number') ?? Arr::get($item, 'OBJNR'),
+                'api_created_at' => ($ts = Arr::get($item, 'api_created_at') ?? Arr::get($item, 'CREATED_AT')) ? Carbon::parse($ts) : null,
+            ]
+        );
     }
 }

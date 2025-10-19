@@ -11,7 +11,6 @@ class RunningTime extends Model
     use HasFactory;
 
     protected $fillable = [
-        'ims_id',
         'mandt',
         'point',
         'equipment_number',
