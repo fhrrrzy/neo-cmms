@@ -87,8 +87,11 @@ RUN apk add --no-cache sqlite-dev \
 # Build frontend assets (Wayfinder can now generate routes/actions)
 RUN mkdir -p storage/framework/cache/data bootstrap/cache \
     && chmod -R 777 storage bootstrap \
+    && php artisan config:clear \
     && php artisan package:discover --no-interaction \
-    && php artisan optimize \
+    && php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache \
     && pnpm run build
 
 # ====================================
