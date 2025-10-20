@@ -19,6 +19,7 @@ import {
     Map,
     MapPin,
     Search,
+    Tag,
     X,
 } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
@@ -35,9 +36,11 @@ const emit = defineEmits(['filter-change']);
 const regions = ref([]);
 const plants = ref([]);
 const stations = ref([]);
+const equipmentTypes = ref([]);
 const loadingRegions = ref(false);
 const loadingPlants = ref(false);
 const loadingStations = ref(false);
+const loadingTypes = ref(false);
 
 // Initialize with proper arrays - ensure reactivity
 const localFilters = ref({
@@ -55,6 +58,9 @@ const localFilters = ref({
         : [],
     station_codes: Array.isArray(props.filters?.station_codes)
         ? [...props.filters.station_codes]
+        : [],
+    equipment_types: Array.isArray(props.filters?.equipment_types)
+        ? [...props.filters.equipment_types]
         : [],
     search: props.filters?.search || '',
 });
@@ -80,11 +86,13 @@ onMounted(() => {
 const regionalOpen = ref(false);
 const plantOpen = ref(false);
 const stationOpen = ref(false);
+const typeOpen = ref(false);
 
 // Search states
 const regionalSearch = ref('');
 const plantSearch = ref('');
 const stationSearch = ref('');
+const typeSearch = ref('');
 // Date range state for popover calendar (CalendarDate model like Reka example)
 const datePopoverOpen = ref(false);
 const rangeValue = ref({
@@ -165,6 +173,14 @@ watch(
     { deep: true },
 );
 
+watch(
+    () => localFilters.value.equipment_types,
+    (newVal) => {
+        console.log('Equipment types changed:', newVal);
+    },
+    { deep: true },
+);
+
 // Apply filters on demand via button
 const applyFilters = async () => {
     await nextTick();
@@ -222,6 +238,15 @@ const stationTypes = ref([
     { code: 'STAS19', description: 'Laboratorium' },
 ]);
 
+// Define equipment types
+const equipmentTypeOptions = ref([
+    'Mesin Produksi',
+    'Kendaraan',
+    'Alat dan Utilitas',
+    'IT & Telekomunikasi',
+    'Aset PMN',
+]);
+
 // No need to fetch stations from API - use predefined station types
 const fetchStations = async () => {
     loadingStations.value = true;
@@ -233,6 +258,20 @@ const fetchStations = async () => {
         stations.value = [];
     } finally {
         loadingStations.value = false;
+    }
+};
+
+// No need to fetch equipment types from API - use predefined types
+const fetchEquipmentTypes = async () => {
+    loadingTypes.value = true;
+    try {
+        // Use predefined equipment types instead of API call
+        equipmentTypes.value = equipmentTypeOptions.value;
+    } catch (error) {
+        console.error('Error setting equipment types:', error);
+        equipmentTypes.value = [];
+    } finally {
+        loadingTypes.value = false;
     }
 };
 
@@ -314,6 +353,32 @@ const toggleStation = async (stationCode) => {
     };
 };
 
+const toggleEquipmentType = async (equipmentType) => {
+    console.log('toggleEquipmentType', equipmentType);
+
+    // Ensure array exists
+    if (!Array.isArray(localFilters.value.equipment_types)) {
+        localFilters.value.equipment_types = [];
+    }
+
+    const currentTypes = [...localFilters.value.equipment_types];
+    const index = currentTypes.indexOf(equipmentType);
+
+    if (index > -1) {
+        // Remove
+        currentTypes.splice(index, 1);
+    } else {
+        // Add
+        currentTypes.push(equipmentType);
+    }
+
+    // Create new array reference for reactivity
+    localFilters.value = {
+        ...localFilters.value,
+        equipment_types: currentTypes,
+    };
+};
+
 // Handlers compatible with shadcn-vue Checkbox (v-model:checked / update:checked)
 const onRegionalChecked = async (regionalId, checked) => {
     console.log('onRegionalChecked', regionalId, checked);
@@ -386,6 +451,16 @@ const onStationChecked = async (stationCode, checked) => {
     }
 };
 
+const onEquipmentTypeChecked = async (equipmentType, checked) => {
+    console.log('onEquipmentTypeChecked', equipmentType, checked);
+    const currentlySelected = isEquipmentTypeSelected(equipmentType);
+    if (checked && !currentlySelected) {
+        await toggleEquipmentType(equipmentType);
+    } else if (!checked && currentlySelected) {
+        await toggleEquipmentType(equipmentType);
+    }
+};
+
 // v-model adapters for shadcn-vue Checkbox
 const regionalModel = (regionalId) =>
     computed({
@@ -417,6 +492,16 @@ const stationModel = (stationCode) =>
         },
     });
 
+const equipmentTypeModel = (equipmentType) =>
+    computed({
+        get() {
+            return isEquipmentTypeSelected(equipmentType);
+        },
+        async set(val) {
+            await onEquipmentTypeChecked(equipmentType, !!val);
+        },
+    });
+
 const isRegionalSelected = (regionalId) => {
     return (localFilters.value.regional_ids || []).includes(regionalId);
 };
@@ -427,6 +512,10 @@ const isPlantSelected = (plantId) => {
 
 const isStationSelected = (stationCode) => {
     return (localFilters.value.station_codes || []).includes(stationCode);
+};
+
+const isEquipmentTypeSelected = (equipmentType) => {
+    return (localFilters.value.equipment_types || []).includes(equipmentType);
 };
 
 // Computed properties for display labels
@@ -471,6 +560,15 @@ const stationLabel = computed(() => {
           : `${count} Stasiun dipilih`;
 });
 
+const equipmentTypeLabel = computed(() => {
+    const count = (localFilters.value.equipment_types || []).length;
+    return count === 0
+        ? 'Semua Tipe'
+        : count === 1
+          ? localFilters.value.equipment_types[0] || 'Tipe'
+          : `${count} Tipe dipilih`;
+});
+
 // Filtered lists based on search
 const filteredRegions = computed(() => {
     const search = regionalSearch.value.toLowerCase();
@@ -502,8 +600,21 @@ const filteredStations = computed(() => {
     let filtered = stations.value;
 
     // Filter by search only - backend will handle plant-based filtering
-    return search
+    filtered = search
         ? filtered.filter((s) => s.description.toLowerCase().includes(search))
+        : filtered;
+
+    // Sort by description (name) in ascending order
+    return filtered.sort((a, b) => a.description.localeCompare(b.description));
+});
+
+const filteredEquipmentTypes = computed(() => {
+    const search = typeSearch.value.toLowerCase();
+    let filtered = equipmentTypes.value;
+
+    // Filter by search
+    return search
+        ? filtered.filter((t) => t.toLowerCase().includes(search))
         : filtered;
 });
 
@@ -519,17 +630,20 @@ const clearFilters = async () => {
         regional_ids: [],
         plant_ids: [],
         station_codes: [],
+        equipment_types: [],
     };
 
     // Clear search states
     regionalSearch.value = '';
     plantSearch.value = '';
     stationSearch.value = '';
+    typeSearch.value = '';
 
     // Close all dropdowns
     regionalOpen.value = false;
     plantOpen.value = false;
     stationOpen.value = false;
+    typeOpen.value = false;
 
     await nextTick();
 };
@@ -578,6 +692,19 @@ const resetStation = async () => {
     localFilters.value = { ...localFilters.value };
 };
 
+const resetEquipmentType = async () => {
+    localFilters.value = {
+        ...localFilters.value,
+        equipment_types: [],
+    };
+    typeSearch.value = '';
+    typeOpen.value = false;
+
+    // Trigger reactivity by creating new object reference
+    await nextTick();
+    localFilters.value = { ...localFilters.value };
+};
+
 // Removed fetchAllStations; stations now depend on selected plants only
 
 const getPlantIdsForRegional = (regionalId) => {
@@ -598,6 +725,7 @@ onMounted(async () => {
     await fetchRegions();
     await fetchPlants();
     await fetchStations();
+    await fetchEquipmentTypes();
 
     await nextTick();
 });
@@ -904,6 +1032,112 @@ onMounted(async () => {
                                             class="flex-1 cursor-pointer text-sm"
                                         >
                                             {{ station.description }}
+                                        </label>
+                                    </div>
+                                </div>
+                            </ScrollArea>
+                        </div>
+                    </PopoverContent>
+                </Popover>
+            </div>
+
+            <!-- Equipment Type Filter -->
+            <div class="w-full space-y-2 sm:w-auto">
+                <div class="relative">
+                    <Label>Tipe</Label>
+                    <button
+                        v-if="localFilters.equipment_types.length > 0"
+                        class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
+                        @click="resetEquipmentType"
+                    >
+                        Reset
+                    </button>
+                </div>
+                <Popover v-model:open="typeOpen">
+                    <PopoverTrigger as-child>
+                        <Button
+                            variant="outline"
+                            class="w-full justify-between"
+                        >
+                            <div class="flex items-center">
+                                <Tag class="mr-2 h-4 w-4 shrink-0" />
+                                <div class="mr-2 h-4 w-px bg-border"></div>
+                                {{ equipmentTypeLabel }}
+                            </div>
+                            <ChevronsUpDown
+                                class="ml-2 h-4 w-4 shrink-0 opacity-50"
+                            />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                        class="w-[280px] p-0"
+                        :side="'bottom'"
+                        :align="'start'"
+                        :side-offset="4"
+                        :avoid-collisions="true"
+                        :collision-boundary="'viewport'"
+                        :sticky="'partial'"
+                    >
+                        <div class="flex flex-col">
+                            <div
+                                class="relative flex w-full items-center border-b"
+                            >
+                                <input
+                                    v-model="typeSearch"
+                                    type="text"
+                                    placeholder="Cari Tipe..."
+                                    class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none"
+                                />
+                                <span
+                                    class="absolute inset-y-0 left-0 flex items-center justify-center px-3"
+                                >
+                                    <Search
+                                        class="h-4 w-4 text-muted-foreground"
+                                    />
+                                </span>
+                                <button
+                                    v-if="typeSearch"
+                                    @click="typeSearch = ''"
+                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground"
+                                >
+                                    <X class="h-4 w-4" />
+                                </button>
+                            </div>
+                            <ScrollArea class="h-[200px]">
+                                <div class="p-2">
+                                    <div
+                                        v-if="
+                                            filteredEquipmentTypes.length === 0
+                                        "
+                                        class="py-6 text-center text-sm text-muted-foreground"
+                                    >
+                                        No tipe found.
+                                    </div>
+                                    <div
+                                        v-for="equipmentType in filteredEquipmentTypes"
+                                        :key="equipmentType"
+                                        class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                    >
+                                        <Checkbox
+                                            :id="`type-${equipmentType}`"
+                                            :model-value="
+                                                isEquipmentTypeSelected(
+                                                    equipmentType,
+                                                )
+                                            "
+                                            @update:model-value="
+                                                (val) =>
+                                                    onEquipmentTypeChecked(
+                                                        equipmentType,
+                                                        val,
+                                                    )
+                                            "
+                                        />
+                                        <label
+                                            :for="`type-${equipmentType}`"
+                                            class="flex-1 cursor-pointer text-sm"
+                                        >
+                                            {{ equipmentType }}
                                         </label>
                                     </div>
                                 </div>

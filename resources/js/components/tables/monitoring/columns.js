@@ -116,7 +116,37 @@ export const columns = [
     },
     {
         accessorKey: 'station.description',
-        header: () => 'Stasiun',
+        header: ({ column, table }) => {
+            const sorting = table.options.meta?.sorting;
+            const isSorted = sorting?.sort_by === 'station.description';
+            const isAsc = sorting?.sort_direction === 'asc';
+            const isDesc = sorting?.sort_direction === 'desc';
+            
+            return h(
+                Button,
+                {
+                    variant: 'ghost',
+                    onClick: () => {
+                        let newDirection;
+                        if (!isSorted) {
+                            newDirection = 'asc';
+                        } else if (isAsc) {
+                            newDirection = 'desc';
+                        } else if (isDesc) {
+                            newDirection = null; // Remove sorting
+                        }
+                        table.options.meta?.onSortChange?.('station.description', newDirection);
+                    },
+                    class: 'h-8 px-2 lg:px-3',
+                },
+                () => [
+                    'Stasiun',
+                    isSorted 
+                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                ],
+            );
+        },
         cell: ({ row }) => {
             const station = row.original.station;
             return h('div', null, renderValueOrNA(station?.description));
@@ -124,7 +154,37 @@ export const columns = [
     },
     {
         accessorKey: 'equipment_description',
-        header: () => 'Nama Equipment',
+        header: ({ column, table }) => {
+            const sorting = table.options.meta?.sorting;
+            const isSorted = sorting?.sort_by === 'equipment_description';
+            const isAsc = sorting?.sort_direction === 'asc';
+            const isDesc = sorting?.sort_direction === 'desc';
+            
+            return h(
+                Button,
+                {
+                    variant: 'ghost',
+                    onClick: () => {
+                        let newDirection;
+                        if (!isSorted) {
+                            newDirection = 'asc';
+                        } else if (isAsc) {
+                            newDirection = 'desc';
+                        } else if (isDesc) {
+                            newDirection = null; // Remove sorting
+                        }
+                        table.options.meta?.onSortChange?.('equipment_description', newDirection);
+                    },
+                    class: 'h-8 px-2 lg:px-3',
+                },
+                () => [
+                    'Nama Equipment',
+                    isSorted 
+                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                ],
+            );
+        },
         cell: ({ row }) => {
             const description = row.getValue('equipment_description');
             const content = renderValueOrNA(description, 'max-w-[200px] truncate');
@@ -134,7 +194,37 @@ export const columns = [
     },
     {
         accessorKey: 'equipment_type',
-        header: () => 'Tipe',
+        header: ({ column, table }) => {
+            const sorting = table.options.meta?.sorting;
+            const isSorted = sorting?.sort_by === 'equipment_type';
+            const isAsc = sorting?.sort_direction === 'asc';
+            const isDesc = sorting?.sort_direction === 'desc';
+            
+            return h(
+                Button,
+                {
+                    variant: 'ghost',
+                    onClick: () => {
+                        let newDirection;
+                        if (!isSorted) {
+                            newDirection = 'asc';
+                        } else if (isAsc) {
+                            newDirection = 'desc';
+                        } else if (isDesc) {
+                            newDirection = null; // Remove sorting
+                        }
+                        table.options.meta?.onSortChange?.('equipment_type', newDirection);
+                    },
+                    class: 'h-8 px-2 lg:px-3',
+                },
+                () => [
+                    'Tipe',
+                    isSorted 
+                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                ],
+            );
+        },
         cell: ({ row }) => {
             const type = row.getValue('equipment_type');
             const colorMap = {
@@ -147,6 +237,51 @@ export const columns = [
             const cls = colorMap[type] || 'bg-muted text-foreground';
             if (!type) return renderValueOrNA(type);
             return h('span', { class: `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}` }, type);
+        },
+    },
+        {
+        accessorKey: 'running_times_count',
+        header: ({ column, table }) => {
+            const sorting = table.options.meta?.sorting;
+            const isSorted = sorting?.sort_by === 'running_times_count';
+            const isAsc = sorting?.sort_direction === 'asc';
+            const isDesc = sorting?.sort_direction === 'desc';
+            
+            return h(
+                Button,
+                {
+                    variant: 'ghost',
+                    onClick: () => {
+                        let newDirection;
+                        if (!isSorted) {
+                            newDirection = 'asc';
+                        } else if (isAsc) {
+                            newDirection = 'desc';
+                        } else if (isDesc) {
+                            newDirection = null; // Remove sorting
+                        }
+                        table.options.meta?.onSortChange?.('running_times_count', newDirection);
+                    },
+                    class: 'h-8 w-full px-2 lg:px-3 justify-end',
+                },
+                () => [
+                    'Total Jam Jalan (Periode)',
+                    isSorted 
+                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                ],
+            );
+        },
+        cell: ({ row }) => {
+            const totalHours = Number(row.getValue('running_times_count'));
+            if (!totalHours || totalHours <= 0) {
+                return h('div', { class: 'text-right text-muted-foreground' }, 'N/A');
+            }
+            const formatted = new Intl.NumberFormat('id-ID', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(totalHours);
+            return h('div', { class: 'text-right font-mono' }, `${formatted} Jam`);
         },
     },
     {
@@ -194,49 +329,5 @@ export const columns = [
             return h('div', { class: 'text-right font-mono' }, `${formatted} Jam`);
         },
     },
-    {
-        accessorKey: 'running_times_count',
-        header: ({ column, table }) => {
-            const sorting = table.options.meta?.sorting;
-            const isSorted = sorting?.sort_by === 'running_times_count';
-            const isAsc = sorting?.sort_direction === 'asc';
-            const isDesc = sorting?.sort_direction === 'desc';
-            
-            return h(
-                Button,
-                {
-                    variant: 'ghost',
-                    onClick: () => {
-                        let newDirection;
-                        if (!isSorted) {
-                            newDirection = 'asc';
-                        } else if (isAsc) {
-                            newDirection = 'desc';
-                        } else if (isDesc) {
-                            newDirection = null; // Remove sorting
-                        }
-                        table.options.meta?.onSortChange?.('running_times_count', newDirection);
-                    },
-                    class: 'h-8 w-full px-2 lg:px-3 justify-end',
-                },
-                () => [
-                    'Total Jam Jalan (Periode)',
-                    isSorted 
-                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
-                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
-                ],
-            );
-        },
-        cell: ({ row }) => {
-            const totalHours = Number(row.getValue('running_times_count'));
-            if (!totalHours || totalHours <= 0) {
-                return h('div', { class: 'text-right text-muted-foreground' }, 'N/A');
-            }
-            const formatted = new Intl.NumberFormat('id-ID', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-            }).format(totalHours);
-            return h('div', { class: 'text-right font-mono' }, `${formatted} Jam`);
-        },
-    },
+
 ];
