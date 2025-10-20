@@ -1,3 +1,49 @@
+# New CMMS — Equipment Monitoring & Maintenance
+
+The modern way to monitor plant equipment and streamline maintenance. Track running hours, filter by region/plant/station, and drill into rich equipment details — all in a fast, mobile‑first web app.
+
+## What you can do
+
+- Real‑time equipment monitoring: sortable table with search, pagination, and saved filters.
+- Powerful filtering: date range, region, plant, and station with quick apply/reset.
+- Equipment drill‑down: detailed profile, location context, specs, and recent running times.
+- Visual analytics: dual‑axis running time charts with responsive legends.
+- Maintenance insights: work orders and material views tied to each equipment.
+- Easy sharing: instant QR code to open a specific equipment page.
+
+## Built for teams
+
+- Mobile‑first UI with smooth transitions and accessible controls.
+- Snappy navigation via Inertia pages and cached user preferences.
+- Consistent design system built on reusable UI components.
+
+## Tech stack
+
+- Frontend: Vue 3 (script setup, JS only), Inertia, shadcn‑vue components, Highcharts.
+- Backend: Laravel API endpoints for monitoring, equipment, regions, and plants.
+- State & utilities: Pinia stores for date ranges and filters, Axios for data.
+
+## Value in one line
+
+“See the health of every machine, act on what matters, and keep production running.”
+
+## Primary call to action
+
+- Start monitoring your equipment → View the live table and drill down into any asset.
+
+## Secondary call to action
+
+- Explore a single equipment → Scan or click a QR to jump directly to details.
+
+## Audience
+
+- Plant managers, maintenance supervisors, and reliability engineers who need real‑time visibility and fast decisions.
+
+## Notes
+
+- Pages are implemented in JS (no TypeScript in Vue files).
+- UI and layouts follow a mobile‑first approach.
+
 # CMMS - Computerized Maintenance Management System
 
 Laravel-based maintenance management system running on Docker.
