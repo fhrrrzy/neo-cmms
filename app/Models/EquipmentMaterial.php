@@ -2,17 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class EquipmentWorkOrderMaterial extends Model
+class EquipmentMaterial extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'plant_id',
-        'order_number',
         'material_number',
         'reservation_number',
         'reservation_item',
@@ -46,28 +42,21 @@ class EquipmentWorkOrderMaterial extends Model
         'gl_account',
         'receiving_storage_loc',
         'receiving_plant',
-        'quantity_is_fixed',
-        'qty_in_unit_of_entry',
-        'unit_of_entry',
-        'qty_for_avail_check',
-        'goods_recipient',
-        'material_group',
-        'acct_manually',
-        'commitment_item_1',
-        'commitment_item_2',
-        'funds_center',
-        'start_time',
-        'end_time',
-        'service_duration',
-        'service_dur_unit',
-        'equipment_number',
-        'material_description',
         'api_created_at',
-        'api_updated_at',
+    ];
+
+    protected $casts = [
+        'requirement_date' => 'date',
+        'requirement_qty' => 'decimal:2',
+        'issued_qty' => 'decimal:2',
+        'withdrawn_qty' => 'decimal:2',
+        'withdrawn_value' => 'decimal:2',
+        'entry_qty' => 'decimal:2',
+        'api_created_at' => 'datetime',
     ];
 
     /**
-     * Get the plant that owns the equipment work order material.
+     * Get the plant that owns the equipment material.
      */
     public function plant(): BelongsTo
     {
@@ -75,10 +64,10 @@ class EquipmentWorkOrderMaterial extends Model
     }
 
     /**
-     * Get the work order associated with the equipment work order material.
+     * Get the work order (via production_order) that this material belongs to.
      */
     public function workOrder(): BelongsTo
     {
-        return $this->belongsTo(WorkOrder::class, 'order_number', 'order');
+        return $this->belongsTo(WorkOrder::class, 'production_order', 'order');
     }
 }

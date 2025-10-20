@@ -115,16 +115,17 @@ class ApiSyncLogResource extends Resource
                                 'equipment' => 'Equipment',
                                 'running_time' => 'Running Time',
                                 'work_orders' => 'Work Orders',
-                                'equipment_work_order_materials' => 'Equipment Work Order Materials',
+                                'equipment_work_orders' => 'Equipment Work Orders',
+                                'equipment_materials' => 'Equipment Materials',
                             ]),
                         Forms\Components\DatePicker::make('start_date')
                             ->native(false)
                             ->required(fn($get) => $get('types') !== ['equipment'])
-                            ->helperText('Required for Running Time, Work Orders, and Equipment Work Order Materials APIs. Not needed for Equipment only.'),
+                            ->helperText('Required for Running Time, Work Orders, Equipment Work Orders, and Equipment Materials APIs. Not needed for Equipment only.'),
                         Forms\Components\DatePicker::make('end_date')
                             ->native(false)
                             ->required(fn($get) => $get('types') !== ['equipment'])
-                            ->helperText('Required for Running Time, Work Orders, and Equipment Work Order Materials APIs. Not needed for Equipment only.'),
+                            ->helperText('Required for Running Time, Work Orders, Equipment Work Orders, and Equipment Materials APIs. Not needed for Equipment only.'),
                     ])
                     ->action(function (array $data): void {
                         $start = $data['start_date'] ?? null;

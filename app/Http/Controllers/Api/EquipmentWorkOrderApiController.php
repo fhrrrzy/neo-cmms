@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\EquipmentWorkOrderMaterial;
+use App\Models\EquipmentWorkOrder;
 use Illuminate\Http\Request;
 
 class EquipmentWorkOrderApiController extends Controller
@@ -12,20 +12,20 @@ class EquipmentWorkOrderApiController extends Controller
     {
         // Grouped-by-material mode
         if ($request->get('group_by') === 'material') {
-            $query = EquipmentWorkOrderMaterial::query();
+            $query = EquipmentWorkOrder::query();
 
             if ($request->filled('equipment_number')) {
                 $query->where('equipment_number', $request->equipment_number);
             }
             if ($request->filled('date_start') && $request->filled('date_end')) {
-                $query->whereBetween('requirement_date', [$request->date_start, $request->date_end]);
+                $query->whereBetween('requirements_date', [$request->date_start, $request->date_end]);
             }
             if ($request->filled('material')) {
-                $query->where('material_number', $request->material);
+                $query->where('material', $request->material);
             }
 
-            $query->selectRaw('material_number as material, material_description, COUNT(*) as count')
-                ->groupBy('material_number', 'material_description');
+            $query->selectRaw('material, material_description, COUNT(*) as count')
+                ->groupBy('material', 'material_description');
 
             // Sorting for grouped result
             $sortBy = $request->get('sort_by');
@@ -59,38 +59,38 @@ class EquipmentWorkOrderApiController extends Controller
         }
 
         // Default (row-level) mode
-        $query = EquipmentWorkOrderMaterial::query();
+        $query = EquipmentWorkOrder::query();
 
         if ($request->filled('equipment_number')) {
             $query->where('equipment_number', $request->equipment_number);
         }
         if ($request->filled('date_start') && $request->filled('date_end')) {
-            $query->whereBetween('requirement_date', [$request->date_start, $request->date_end]);
+            $query->whereBetween('requirements_date', [$request->date_start, $request->date_end]);
         }
         if ($request->filled('material')) {
-            $query->where('material_number', $request->material);
+            $query->where('material', $request->material);
         }
 
         // Sorting
         $allowedSorts = [
-            'requirements_date' => 'requirement_date',
-            'requirement_date' => 'requirement_date',
+            'requirements_date' => 'requirements_date',
+            'requirement_date' => 'requirements_date',
             'order_number' => 'order_number',
-            'material' => 'material_number',
-            'material_number' => 'material_number',
-            'requirement_quantity' => 'requirement_qty',
-            'requirement_qty' => 'requirement_qty',
-            'quantity_withdrawn' => 'withdrawn_qty',
-            'withdrawn_qty' => 'withdrawn_qty',
-            'value_withdrawn' => 'withdrawn_value',
-            'withdrawn_value' => 'withdrawn_value',
+            'material' => 'material',
+            'material_number' => 'material',
+            'requirement_quantity' => 'requirement_quantity',
+            'requirement_qty' => 'requirement_quantity',
+            'quantity_withdrawn' => 'quantity_withdrawn',
+            'withdrawn_qty' => 'quantity_withdrawn',
+            'value_withdrawn' => 'value_withdrawn',
+            'withdrawn_value' => 'value_withdrawn',
         ];
         $sortBy = $request->get('sort_by');
         $sortDirection = strtolower($request->get('sort_direction', 'desc')) === 'asc' ? 'asc' : 'desc';
         if ($sortBy && isset($allowedSorts[$sortBy])) {
             $query->orderBy($allowedSorts[$sortBy], $sortDirection);
         } else {
-            $query->orderBy('requirement_date', 'desc');
+            $query->orderBy('requirements_date', 'desc');
         }
 
         $perPage = (int) $request->get('per_page', 15);
@@ -108,9 +108,9 @@ class EquipmentWorkOrderApiController extends Controller
     public function show(string $orderNumber, Request $request)
     {
         if ($request->get('group_by') === 'material') {
-            $items = EquipmentWorkOrderMaterial::selectRaw('material_number as material, material_description, COUNT(*) as count')
+            $items = EquipmentWorkOrder::selectRaw('material, material_description, COUNT(*) as count')
                 ->where('order_number', $orderNumber)
-                ->groupBy('material_number', 'material_description')
+                ->groupBy('material', 'material_description')
                 ->orderByDesc('count')
                 ->get()
                 ->map(function ($row) {
@@ -123,8 +123,8 @@ class EquipmentWorkOrderApiController extends Controller
             return response()->json(['data' => $items]);
         }
 
-        $items = EquipmentWorkOrderMaterial::where('order_number', $orderNumber)
-            ->orderBy('requirement_date', 'desc')
+        $items = EquipmentWorkOrder::where('order_number', $orderNumber)
+            ->orderBy('requirements_date', 'desc')
             ->get();
         if ($items->isEmpty()) {
             return response()->json(['data' => []]);
@@ -135,14 +135,14 @@ class EquipmentWorkOrderApiController extends Controller
                     'id' => $ewo->id,
                     'order_number' => $ewo->order_number,
                     'equipment_number' => $ewo->equipment_number,
-                    'requirements_date' => $ewo->requirement_date,
-                    'reservation' => $ewo->reservation_number,
-                    'material' => $ewo->material_number,
+                    'requirements_date' => $ewo->requirements_date,
+                    'reservation' => $ewo->reservation,
+                    'material' => $ewo->material,
                     'material_description' => $ewo->material_description,
-                    'requirement_quantity' => $ewo->requirement_qty,
-                    'base_unit_of_measure' => $ewo->unit_of_measure,
-                    'quantity_withdrawn' => $ewo->withdrawn_qty,
-                    'value_withdrawn' => $ewo->withdrawn_value,
+                    'requirement_quantity' => $ewo->requirement_quantity,
+                    'base_unit_of_measure' => $ewo->base_unit_of_measure,
+                    'quantity_withdrawn' => $ewo->quantity_withdrawn,
+                    'value_withdrawn' => $ewo->value_withdrawn,
                     'currency' => $ewo->currency,
                 ];
             }),

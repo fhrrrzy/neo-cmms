@@ -131,11 +131,11 @@ class Equipment extends Model
     }
 
     /**
-     * Get the equipment work order materials for the equipment.
+     * Get the equipment work orders for the equipment.
      */
     public function equipmentWorkOrders(): HasMany
     {
-        return $this->hasMany(EquipmentWorkOrderMaterial::class, 'equipment_number', 'equipment_number');
+        return $this->hasMany(EquipmentWorkOrder::class, 'equipment_number', 'equipment_number');
     }
 
 

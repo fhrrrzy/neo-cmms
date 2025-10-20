@@ -14,28 +14,28 @@ class EquipmentWorkOrdersRelationManager extends RelationManager
 {
     protected static string $relationship = 'equipmentWorkOrders';
 
-    protected static ?string $recordTitleAttribute = 'reservation_number';
+    protected static ?string $recordTitleAttribute = 'reservation';
 
-    protected static ?string $title = 'Equipment Work Order Materials';
+    protected static ?string $title = 'Equipment Work Orders';
 
-    protected static ?string $modelLabel = 'Equipment Work Order Material';
+    protected static ?string $modelLabel = 'Equipment Work Order';
 
-    protected static ?string $pluralModelLabel = 'Equipment Work Order Materials';
+    protected static ?string $pluralModelLabel = 'Equipment Work Orders';
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Equipment Work Order Material Information')
+                Forms\Components\Section::make('Equipment Work Order Information')
                     ->schema([
-                        Forms\Components\TextInput::make('reservation_number')
+                        Forms\Components\TextInput::make('reservation')
                             ->prefixIcon('heroicon-o-hashtag')
                             ->maxLength(50)
-                            ->label('Reservation Number'),
-                        Forms\Components\TextInput::make('material_number')
+                            ->label('Reservation'),
+                        Forms\Components\TextInput::make('material')
                             ->prefixIcon('heroicon-o-cube')
                             ->maxLength(50)
-                            ->label('Material Number'),
+                            ->label('Material'),
                         Forms\Components\Select::make('requirement_type')
                             ->prefixIcon('heroicon-o-tag')
                             ->options([
@@ -72,24 +72,24 @@ class EquipmentWorkOrdersRelationManager extends RelationManager
                             ->prefixIcon('heroicon-o-map-pin')
                             ->maxLength(50)
                             ->label('Storage Location'),
-                        Forms\Components\DatePicker::make('requirement_date')
-                            ->label('Requirement Date'),
-                        Forms\Components\TextInput::make('requirement_qty')
+                        Forms\Components\DatePicker::make('requirements_date')
+                            ->label('Requirements Date'),
+                        Forms\Components\TextInput::make('requirement_quantity')
                             ->prefixIcon('heroicon-o-calculator')
                             ->numeric()
                             ->label('Requirement Quantity'),
-                        Forms\Components\TextInput::make('unit_of_measure')
+                        Forms\Components\TextInput::make('base_unit_of_measure')
                             ->prefixIcon('heroicon-o-scale')
                             ->maxLength(20)
-                            ->label('Unit of Measure'),
-                        Forms\Components\TextInput::make('withdrawn_qty')
+                            ->label('Base Unit of Measure'),
+                        Forms\Components\TextInput::make('quantity_withdrawn')
                             ->prefixIcon('heroicon-o-arrow-down-tray')
                             ->numeric()
-                            ->label('Withdrawn Quantity'),
-                        Forms\Components\TextInput::make('withdrawn_value')
+                            ->label('Quantity Withdrawn'),
+                        Forms\Components\TextInput::make('value_withdrawn')
                             ->prefixIcon('heroicon-o-currency-dollar')
                             ->numeric()
-                            ->label('Withdrawn Value'),
+                            ->label('Value Withdrawn'),
                         Forms\Components\TextInput::make('currency')
                             ->prefixIcon('heroicon-o-banknotes')
                             ->maxLength(10)
@@ -118,17 +118,17 @@ class EquipmentWorkOrdersRelationManager extends RelationManager
 
                 Forms\Components\Section::make('Status Flags')
                     ->schema([
-                        Forms\Components\Toggle::make('deletion_flag')
-                            ->label('Deletion Flag')
+                        Forms\Components\Toggle::make('item_deleted')
+                            ->label('Item Deleted')
                             ->formatStateUsing(fn($state) => $state === 'X'),
-                        Forms\Components\Toggle::make('goods_receipt_flag')
-                            ->label('Goods Receipt Flag')
+                        Forms\Components\Toggle::make('movement_allowed')
+                            ->label('Movement Allowed')
                             ->formatStateUsing(fn($state) => $state === 'X'),
-                        Forms\Components\Toggle::make('final_issue_flag')
-                            ->label('Final Issue Flag')
+                        Forms\Components\Toggle::make('final_issue')
+                            ->label('Final Issue')
                             ->formatStateUsing(fn($state) => $state === 'X'),
-                        Forms\Components\Toggle::make('error_flag')
-                            ->label('Error Flag')
+                        Forms\Components\Toggle::make('missing_part')
+                            ->label('Missing Part')
                             ->formatStateUsing(fn($state) => $state === 'X'),
                         Forms\Components\Toggle::make('quantity_is_fixed')
                             ->label('Quantity is Fixed')
@@ -145,16 +145,16 @@ class EquipmentWorkOrdersRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('reservation_number')
+            ->recordTitleAttribute('reservation')
             ->columns([
-                Tables\Columns\TextColumn::make('reservation_number')
+                Tables\Columns\TextColumn::make('reservation')
                     ->searchable()
                     ->sortable()
-                    ->label('Reservation Number'),
-                Tables\Columns\TextColumn::make('material_number')
+                    ->label('Reservation'),
+                Tables\Columns\TextColumn::make('material')
                     ->searchable()
                     ->sortable()
-                    ->label('Material Number'),
+                    ->label('Material'),
                 Tables\Columns\TextColumn::make('requirement_type')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -194,40 +194,40 @@ class EquipmentWorkOrdersRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->label('Equipment Number'),
-                Tables\Columns\TextColumn::make('requirement_qty')
+                Tables\Columns\TextColumn::make('requirement_quantity')
                     ->numeric()
                     ->sortable()
                     ->label('Required Qty'),
-                Tables\Columns\TextColumn::make('unit_of_measure')
+                Tables\Columns\TextColumn::make('base_unit_of_measure')
                     ->label('Unit'),
-                Tables\Columns\TextColumn::make('withdrawn_qty')
+                Tables\Columns\TextColumn::make('quantity_withdrawn')
                     ->numeric()
                     ->sortable()
-                    ->label('Withdrawn Qty'),
-                Tables\Columns\TextColumn::make('withdrawn_value')
+                    ->label('Quantity Withdrawn'),
+                Tables\Columns\TextColumn::make('value_withdrawn')
                     ->money('IDR')
                     ->sortable()
-                    ->label('Withdrawn Value'),
-                Tables\Columns\TextColumn::make('requirement_date')
+                    ->label('Value Withdrawn'),
+                Tables\Columns\TextColumn::make('requirements_date')
                     ->date()
                     ->sortable()
-                    ->label('Requirement Date'),
-                Tables\Columns\IconColumn::make('deletion_flag')
+                    ->label('Requirements Date'),
+                Tables\Columns\IconColumn::make('item_deleted')
                     ->boolean()
-                    ->getStateUsing(fn($record) => $record->deletion_flag === 'X')
+                    ->getStateUsing(fn($record) => $record->item_deleted === 'X')
                     ->label('Deleted'),
-                Tables\Columns\IconColumn::make('goods_receipt_flag')
+                Tables\Columns\IconColumn::make('movement_allowed')
                     ->boolean()
-                    ->getStateUsing(fn($record) => $record->goods_receipt_flag === 'X')
-                    ->label('Goods Receipt'),
-                Tables\Columns\IconColumn::make('final_issue_flag')
+                    ->getStateUsing(fn($record) => $record->movement_allowed === 'X')
+                    ->label('Movement Allowed'),
+                Tables\Columns\IconColumn::make('final_issue')
                     ->boolean()
-                    ->getStateUsing(fn($record) => $record->final_issue_flag === 'X')
+                    ->getStateUsing(fn($record) => $record->final_issue === 'X')
                     ->label('Final Issue'),
-                Tables\Columns\IconColumn::make('error_flag')
+                Tables\Columns\IconColumn::make('missing_part')
                     ->boolean()
-                    ->getStateUsing(fn($record) => $record->error_flag === 'X')
-                    ->label('Error'),
+                    ->getStateUsing(fn($record) => $record->missing_part === 'X')
+                    ->label('Missing Part'),
                 Tables\Columns\TextColumn::make('start_time')
                     ->dateTime()
                     ->sortable()
@@ -273,33 +273,33 @@ class EquipmentWorkOrdersRelationManager extends RelationManager
                         'D' => 'Deleted',
                     ])
                     ->label('Reservation Status'),
-                Tables\Filters\TernaryFilter::make('deletion_flag')
+                Tables\Filters\TernaryFilter::make('item_deleted')
                     ->label('Deleted')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('deletion_flag', 'X'),
-                        false: fn(Builder $query) => $query->where('deletion_flag', '!=', 'X'),
+                        true: fn(Builder $query) => $query->where('item_deleted', 'X'),
+                        false: fn(Builder $query) => $query->where('item_deleted', '!=', 'X'),
                     ),
-                Tables\Filters\TernaryFilter::make('goods_receipt_flag')
-                    ->label('Goods Receipt')
+                Tables\Filters\TernaryFilter::make('movement_allowed')
+                    ->label('Movement Allowed')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('goods_receipt_flag', 'X'),
-                        false: fn(Builder $query) => $query->where('goods_receipt_flag', '!=', 'X'),
+                        true: fn(Builder $query) => $query->where('movement_allowed', 'X'),
+                        false: fn(Builder $query) => $query->where('movement_allowed', '!=', 'X'),
                     ),
-                Tables\Filters\TernaryFilter::make('error_flag')
-                    ->label('Error')
+                Tables\Filters\TernaryFilter::make('missing_part')
+                    ->label('Missing Part')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('error_flag', 'X'),
-                        false: fn(Builder $query) => $query->where('error_flag', '!=', 'X'),
+                        true: fn(Builder $query) => $query->where('missing_part', 'X'),
+                        false: fn(Builder $query) => $query->where('missing_part', '!=', 'X'),
                     ),
-                Tables\Filters\Filter::make('requirement_date')
+                Tables\Filters\Filter::make('requirements_date')
                     ->form([
                         Forms\Components\DatePicker::make('from')->label('From'),
                         Forms\Components\DatePicker::make('until')->label('Until'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when($data['from'] ?? null, fn(Builder $q, $date) => $q->whereDate('requirement_date', '>=', $date))
-                            ->when($data['until'] ?? null, fn(Builder $q, $date) => $q->whereDate('requirement_date', '<=', $date));
+                            ->when($data['from'] ?? null, fn(Builder $q, $date) => $q->whereDate('requirements_date', '>=', $date))
+                            ->when($data['until'] ?? null, fn(Builder $q, $date) => $q->whereDate('requirements_date', '<=', $date));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];

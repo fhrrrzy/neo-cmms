@@ -16,7 +16,8 @@ use Illuminate\Support\Arr;
 use Carbon\Carbon;
 use Exception;
 use App\Services\Sync\Processors\EquipmentProcessor;
-use App\Services\Sync\Processors\EquipmentWorkOrderMaterialProcessor;
+use App\Services\Sync\Processors\EquipmentWorkOrderProcessor;
+use App\Services\Sync\Processors\EquipmentMaterialProcessor;
 use App\Services\Sync\Processors\RunningTimeProcessor;
 use App\Services\Sync\Processors\WorkOrderProcessor;
 
@@ -52,15 +53,15 @@ class ConcurrentApiSyncService
 
         $this->info("🚀 Starting sequential sync for " . count($plantCodes) . " plants");
         $this->info("APIs: Equipment, Running Time ({$runningTimeStartDate} to {$runningTimeEndDate}), Work Orders ({$workOrderStartDate} to {$workOrderEndDate})");
-        $this->info("Order: equipment → work_orders → running_time → equipment_work_order_materials");
+        $this->info("Order: equipment → work_orders → running_time → equipment_work_orders → equipment_materials");
 
         $startTime = now();
         $results = [];
 
         try {
             // Define the sync order (respecting dependencies)
-            // equipment -> work_orders -> running_time -> equipment_work_order_materials (combined)
-            $syncOrder = ['equipment', 'work_orders', 'running_time', 'equipment_work_order_materials'];
+            // equipment -> work_orders -> running_time -> equipment_work_orders -> equipment_materials
+            $syncOrder = ['equipment', 'work_orders', 'running_time', 'equipment_work_orders', 'equipment_materials'];
             $selectedTypes = $types ?? $syncOrder;
 
             foreach ($syncOrder as $apiType) {
@@ -215,14 +216,12 @@ class ConcurrentApiSyncService
                         return ['processed' => 0, 'success' => 0, 'failed' => 0];
                     }
 
-                case 'equipment_work_order_materials':
-                    // Process both equipment_work_orders and equipment_material APIs and combine the data
+                case 'equipment_work_orders':
+                    // Fetch equipment_work_orders data
                     $batchSize = 5; // Process 5 plants at a time
                     $plantBatches = array_chunk($plantCodes, $batchSize);
-                    $allWorkOrderItems = [];
-                    $allMaterialItems = [];
+                    $allItems = [];
 
-                    // Fetch equipment_work_orders data
                     foreach ($plantBatches as $batchIndex => $plantBatch) {
                         $url = $baseUrl . '/equipments/work-order?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
                         $requestBody = ['plant' => array_values($plantBatch)];
@@ -241,13 +240,26 @@ class ConcurrentApiSyncService
                             $data = $response->json() ?? [];
                             $items = $data['data'] ?? $data;
                             if (!empty($items) && is_array($items)) {
-                                $allWorkOrderItems = array_merge($allWorkOrderItems, $items);
+                                $allItems = array_merge($allItems, $items);
                                 $this->info("Work orders batch " . ($batchIndex + 1) . " returned " . count($items) . " items");
                             }
                         }
                     }
 
-                    // Fetch equipment_material data
+                    $this->info("Total equipment_work_orders items: " . count($allItems));
+
+                    if (!empty($allItems)) {
+                        return $this->processApiData($apiType, $allItems);
+                    } else {
+                        return ['processed' => 0, 'success' => 0, 'failed' => 0];
+                    }
+
+                case 'equipment_materials':
+                    // Fetch equipment_materials data
+                    $batchSize = 5; // Process 5 plants at a time
+                    $plantBatches = array_chunk($plantCodes, $batchSize);
+                    $allItems = [];
+
                     foreach ($plantBatches as $batchIndex => $plantBatch) {
                         $url = $baseUrl . '/equipments/material?start_date=' . urlencode($workOrderStartDate) . '&end_date=' . urlencode($workOrderEndDate);
                         $this->info("GET {$url} (batch " . ($batchIndex + 1) . "/" . count($plantBatches) . ", plants: " . implode(', ', $plantBatch) . ")");
@@ -265,25 +277,19 @@ class ConcurrentApiSyncService
                             $data = $response->json() ?? [];
                             $items = $data['data'] ?? $data;
                             if (!empty($items) && is_array($items)) {
-                                $allMaterialItems = array_merge($allMaterialItems, $items);
+                                $allItems = array_merge($allItems, $items);
                                 $this->info("Materials batch " . ($batchIndex + 1) . " returned " . count($items) . " items");
                             }
                         }
                     }
 
-                    $this->info("Total equipment_work_orders items: " . count($allWorkOrderItems));
-                    $this->info("Total equipment_material items: " . count($allMaterialItems));
+                    $this->info("Total equipment_materials items: " . count($allItems));
 
-                    // Process both types with the unified processor
-                    $workOrderResults = !empty($allWorkOrderItems) ? $this->processApiData('equipment_work_order_materials', $allWorkOrderItems) : ['processed' => 0, 'success' => 0, 'failed' => 0];
-                    $materialResults = !empty($allMaterialItems) ? $this->processApiData('equipment_work_order_materials', $allMaterialItems) : ['processed' => 0, 'success' => 0, 'failed' => 0];
-
-                    // Combine results
-                    return [
-                        'processed' => $workOrderResults['processed'] + $materialResults['processed'],
-                        'success' => $workOrderResults['success'] + $materialResults['success'],
-                        'failed' => $workOrderResults['failed'] + $materialResults['failed'],
-                    ];
+                    if (!empty($allItems)) {
+                        return $this->processApiData($apiType, $allItems);
+                    } else {
+                        return ['processed' => 0, 'success' => 0, 'failed' => 0];
+                    }
 
                 default:
                     throw new Exception("Unknown API type: {$apiType}");
@@ -354,8 +360,11 @@ class ConcurrentApiSyncService
                         case 'equipment':
                             (new EquipmentProcessor())->processBatch($items);
                             break;
-                        case 'equipment_work_order_materials':
-                            (new EquipmentWorkOrderMaterialProcessor())->processBatch($items, $this->allowedPlantCodes, 'equipment_work_order_materials');
+                        case 'equipment_work_orders':
+                            (new EquipmentWorkOrderProcessor())->processBatch($items, $this->allowedPlantCodes);
+                            break;
+                        case 'equipment_materials':
+                            (new EquipmentMaterialProcessor())->processBatch($items, $this->allowedPlantCodes);
                             break;
                         case 'running_time':
                             (new RunningTimeProcessor())->processBatch($items, $this->allowedPlantCodes);
