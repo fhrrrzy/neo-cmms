@@ -5,6 +5,7 @@ namespace App\Services\Sync\Processors;
 use App\Models\Plant;
 use App\Models\Equipment;
 use App\Models\EquipmentWorkOrderMaterial;
+use App\Models\WorkOrder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -47,7 +48,7 @@ class EquipmentWorkOrderMaterialProcessor
     {
         DB::transaction(function () use ($chunk, $allowedPlantCodes, $dataType) {
             // Pre-load all related data in bulk
-            $lookupData = $this->preloadLookupData($chunk, $allowedPlantCodes);
+            $lookupData = $this->preloadLookupData($chunk, $allowedPlantCodes, $dataType);
 
             // Prepare equipment work order material data for bulk upsert
             $equipmentWorkOrderMaterialData = [];
@@ -80,7 +81,7 @@ class EquipmentWorkOrderMaterialProcessor
                 }
 
 
-                $equipmentWorkOrderMaterialData[] = $this->prepareEquipmentWorkOrderMaterialData($item, $plant, $dataType);
+                $equipmentWorkOrderMaterialData[] = $this->prepareEquipmentWorkOrderMaterialData($item, $plant, $dataType, $lookupData);
             }
 
             // Bulk upsert equipment work order materials
@@ -91,7 +92,7 @@ class EquipmentWorkOrderMaterialProcessor
     /**
      * Pre-load all lookup data needed for the chunk
      */
-    private function preloadLookupData(array $chunk, array $allowedPlantCodes = []): array
+    private function preloadLookupData(array $chunk, array $allowedPlantCodes = [], string $dataType = 'equipment_work_orders'): array
     {
         // Extract unique plant codes
         $plantCodes = collect($chunk)
@@ -111,8 +112,24 @@ class EquipmentWorkOrderMaterialProcessor
         // Bulk load plants
         $plants = Plant::whereIn('plant_code', $plantCodes)->get()->keyBy('plant_code');
 
+        // Extract unique order numbers to load work orders
+        $orderNumbers = collect($chunk)
+            ->map(function ($item) use ($dataType) {
+                return $this->extractOrderNumber($item, $dataType);
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        // Bulk load work orders with equipment information
+        $workOrders = WorkOrder::whereIn('order', $orderNumbers)
+            ->get()
+            ->keyBy('order');
+
         return [
             'plants' => $plants,
+            'work_orders' => $workOrders,
         ];
     }
 
@@ -151,10 +168,17 @@ class EquipmentWorkOrderMaterialProcessor
     /**
      * Prepare equipment work order material data for bulk upsert
      */
-    private function prepareEquipmentWorkOrderMaterialData(array $item, Plant $plant, string $dataType): array
+    private function prepareEquipmentWorkOrderMaterialData(array $item, Plant $plant, string $dataType, array $lookupData): array
     {
+        // Get order number to look up work order
+        $orderNumber = $this->extractOrderNumber($item, $dataType);
+        $workOrder = $orderNumber && isset($lookupData['work_orders'][$orderNumber])
+            ? $lookupData['work_orders'][$orderNumber]
+            : null;
+
         $baseData = [
             'plant_id' => $plant->id,
+            'equipment_number' => $workOrder?->equipment_number, // From work order
         ];
 
         if ($dataType === 'equipment_work_orders') {
@@ -212,6 +236,7 @@ class EquipmentWorkOrderMaterialProcessor
             return array_merge($baseData, [
                 // Material specific fields
                 'material_number' => Arr::get($item, 'material_number') ?? Arr::get($item, 'material'),
+                'material_description' => Arr::get($item, 'material_description') ?? Arr::get($item, 'material_text'),
                 'reservation_number' => Arr::get($item, 'reservation_number') ?? Arr::get($item, 'reservation'),
                 'reservation_item' => Arr::get($item, 'reservation_item'),
                 'reservation_type' => Arr::get($item, 'reservation_type'),
@@ -305,6 +330,8 @@ class EquipmentWorkOrderMaterialProcessor
                 $chunk,
                 ['plant_id', 'order_number', 'material_number'], // unique keys
                 [
+                    'equipment_number',
+                    'material_description',
                     'reservation_number',
                     'reservation_item',
                     'reservation_type',
