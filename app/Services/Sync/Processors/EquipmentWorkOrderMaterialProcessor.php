@@ -6,75 +6,114 @@ use App\Models\Plant;
 use App\Models\Equipment;
 use App\Models\EquipmentWorkOrderMaterial;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
 class EquipmentWorkOrderMaterialProcessor
 {
+    private const BATCH_SIZE = 2000;
+
     /**
-     * Process a single equipment work order material record.
+     * Process a single equipment work order material item (legacy method for backward compatibility)
      */
     public function process(array $item, array $allowedPlantCodes = [], string $dataType = 'equipment_work_orders'): void
     {
-        try {
-            $plantCode = Arr::get($item, 'plant');
-            if (!$plantCode) {
-                Log::warning('Skipping equipment_work_order_material item due to missing plant code', ['item' => $item]);
-                return; // skip instead of throwing to avoid marking as failed
-            }
+        $this->processBatch([$item], $allowedPlantCodes, $dataType);
+    }
 
-            if (!empty($allowedPlantCodes) && !in_array($plantCode, $allowedPlantCodes, true)) {
-                return;
-            }
-
-            $plant = Plant::where('plant_code', $plantCode)->first();
-            if (!$plant) {
-                Log::warning('Skipping equipment_work_order_material item due to unknown plant code', [
-                    'plant_code' => $plantCode,
-                    'item_id' => Arr::get($item, 'id') ?? Arr::get($item, 'reservation_number'),
-                ]);
-                return; // skip items for plants not present locally
-            }
-
-            // Extract order number and material number for composite key
-            $orderNumber = $this->extractOrderNumber($item, $dataType);
-            $materialNumber = $this->extractMaterialNumber($item, $dataType);
-
-            if (!$orderNumber && !$materialNumber) {
-                Log::warning('Skipping equipment_work_order_material item due to missing order_number and material_number', [
-                    'item' => $item,
-                    'data_type' => $dataType
-                ]);
-                return;
-            }
-
-            // Handle equipment creation/update if equipment_number is present
-            $equipmentNumber = trim((string) (Arr::get($item, 'equipment_number') ?? ''));
-            if ($equipmentNumber !== '') {
-                $this->handleEquipment($equipmentNumber, $plant);
-            }
-
-            // Build composite key for upsert: order_number + material_number
-            $where = [
-                'plant_id' => $plant->id,
-                'order_number' => $orderNumber,
-                'material_number' => $materialNumber,
-            ];
-
-            // Prepare data based on data type
-            $data = $this->prepareData($item, $plant, $dataType);
-
-            EquipmentWorkOrderMaterial::updateOrCreate($where, $data);
-        } catch (Exception $e) {
-            Log::error('EquipmentWorkOrderMaterialProcessor error: ' . $e->getMessage(), [
-                'item' => $item,
-                'data_type' => $dataType,
-                'trace' => $e->getTraceAsString()
-            ]);
-            // Do not rethrow; allow sync to continue and mark item as handled.
+    /**
+     * Process equipment work order material items in batches for optimal performance
+     */
+    public function processBatch(array $items, array $allowedPlantCodes = [], string $dataType = 'equipment_work_orders'): void
+    {
+        if (empty($items)) {
             return;
         }
+
+        // Process in chunks to avoid memory issues
+        $chunks = array_chunk($items, self::BATCH_SIZE);
+
+        foreach ($chunks as $chunk) {
+            $this->processChunk($chunk, $allowedPlantCodes, $dataType);
+        }
+    }
+
+    /**
+     * Process a chunk of equipment work order material items
+     */
+    private function processChunk(array $chunk, array $allowedPlantCodes = [], string $dataType = 'equipment_work_orders'): void
+    {
+        DB::transaction(function () use ($chunk, $allowedPlantCodes, $dataType) {
+            // Pre-load all related data in bulk
+            $lookupData = $this->preloadLookupData($chunk, $allowedPlantCodes);
+
+            // Prepare equipment work order material data for bulk upsert
+            $equipmentWorkOrderMaterialData = [];
+
+            foreach ($chunk as $item) {
+                $plantCode = Arr::get($item, 'plant');
+                if (!$plantCode || (!empty($allowedPlantCodes) && !in_array($plantCode, $allowedPlantCodes, true))) {
+                    continue;
+                }
+
+                $plant = $lookupData['plants'][$plantCode] ?? null;
+                if (!$plant) {
+                    Log::warning('Skipping equipment_work_order_material item due to unknown plant code', [
+                        'plant_code' => $plantCode,
+                        'item_id' => Arr::get($item, 'id') ?? Arr::get($item, 'reservation_number'),
+                    ]);
+                    continue;
+                }
+
+                // Extract order number and material number for composite key
+                $orderNumber = $this->extractOrderNumber($item, $dataType);
+                $materialNumber = $this->extractMaterialNumber($item, $dataType);
+
+                if (!$orderNumber && !$materialNumber) {
+                    Log::warning('Skipping equipment_work_order_material item due to missing order_number and material_number', [
+                        'item' => $item,
+                        'data_type' => $dataType
+                    ]);
+                    continue;
+                }
+
+
+                $equipmentWorkOrderMaterialData[] = $this->prepareEquipmentWorkOrderMaterialData($item, $plant, $dataType);
+            }
+
+            // Bulk upsert equipment work order materials
+            $this->bulkUpsertEquipmentWorkOrderMaterials($equipmentWorkOrderMaterialData);
+        });
+    }
+
+    /**
+     * Pre-load all lookup data needed for the chunk
+     */
+    private function preloadLookupData(array $chunk, array $allowedPlantCodes = []): array
+    {
+        // Extract unique plant codes
+        $plantCodes = collect($chunk)
+            ->map(function ($item) {
+                return Arr::get($item, 'plant');
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        // Filter by allowed plant codes if specified
+        if (!empty($allowedPlantCodes)) {
+            $plantCodes = array_intersect($plantCodes, $allowedPlantCodes);
+        }
+
+        // Bulk load plants
+        $plants = Plant::whereIn('plant_code', $plantCodes)->get()->keyBy('plant_code');
+
+        return [
+            'plants' => $plants,
+        ];
     }
 
     /**
@@ -86,6 +125,9 @@ class EquipmentWorkOrderMaterialProcessor
             return Arr::get($item, 'order_number');
         } elseif ($dataType === 'equipment_materials') {
             return Arr::get($item, 'production_order') ?? Arr::get($item, 'planned_order');
+        } elseif ($dataType === 'equipment_work_order_materials') {
+            // For equipment_work_order_materials, use production_order as order_number
+            return Arr::get($item, 'production_order') ?? Arr::get($item, 'planned_order') ?? Arr::get($item, 'order_number');
         }
         return null;
     }
@@ -99,43 +141,17 @@ class EquipmentWorkOrderMaterialProcessor
             return Arr::get($item, 'material');
         } elseif ($dataType === 'equipment_materials') {
             return Arr::get($item, 'material_number') ?? Arr::get($item, 'material');
+        } elseif ($dataType === 'equipment_work_order_materials') {
+            // For equipment_work_order_materials, use material_number
+            return Arr::get($item, 'material_number') ?? Arr::get($item, 'material');
         }
         return null;
     }
 
     /**
-     * Handle equipment creation/update
+     * Prepare equipment work order material data for bulk upsert
      */
-    private function handleEquipment(string $equipmentNumber, Plant $plant): void
-    {
-        $existingEq = Equipment::where('equipment_number', $equipmentNumber)->first();
-        if ($existingEq) {
-            if ($existingEq->plant_id !== $plant->id) {
-                $existingEq->plant_id = $plant->id;
-                $existingEq->is_active = true;
-                $existingEq->save();
-            }
-        } else {
-            Equipment::updateOrCreate(
-                ['equipment_number' => $equipmentNumber],
-                [
-                    'plant_id' => $plant->id,
-                    'equipment_group_id' => null,
-                    'company_code' => null,
-                    'equipment_description' => null,
-                    'object_number' => null,
-                    'point' => null,
-                    'api_created_at' => Carbon::now(),
-                    'is_active' => true,
-                ]
-            );
-        }
-    }
-
-    /**
-     * Prepare data array based on data type
-     */
-    private function prepareData(array $item, Plant $plant, string $dataType): array
+    private function prepareEquipmentWorkOrderMaterialData(array $item, Plant $plant, string $dataType): array
     {
         $baseData = [
             'plant_id' => $plant->id,
@@ -145,7 +161,6 @@ class EquipmentWorkOrderMaterialProcessor
             return array_merge($baseData, [
                 // Work Order specific fields
                 'order_number' => Arr::get($item, 'order_number'),
-                'equipment_number' => Arr::get($item, 'equipment_number'),
                 'material_description' => Arr::get($item, 'material_description') ?? Arr::get($item, 'material_text'),
 
                 // Common fields
@@ -153,11 +168,11 @@ class EquipmentWorkOrderMaterialProcessor
                 'reservation_status' => Arr::get($item, 'reservation_status'),
                 'storage_location' => Arr::get($item, 'storage_location'),
                 'requirement_date' => Arr::get($item, 'requirements_date'),
-                'requirement_qty' => self::toDecimal(Arr::get($item, 'requirement_quantity')),
+                'requirement_qty' => $this->toDecimal(Arr::get($item, 'requirement_quantity')),
                 'unit_of_measure' => Arr::get($item, 'base_unit_of_measure'),
                 'debit_credit_indicator' => Arr::get($item, 'debit_credit_ind'),
-                'withdrawn_qty' => self::toDecimal(Arr::get($item, 'quantity_withdrawn')),
-                'withdrawn_value' => self::toDecimal(Arr::get($item, 'value_withdrawn')),
+                'withdrawn_qty' => $this->toDecimal(Arr::get($item, 'quantity_withdrawn')),
+                'withdrawn_value' => $this->toDecimal(Arr::get($item, 'value_withdrawn')),
                 'currency' => Arr::get($item, 'currency'),
                 'movement_type' => Arr::get($item, 'movement_type'),
                 'gl_account' => Arr::get($item, 'gl_account'),
@@ -166,9 +181,9 @@ class EquipmentWorkOrderMaterialProcessor
 
                 // Work Order specific fields
                 'quantity_is_fixed' => Arr::get($item, 'quantity_is_fixed'),
-                'qty_in_unit_of_entry' => self::toDecimal(Arr::get($item, 'qty_in_unit_of_entry')),
+                'qty_in_unit_of_entry' => $this->toDecimal(Arr::get($item, 'qty_in_unit_of_entry')),
                 'unit_of_entry' => Arr::get($item, 'unit_of_entry'),
-                'qty_for_avail_check' => self::toDecimal(Arr::get($item, 'qty_for_avail_check')),
+                'qty_for_avail_check' => $this->toDecimal(Arr::get($item, 'qty_for_avail_check')),
                 'goods_recipient' => Arr::get($item, 'goods_recipient'),
                 'material_group' => Arr::get($item, 'material_group'),
                 'acct_manually' => Arr::get($item, 'acct_manually'),
@@ -179,7 +194,7 @@ class EquipmentWorkOrderMaterialProcessor
                 'end_time' => Arr::get($item, 'end_time'),
                 'service_duration' => Arr::get($item, 'service_duration'),
                 'service_dur_unit' => Arr::get($item, 'service_dur_unit'),
-                'api_updated_at' => Arr::get($item, 'updated_at') ? Carbon::parse(Arr::get($item, 'updated_at')) : null,
+                'api_updated_at' => $this->parseApiDateTime(Arr::get($item, 'updated_at')),
 
                 // Material fields from work order
                 'material_number' => Arr::get($item, 'material'),
@@ -190,6 +205,8 @@ class EquipmentWorkOrderMaterialProcessor
                 'final_issue_flag' => Arr::get($item, 'final_issue'),
                 'error_flag' => Arr::get($item, 'missing_part'),
                 'goods_receipt_flag' => Arr::get($item, 'movement_allowed'),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         } else { // equipment_materials
             return array_merge($baseData, [
@@ -206,11 +223,11 @@ class EquipmentWorkOrderMaterialProcessor
                 'reservation_status' => Arr::get($item, 'reservation_status'),
                 'storage_location' => Arr::get($item, 'storage_location'),
                 'requirement_date' => Arr::get($item, 'requirement_date') ?? Arr::get($item, 'requirements_date'),
-                'requirement_qty' => self::toDecimal(Arr::get($item, 'requirement_qty') ?? Arr::get($item, 'requirement_quantity')),
+                'requirement_qty' => $this->toDecimal(Arr::get($item, 'requirement_qty') ?? Arr::get($item, 'requirement_quantity')),
                 'unit_of_measure' => Arr::get($item, 'unit_of_measure') ?? Arr::get($item, 'base_unit_of_measure'),
                 'debit_credit_indicator' => Arr::get($item, 'debit_credit_indicator') ?? Arr::get($item, 'debit_credit_ind'),
-                'withdrawn_qty' => self::toDecimal(Arr::get($item, 'withdrawn_qty')),
-                'withdrawn_value' => self::toDecimal(Arr::get($item, 'withdrawn_value')),
+                'withdrawn_qty' => $this->toDecimal(Arr::get($item, 'withdrawn_qty')),
+                'withdrawn_value' => $this->toDecimal(Arr::get($item, 'withdrawn_value')),
                 'currency' => Arr::get($item, 'currency'),
                 'movement_type' => Arr::get($item, 'movement_type'),
                 'gl_account' => Arr::get($item, 'gl_account'),
@@ -226,20 +243,25 @@ class EquipmentWorkOrderMaterialProcessor
                 'batch_number' => Arr::get($item, 'batch_number'),
                 'storage_bin' => Arr::get($item, 'storage_bin'),
                 'special_stock_indicator' => Arr::get($item, 'special_stock_indicator'),
-                'issued_qty' => self::toDecimal(Arr::get($item, 'issued_qty')),
-                'entry_qty' => self::toDecimal(Arr::get($item, 'entry_qty')),
+                'issued_qty' => $this->toDecimal(Arr::get($item, 'issued_qty')),
+                'entry_qty' => $this->toDecimal(Arr::get($item, 'entry_qty')),
                 'entry_uom' => Arr::get($item, 'entry_uom') ?? Arr::get($item, 'unit_of_entry'),
                 'purchase_requisition' => Arr::get($item, 'purchase_requisition'),
                 'purchase_requisition_item' => Arr::get($item, 'purchase_requisition_item'),
-                'api_created_at' => self::parseApiDateTime(Arr::get($item, 'api_created_at') ?? Arr::get($item, 'created_at')),
+                'api_created_at' => $this->parseApiDateTime(Arr::get($item, 'api_created_at') ?? Arr::get($item, 'created_at')),
 
                 // Extract order number from production_order or planned_order
                 'order_number' => Arr::get($item, 'production_order') ?? Arr::get($item, 'planned_order'),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     }
 
-    private static function parseApiDateTime($value): ?Carbon
+    /**
+     * Parse API datetime safely
+     */
+    private function parseApiDateTime($value): ?Carbon
     {
         if (!$value) {
             return null;
@@ -252,12 +274,87 @@ class EquipmentWorkOrderMaterialProcessor
         }
     }
 
-    private static function toDecimal($value): ?float
+    /**
+     * Convert string to decimal safely
+     */
+    private function toDecimal($value): ?float
     {
         if ($value === null) {
             return null;
         }
         $v = str_replace([','], [''], (string) $value);
         return is_numeric($v) ? (float) $v : null;
+    }
+
+    /**
+     * Bulk upsert equipment work order materials using Eloquent for better performance and safety
+     * Chunks data to avoid MySQL placeholder limit (65535)
+     */
+    private function bulkUpsertEquipmentWorkOrderMaterials(array $equipmentWorkOrderMaterialData): void
+    {
+        if (empty($equipmentWorkOrderMaterialData)) {
+            return;
+        }
+
+        // Chunk data to avoid "too many placeholders" error
+        // With ~50 columns, 500 rows = 25,000 placeholders (well under 65,535 limit)
+        $chunks = array_chunk($equipmentWorkOrderMaterialData, 500);
+
+        foreach ($chunks as $chunk) {
+            EquipmentWorkOrderMaterial::upsert(
+                $chunk,
+                ['plant_id', 'order_number', 'material_number'], // unique keys
+                [
+                    'reservation_number',
+                    'reservation_item',
+                    'reservation_type',
+                    'requirement_type',
+                    'reservation_status',
+                    'storage_location',
+                    'requirement_date',
+                    'requirement_qty',
+                    'unit_of_measure',
+                    'debit_credit_indicator',
+                    'withdrawn_qty',
+                    'withdrawn_value',
+                    'currency',
+                    'movement_type',
+                    'gl_account',
+                    'receiving_plant',
+                    'receiving_storage_loc',
+                    'quantity_is_fixed',
+                    'qty_in_unit_of_entry',
+                    'unit_of_entry',
+                    'qty_for_avail_check',
+                    'goods_recipient',
+                    'material_group',
+                    'acct_manually',
+                    'commitment_item_1',
+                    'commitment_item_2',
+                    'funds_center',
+                    'start_time',
+                    'end_time',
+                    'service_duration',
+                    'service_dur_unit',
+                    'api_updated_at',
+                    'deletion_flag',
+                    'final_issue_flag',
+                    'error_flag',
+                    'goods_receipt_flag',
+                    'production_supply_area',
+                    'batch_number',
+                    'storage_bin',
+                    'special_stock_indicator',
+                    'issued_qty',
+                    'entry_qty',
+                    'entry_uom',
+                    'purchase_requisition',
+                    'purchase_requisition_item',
+                    'production_order',
+                    'api_created_at',
+                    'updated_at'
+                ]
+            );
+        }
     }
 }

@@ -348,33 +348,33 @@ class ConcurrentApiSyncService
 
         try {
             DB::transaction(function () use ($items, $apiType, &$processed, &$success, &$failed) {
-                foreach ($items as $item) {
-                    $processed++;
-                    try {
-                        switch ($apiType) {
-                            case 'equipment':
-                                (new EquipmentProcessor())->process($item);
-                                break;
-                            case 'equipment_work_order_materials':
-                                (new EquipmentWorkOrderMaterialProcessor())->process($item, $this->allowedPlantCodes, 'equipment_work_order_materials');
-                                break;
-                            case 'running_time':
-                                (new RunningTimeProcessor())->process($item, $this->allowedPlantCodes);
-                                break;
-                            case 'work_orders':
-                                (new WorkOrderProcessor())->process($item);
-                                break;
-                        }
-                        $success++;
-                    } catch (\Throwable $e) {
-                        $failed++;
-                        \Illuminate\Support\Facades\Log::error('Sync item failed', [
-                            'api_type' => $apiType,
-                            'error' => $e->getMessage(),
-                            'item_preview' => is_array($item) ? array_intersect_key($item, array_flip(['id', 'reservation_number', 'material_number', 'plant', 'created_at'])) : $item,
-                        ]);
-                        report($e);
+                $processed = count($items);
+                try {
+                    switch ($apiType) {
+                        case 'equipment':
+                            (new EquipmentProcessor())->processBatch($items);
+                            break;
+                        case 'equipment_work_order_materials':
+                            (new EquipmentWorkOrderMaterialProcessor())->processBatch($items, $this->allowedPlantCodes, 'equipment_work_order_materials');
+                            break;
+                        case 'running_time':
+                            (new RunningTimeProcessor())->processBatch($items, $this->allowedPlantCodes);
+                            break;
+                        case 'work_orders':
+                            (new WorkOrderProcessor())->processBatch($items);
+                            break;
                     }
+                    $success = $processed;
+                    $failed = 0;
+                } catch (\Throwable $e) {
+                    $success = 0;
+                    $failed = $processed;
+                    \Illuminate\Support\Facades\Log::error('Sync batch failed', [
+                        'api_type' => $apiType,
+                        'error' => $e->getMessage(),
+                        'items_count' => $processed,
+                    ]);
+                    report($e);
                 }
             });
 

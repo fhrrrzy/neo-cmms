@@ -75,26 +75,10 @@ class EquipmentWorkOrderMaterial extends Model
     }
 
     /**
-     * Get the equipment associated with the equipment work order material.
-     */
-    public function equipment(): BelongsTo
-    {
-        return $this->belongsTo(Equipment::class, 'equipment_number', 'equipment_number');
-    }
-
-    /**
      * Get the work order associated with the equipment work order material.
      */
     public function workOrder(): BelongsTo
     {
         return $this->belongsTo(WorkOrder::class, 'order_number', 'order');
-    }
-
-    /**
-     * Get the production work order associated with the equipment work order material.
-     */
-    public function productionWorkOrder(): BelongsTo
-    {
-        return $this->belongsTo(WorkOrder::class, 'production_order', 'order');
     }
 }
