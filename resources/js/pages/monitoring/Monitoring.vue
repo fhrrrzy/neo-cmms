@@ -1,13 +1,15 @@
 <script setup lang="js">
 import DataTable from '@/components/tables/monitoring/DataTable.vue';
 import DataTableViewOptions from '@/components/tables/monitoring/DataTableViewOptions.vue';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { monitoring } from '@/routes';
 import { useMonitoringFilterStore } from '@/stores/monitoringFilterStore';
 import { useDateRangeStore } from '@/stores/useDateRangeStore';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
-import { nextTick, onMounted, ref } from 'vue';
+import { Filter } from 'lucide-vue-next';
+import { nextTick, onMounted, ref, watch } from 'vue';
 import EquipmentDetailSheet from './components/EquipmentDetailSheet.vue';
 import MonitoringFilter from './components/MonitoringFilter.vue';
 
@@ -19,6 +21,21 @@ const dataTableRef = ref();
 // Sheet state
 const isSheetOpen = ref(false);
 const selectedEquipmentNumber = ref('');
+
+// Filter visibility state - load from localStorage
+const FILTER_VISIBILITY_KEY = 'monitoring_filter_visible';
+const isFilterVisible = ref(
+    localStorage.getItem(FILTER_VISIBILITY_KEY) === 'true' || true,
+);
+
+// Watch for changes and save to localStorage
+watch(isFilterVisible, (newValue) => {
+    localStorage.setItem(FILTER_VISIBILITY_KEY, String(newValue));
+});
+
+const toggleFilterVisibility = () => {
+    isFilterVisible.value = !isFilterVisible.value;
+};
 
 // Pagination state
 const pagination = ref({
@@ -199,57 +216,51 @@ onMounted(() => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-4 md:space-y-6">
-            <!-- Mobile/Tablet: Stacked Layout -->
-            <div class="space-y-4 lg:hidden">
-                <!-- Filter Component -->
-                <MonitoringFilter
-                    :filters="filters"
-                    @filter-change="handleFilterChange"
-                />
+            <!-- Controls Row -->
+            <div class="flex items-center gap-3">
+                <!-- Filter Toggle Button -->
+                <Button
+                    variant="outline"
+                    size="icon"
+                    @click="toggleFilterVisibility"
+                    :class="{ 'bg-accent': isFilterVisible }"
+                >
+                    <Filter class="h-4 w-4" />
+                    <span class="sr-only">Toggle filters</span>
+                </Button>
 
-                <!-- Search and View Controls -->
-                <div class="flex w-full items-center justify-between gap-3">
-                    <div class="w-full flex-1">
-                        <input
-                            type="text"
-                            class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
-                            :value="filters.search"
-                            @input="handleSearchInput"
-                            placeholder="Search equipment..."
-                            aria-label="Search equipment"
-                        />
-                    </div>
-                    <DataTableViewOptions :table="dataTableRef?.table" />
+                <!-- Search Input -->
+                <div class="flex-1">
+                    <input
+                        type="text"
+                        class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
+                        :value="filters.search"
+                        @input="handleSearchInput"
+                        placeholder="Search equipment..."
+                        aria-label="Search equipment"
+                    />
                 </div>
+
+                <!-- View Options -->
+                <DataTableViewOptions :table="dataTableRef?.table" />
             </div>
 
-            <!-- Large+ Screens: Side by Side Layout -->
-            <div class="hidden lg:block">
-                <div class="flex items-end gap-4">
-                    <!-- Filter Component -->
-                    <div class="flex-1">
-                        <MonitoringFilter
-                            :filters="filters"
-                            @filter-change="handleFilterChange"
-                        />
-                    </div>
-
-                    <!-- Search and View Controls -->
-                    <div class="flex items-center gap-3">
-                        <div class="w-80">
-                            <input
-                                type="text"
-                                class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
-                                :value="filters.search"
-                                @input="handleSearchInput"
-                                placeholder="Search equipment..."
-                                aria-label="Search equipment"
-                            />
-                        </div>
-                        <DataTableViewOptions :table="dataTableRef?.table" />
-                    </div>
+            <!-- Toggleable Filter Container -->
+            <transition
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-2"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition duration-150 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-2"
+            >
+                <div v-show="isFilterVisible" class="">
+                    <MonitoringFilter
+                        :filters="filters"
+                        @filter-change="handleFilterChange"
+                    />
                 </div>
-            </div>
+            </transition>
 
             <!-- Equipment Data Table -->
             <div class="space-y-4">
