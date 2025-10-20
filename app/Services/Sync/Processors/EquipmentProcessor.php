@@ -227,7 +227,7 @@ class EquipmentProcessor
         // Chunk data to avoid "too many placeholders" error and reduce memory usage
         // With ~20 columns, 500 rows = 10,000 placeholders (well under 65,535 limit)
         $chunks = array_chunk($cleanData, 500);
-        
+
         foreach ($chunks as $chunk) {
             Equipment::upsert(
                 $chunk,
@@ -255,7 +255,7 @@ class EquipmentProcessor
                     'updated_at'
                 ]
             );
-            
+
             // Free memory after each chunk
             unset($chunk);
         }
