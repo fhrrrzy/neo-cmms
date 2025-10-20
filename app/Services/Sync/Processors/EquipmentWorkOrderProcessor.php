@@ -5,6 +5,7 @@ namespace App\Services\Sync\Processors;
 use App\Models\Plant;
 use App\Models\EquipmentWorkOrder;
 use App\Models\WorkOrder;
+use App\Models\Equipment;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -98,9 +99,23 @@ class EquipmentWorkOrderProcessor
             ->get()
             ->keyBy('order');
 
+        // Extract and validate equipment numbers
+        $equipmentNumbers = collect($chunk)
+            ->map(fn($item) => Arr::get($item, 'equipment_number'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $validEquipment = Equipment::whereIn('equipment_number', $equipmentNumbers)
+            ->pluck('equipment_number')
+            ->flip()
+            ->toArray();
+
         return [
             'plants' => $plants,
             'work_orders' => $workOrders,
+            'validEquipment' => $validEquipment,
         ];
     }
 
@@ -114,10 +129,19 @@ class EquipmentWorkOrderProcessor
             ? $lookupData['work_orders'][$orderNumber]
             : null;
 
+        // Only use order_number if the work order actually exists to avoid foreign key violations
+        $validOrderNumber = $workOrder ? $orderNumber : null;
+
+        // Validate equipment_number against existing equipment
+        $equipmentNumber = Arr::get($item, 'equipment_number') ?? $workOrder?->equipment_number;
+        if ($equipmentNumber && !isset($lookupData['validEquipment'][$equipmentNumber])) {
+            $equipmentNumber = null; // Set to null if equipment doesn't exist
+        }
+
         return [
             'plant_id' => $plant->id,
-            'order_number' => $orderNumber,
-            'equipment_number' => Arr::get($item, 'equipment_number') ?? $workOrder?->equipment_number,
+            'order_number' => $validOrderNumber,
+            'equipment_number' => $equipmentNumber,
             'functional_location' => Arr::get($item, 'functional_location'),
             'functional_location_description' => Arr::get($item, 'functional_location_description'),
             'reservation' => Arr::get($item, 'reservation'),
