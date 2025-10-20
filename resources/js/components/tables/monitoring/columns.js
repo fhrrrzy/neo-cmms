@@ -78,7 +78,37 @@ export const columns = [
     },
     {
         accessorKey: 'plant.name',
-        header: () => 'Pabrik',
+        header: ({ column, table }) => {
+            const sorting = table.options.meta?.sorting;
+            const isSorted = sorting?.sort_by === 'plant.name';
+            const isAsc = sorting?.sort_direction === 'asc';
+            const isDesc = sorting?.sort_direction === 'desc';
+            
+            return h(
+                Button,
+                {
+                    variant: 'ghost',
+                    onClick: () => {
+                        let newDirection;
+                        if (!isSorted) {
+                            newDirection = 'asc';
+                        } else if (isAsc) {
+                            newDirection = 'desc';
+                        } else if (isDesc) {
+                            newDirection = null; // Remove sorting
+                        }
+                        table.options.meta?.onSortChange?.('plant.name', newDirection);
+                    },
+                    class: 'h-8 px-2 lg:px-3',
+                },
+                () => [
+                    'Pabrik',
+                    isSorted 
+                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                ],
+            );
+        },
         cell: ({ row }) => {
             const plant = row.original.plant;
             return h('div', null, renderValueOrNA(plant?.name));

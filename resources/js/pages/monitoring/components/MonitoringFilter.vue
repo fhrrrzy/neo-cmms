@@ -13,8 +13,11 @@ import { useDateRangeStore } from '@/stores/useDateRangeStore';
 import { getLocalTimeZone, parseDate } from '@internationalized/date';
 import axios from 'axios';
 import {
-    Calendar as CalendarIcon,
+    Building2,
     ChevronsUpDown,
+    Clock,
+    Map,
+    MapPin,
     Search,
     X,
 } from 'lucide-vue-next';
@@ -440,8 +443,17 @@ const regionalLabel = computed(() => {
 
 const plantLabel = computed(() => {
     const count = (localFilters.value.plant_ids || []).length;
+    const selectedRegionalIds = localFilters.value.regional_ids || [];
+
+    // If regional is selected but no plants are available, show appropriate message
+    if (selectedRegionalIds.length > 0 && filteredPlants.value.length === 0) {
+        return 'Pilih Regional terlebih dahulu';
+    }
+
     return count === 0
-        ? 'Semua Pabrik'
+        ? selectedRegionalIds.length > 0
+            ? 'Semua Pabrik'
+            : 'Semua Pabrik'
         : count === 1
           ? plants.value.find((p) => p.id === localFilters.value.plant_ids[0])
                 ?.name || 'Pabrik'
@@ -471,7 +483,13 @@ const filteredPlants = computed(() => {
     const search = plantSearch.value.toLowerCase();
     let filtered = plants.value;
 
-    // Do not constrain by selected regionals; show all plants
+    // Only show plants from selected regional
+    const selectedRegionalIds = localFilters.value.regional_ids || [];
+    if (selectedRegionalIds.length > 0) {
+        filtered = filtered.filter((p) =>
+            selectedRegionalIds.includes(p.regional_id),
+        );
+    }
 
     // Filter by search
     return search
@@ -607,7 +625,11 @@ onMounted(async () => {
                             variant="outline"
                             class="w-full justify-between"
                         >
-                            {{ regionalLabel }}
+                            <div class="flex items-center">
+                                <MapPin class="mr-2 h-4 w-4 shrink-0" />
+                                <div class="mr-2 h-4 w-px bg-border"></div>
+                                {{ regionalLabel }}
+                            </div>
                             <ChevronsUpDown
                                 class="ml-2 h-4 w-4 shrink-0 opacity-50"
                             />
@@ -705,7 +727,11 @@ onMounted(async () => {
                             variant="outline"
                             class="w-full justify-between"
                         >
-                            {{ plantLabel }}
+                            <div class="flex items-center">
+                                <Building2 class="mr-2 h-4 w-4 shrink-0" />
+                                <div class="mr-2 h-4 w-px bg-border"></div>
+                                {{ plantLabel }}
+                            </div>
                             <ChevronsUpDown
                                 class="ml-2 h-4 w-4 shrink-0 opacity-50"
                             />
@@ -803,7 +829,11 @@ onMounted(async () => {
                             variant="outline"
                             class="w-full justify-between"
                         >
-                            {{ stationLabel }}
+                            <div class="flex items-center">
+                                <Map class="mr-2 h-4 w-4 shrink-0" />
+                                <div class="mr-2 h-4 w-px bg-border"></div>
+                                {{ stationLabel }}
+                            </div>
                             <ChevronsUpDown
                                 class="ml-2 h-4 w-4 shrink-0 opacity-50"
                             />
@@ -895,7 +925,8 @@ onMounted(async () => {
                                 isRangeEmpty() ? 'text-muted-foreground' : '',
                             ]"
                         >
-                            <CalendarIcon class="mr-2 h-4 w-4" />
+                            <Clock class="mr-2 h-4 w-4" />
+                            <div class="mr-2 h-4 w-px bg-border"></div>
                             <span class="truncate">{{ rangeDisplay() }}</span>
                         </Button>
                     </PopoverTrigger>
@@ -920,6 +951,7 @@ onMounted(async () => {
             <div class="w-full sm:ml-auto sm:w-auto">
                 <Button
                     variant="default"
+                    size="sm"
                     class="w-full sm:w-auto"
                     @click="applyFilters"
                 >

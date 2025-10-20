@@ -27,9 +27,12 @@
                     >
                 </div>
                 <div class="flex items-center gap-4">
-                    <button class="text-slate-300 transition hover:text-white">
+                    <Link
+                        :href="login()"
+                        class="text-slate-300 transition hover:text-white"
+                    >
                         Log in
-                    </button>
+                    </Link>
                     <button
                         class="rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-2 font-semibold transition hover:shadow-lg hover:shadow-cyan-500/50"
                     >
@@ -408,6 +411,8 @@
 </template>
 
 <script setup>
+import { login } from '@/routes';
+import { Link } from '@inertiajs/vue3';
 import { motion } from 'motion-v';
 const features = [
     'Real-time Monitoring',

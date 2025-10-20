@@ -53,6 +53,17 @@ class EquipmentWorkOrderProcessor
                     continue;
                 }
 
+                // Skip items where item_deleted is "X"
+                $itemDeleted = Arr::get($item, 'item_deleted');
+                if ($itemDeleted === 'X') {
+                    Log::info('Skipping equipment_work_order item due to item_deleted = X', [
+                        'plant_code' => $plantCode,
+                        'item_id' => Arr::get($item, 'id') ?? Arr::get($item, 'reservation'),
+                        'reservation' => Arr::get($item, 'reservation'),
+                    ]);
+                    continue;
+                }
+
                 $plant = $lookupData['plants'][$plantCode] ?? null;
                 if (!$plant) {
                     Log::warning('Skipping equipment_work_order item due to unknown plant code', [
