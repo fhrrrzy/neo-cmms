@@ -53,7 +53,7 @@ services:
       [
         'sh',
         '-lc',
-        '/usr/local/bin/set-permissions.sh && php artisan queue:work --queue=high --sleep=1 --tries=3 --memory=256',
+        '/usr/local/bin/set-permissions.sh && php -d memory_limit=512M artisan queue:work --queue=high --sleep=1 --tries=3 --timeout=900 --memory=512',
       ]
     environment:
       - APP_ENV=${APP_ENV:-local}
@@ -76,11 +76,11 @@ services:
       replicas: 1
       resources:
         limits:
+          memory: 1024M
+          cpus: '1.0'
+        reservations:
           memory: 512M
           cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
 
   worker-queue-default:
     build:

@@ -13,7 +13,7 @@ use RuntimeException;
 
 class EquipmentProcessor
 {
-    private const BATCH_SIZE = 2000;
+    private const BATCH_SIZE = 1000; // Reduced from 2000 to avoid memory issues
 
     /**
      * Process a single equipment item (legacy method for backward compatibility)
@@ -224,32 +224,40 @@ class EquipmentProcessor
             return $data;
         }, $equipmentData);
 
-        // Use Eloquent's upsert for better performance and safety
-        Equipment::upsert(
-            $cleanData,
-            ['equipment_number'], // unique key
-            [
-                'plant_id',
-                'station_id',
-                'equipment_group_id',
-                'company_code',
-                'equipment_description',
-                'object_number',
-                'point',
-                'api_created_at',
-                'mandt',
-                'baujj',
-                'groes',
-                'herst',
-                'mrnug',
-                'eqtyp',
-                'eqart',
-                'maintenance_planner_group',
-                'maintenance_work_center',
-                'functional_location',
-                'description_func_location',
-                'updated_at'
-            ]
-        );
+        // Chunk data to avoid "too many placeholders" error and reduce memory usage
+        // With ~20 columns, 500 rows = 10,000 placeholders (well under 65,535 limit)
+        $chunks = array_chunk($cleanData, 500);
+        
+        foreach ($chunks as $chunk) {
+            Equipment::upsert(
+                $chunk,
+                ['equipment_number'], // unique key
+                [
+                    'plant_id',
+                    'station_id',
+                    'equipment_group_id',
+                    'company_code',
+                    'equipment_description',
+                    'object_number',
+                    'point',
+                    'api_created_at',
+                    'mandt',
+                    'baujj',
+                    'groes',
+                    'herst',
+                    'mrnug',
+                    'eqtyp',
+                    'eqart',
+                    'maintenance_planner_group',
+                    'maintenance_work_center',
+                    'functional_location',
+                    'description_func_location',
+                    'updated_at'
+                ]
+            );
+            
+            // Free memory after each chunk
+            unset($chunk);
+        }
     }
 }
