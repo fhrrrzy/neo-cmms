@@ -1,24 +1,16 @@
 <script setup>
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import {
-    Stepper,
-    StepperDescription,
-    StepperItem,
-    StepperSeparator,
-    StepperTitle,
-    StepperTrigger,
-} from '@/components/ui/stepper';
+import { loadDateRange } from '@/lib/dateRangeStorage';
 import axios from 'axios';
-import { ArrowLeft, Check, Circle, Dot } from 'lucide-vue-next';
+import { ArrowLeft } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
     material: { type: String, required: true },
     materialDescription: { type: String, default: '' },
-    equipmentNumber: { type: String, required: false },
-    dateRange: { type: Object, required: false },
+    equipmentNumber: { type: String, required: true },
 });
 
 const emit = defineEmits(['update:open']);
@@ -32,27 +24,50 @@ const items = ref([]);
 const loading = ref(false);
 const error = ref('');
 const runningHoursByKey = ref({}); // key: `${equipment_number}|${date}` -> hours
+const dateRange = ref(null);
+const equipmentDetails = ref(null);
+
+const fetchEquipmentDetails = async () => {
+    if (!props.equipmentNumber) return;
+    try {
+        const { data } = await axios.get(
+            `/api/equipment/${encodeURIComponent(props.equipmentNumber)}`,
+        );
+        equipmentDetails.value = data?.equipment || null;
+    } catch {
+        equipmentDetails.value = null;
+    }
+};
 
 const fetchItems = async () => {
     loading.value = true;
     error.value = '';
+
+    // Validate required fields
+    if (!props.material || !props.equipmentNumber) {
+        error.value = 'Material dan Equipment Number diperlukan';
+        loading.value = false;
+        return;
+    }
+
     try {
-        const params = new URLSearchParams();
-        params.append('material', props.material);
-        if (props.equipmentNumber)
-            params.append('equipment_number', props.equipmentNumber);
-        if (props.dateRange?.start)
-            params.append('date_start', props.dateRange.start);
-        if (props.dateRange?.end)
-            params.append('date_end', props.dateRange.end);
-        params.append('sort_by', 'requirements_date');
-        params.append('sort_direction', 'desc');
-        const { data } = await axios.get(
-            `/api/equipment-work-orders?${params}`,
-        );
-        const list = Array.isArray(data?.data) ? data.data : [];
-        items.value = list;
-        await fetchRunningHoursForItems(list);
+        // Fetch equipment details and items in parallel
+        await Promise.all([
+            fetchEquipmentDetails(),
+            (async () => {
+                const params = new URLSearchParams();
+                params.append('material', props.material);
+                params.append('equipment_number', props.equipmentNumber);
+                params.append('sort_by', 'requirements_date');
+                params.append('sort_direction', 'desc');
+                const { data } = await axios.get(
+                    `/api/equipment-work-orders?${params}`,
+                );
+                const list = Array.isArray(data?.data) ? data.data : [];
+                items.value = list;
+                await fetchRunningHoursForItems(list);
+            })(),
+        ]);
     } catch (e) {
         error.value = e?.response?.data?.message || 'Gagal memuat data';
     } finally {
@@ -127,38 +142,57 @@ const getHoursFor = (eq, dt) => {
     return val === undefined ? null : val;
 };
 
+const loadStoredDateRange = () => {
+    dateRange.value = loadDateRange();
+};
+
+// Compute actual date range from items
+const actualDateRange = computed(() => {
+    if (!items.value || items.value.length === 0) return null;
+
+    const dates = items.value
+        .map((item) => item.requirements_date)
+        .filter(Boolean)
+        .sort();
+
+    if (dates.length === 0) return null;
+
+    return {
+        start: dates[dates.length - 1], // oldest (since sorted desc from API)
+        end: dates[0], // newest
+    };
+});
+
 onMounted(() => {
+    loadStoredDateRange();
     if (props.open) fetchItems();
 });
 
 watch(
-    () => [
-        props.open,
-        props.material,
-        props.equipmentNumber,
-        props.dateRange?.start,
-        props.dateRange?.end,
-    ],
+    () => [props.open, props.material, props.equipmentNumber],
     ([isOpen]) => {
-        if (isOpen) fetchItems();
+        if (isOpen) {
+            loadStoredDateRange();
+            fetchItems();
+        }
     },
 );
 </script>
 
 <template>
-    <Sheet v-model:open="isOpenComputed">
+    <Sheet v-model:open="isOpenComputed" class="sheet-above-modal">
         <SheetContent
             side="left"
-            class="h-[100vh] max-h-[100vh] w-full overflow-hidden p-0 sm:max-w-lg"
+            class="!z-[150] h-[100vh] max-h-[100vh] w-full overflow-hidden p-0 sm:max-w-lg"
             :hide-close="true"
         >
             <!-- Header -->
             <div
-                class="flex h-14 items-center justify-between border-b bg-background px-4"
+                class="flex h-auto min-h-14 flex-col border-b bg-background px-4 py-3"
             >
                 <div class="flex items-center gap-2">
                     <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         class="h-8 w-8"
                         @click="isOpenComputed = false"
@@ -168,17 +202,21 @@ watch(
                     </Button>
                     <div class="text-left">
                         <p class="text-sm leading-none font-semibold">
-                            {{ material }}
+                            History Maintenance
                         </p>
-                        <p class="text-xs text-muted-foreground">
-                            {{ materialDescription || 'N/A' }}
+                        <p
+                            v-if="actualDateRange"
+                            class="mt-1 text-xs text-muted-foreground"
+                        >
+                            {{ formatDate(actualDateRange.start) }} -
+                            {{ formatDate(actualDateRange.end) }}
                         </p>
                     </div>
                 </div>
             </div>
 
             <!-- Content -->
-            <div class="h-[calc(100vh-3.5rem)] overflow-auto p-4">
+            <div class="flex h-[calc(100vh-4rem)] flex-col p-4">
                 <div
                     v-if="loading"
                     class="flex h-40 items-center justify-center text-muted-foreground"
@@ -191,95 +229,61 @@ watch(
                 >
                     {{ error }}
                 </div>
-                <div v-else>
-                    <Stepper
-                        orientation="vertical"
-                        class="mx-auto flex w-full max-w-md flex-col justify-start gap-10"
+                <template v-else>
+                    <!-- Material & Equipment Summary (Fixed) -->
+                    <div
+                        class="mb-4 flex-shrink-0 rounded-lg border bg-card p-4"
                     >
-                        <StepperItem
-                            v-for="(ewo, idx) in items"
-                            :key="`${ewo.order_number}-${idx}`"
-                            v-slot="{ state }"
-                            class="relative flex w-full items-start gap-6"
-                            :step="idx + 1"
-                        >
-                            <StepperSeparator
-                                v-if="idx !== items.length - 1"
-                                class="absolute top-[38px] left-[18px] block h-[105%] w-0.5 shrink-0 rounded-full bg-muted group-data-[state=completed]:bg-primary"
-                            />
-
-                            <StepperTrigger as-child>
-                                <Button
-                                    :variant="
-                                        state === 'completed' ||
-                                        state === 'active'
-                                            ? 'default'
-                                            : 'outline'
-                                    "
-                                    size="icon"
-                                    class="z-10 shrink-0 rounded-full"
-                                    :class="[
-                                        state === 'active' &&
-                                            'ring-2 ring-ring ring-offset-2 ring-offset-background',
-                                    ]"
-                                >
-                                    <Check
-                                        v-if="state === 'completed'"
-                                        class="size-5"
-                                    />
-                                    <Circle v-else-if="state === 'active'" />
-                                    <Dot v-else />
-                                </Button>
-                            </StepperTrigger>
-
-                            <div class="flex min-w-0 flex-col gap-1">
-                                <StepperTitle
-                                    :class="[
-                                        state === 'active' && 'text-primary',
-                                    ]"
-                                    class="truncate text-sm font-semibold transition lg:text-base"
-                                >
-                                    {{ formatDate(ewo.requirements_date) }} — WO
-                                    #{{ ewo.order_number || 'N/A' }}
-                                </StepperTitle>
-                                <StepperDescription
-                                    :class="[
-                                        state === 'active' && 'text-primary',
-                                    ]"
-                                    class="text-xs text-muted-foreground transition lg:text-sm"
-                                >
-                                    {{ ewo.material_description || 'N/A' }}
-                                </StepperDescription>
-                                <div class="mt-1 text-xs text-muted-foreground">
-                                    Equipment:
-                                    <span class="font-mono">{{
-                                        ewo.equipment_number || 'N/A'
-                                    }}</span>
-                                    · Counter reading:
-                                    <span class="font-mono">
-                                        {{
-                                            formatNumber(
-                                                getHoursFor(
-                                                    ewo.equipment_number,
-                                                    ewo.requirements_date,
-                                                ),
-                                                2,
-                                            )
-                                        }}
-                                    </span>
-                                </div>
-                                <div class="mt-1 text-xs text-muted-foreground">
-                                    UoM:
-                                    {{ ewo.base_unit_of_measure || 'N/A' }} ·
-                                    Qty:
-                                    {{ ewo.requirement_quantity ?? 'N/A' }}
-                                </div>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="mb-1 text-xs text-muted-foreground">
+                                    Material
+                                </p>
+                                <p class="text-sm font-semibold">
+                                    {{ material }}
+                                </p>
+                                <p class="mt-0.5 text-xs text-muted-foreground">
+                                    {{ materialDescription || 'N/A' }}
+                                </p>
                             </div>
+                            <div class="h-px bg-border"></div>
+                            <div>
+                                <p class="mb-1 text-xs text-muted-foreground">
+                                    Equipment
+                                </p>
+                                <p class="font-mono text-sm font-semibold">
+                                    {{ equipmentNumber || 'N/A' }}
+                                </p>
+                                <p
+                                    v-if="
+                                        equipmentDetails?.equipment_description
+                                    "
+                                    class="mt-0.5 text-xs text-muted-foreground"
+                                >
+                                    {{ equipmentDetails.equipment_description }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
-                            <!-- Days gap pill centered on the stepper line -->
-                            <template v-if="idx < items.length - 1">
-                                <span
-                                    class="pointer-events-none absolute top-[72px] left-[18px] -translate-x-1/2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                    <!-- Simple Timeline (Scrollable) -->
+                    <div class="min-h-0 flex-1 overflow-auto">
+                        <div class="relative space-y-6 pl-4">
+                            <div
+                                v-for="(ewo, idx) in items"
+                                :key="`${ewo.order_number}-${idx}`"
+                                class="relative flex items-start gap-4"
+                            >
+                                <!-- Timeline line -->
+                                <div
+                                    v-if="idx !== items.length - 1"
+                                    class="absolute top-4 left-[7px] h-[calc(100%+1.5rem)] w-px bg-border"
+                                ></div>
+
+                                <!-- Days gap badge on line -->
+                                <div
+                                    v-if="idx < items.length - 1"
+                                    class="absolute top-[calc(50%+0.75rem)] left-[7px] z-10 flex -translate-x-1/2 items-center rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground ring-1 ring-border"
                                 >
                                     {{
                                         dayDiffBetween(
@@ -288,18 +292,79 @@ watch(
                                         )
                                     }}
                                     hari
-                                </span>
-                            </template>
-                        </StepperItem>
-                    </Stepper>
-                    <div
-                        v-if="items.length === 0"
-                        class="py-8 text-center text-sm text-muted-foreground"
-                    >
-                        Tidak ada data
+                                </div>
+
+                                <!-- Timeline node -->
+                                <div
+                                    class="relative z-10 mt-1 h-4 w-4 shrink-0 rounded-full border-2 border-primary bg-background"
+                                ></div>
+
+                                <!-- Content -->
+                                <div
+                                    class="flex min-w-0 flex-1 flex-col gap-1 pb-2 pl-5"
+                                >
+                                    <p class="text-sm font-semibold">
+                                        {{ formatDate(ewo.requirements_date) }}
+                                    </p>
+                                    <p class="text-xs text-muted-foreground">
+                                        WO #{{ ewo.order_number || 'N/A' }}
+                                    </p>
+                                    <div
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        Counter reading:
+                                        <span class="font-mono font-medium">
+                                            {{
+                                                formatNumber(
+                                                    getHoursFor(
+                                                        ewo.equipment_number,
+                                                        ewo.requirements_date,
+                                                    ),
+                                                    2,
+                                                )
+                                            }}
+                                        </span>
+                                    </div>
+                                    <div
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        UoM:
+                                        <span class="font-medium">{{
+                                            ewo.base_unit_of_measure || 'N/A'
+                                        }}</span>
+                                        · Qty:
+                                        <span class="font-medium">{{
+                                            ewo.requirement_quantity ?? 'N/A'
+                                        }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                v-if="items.length === 0"
+                                class="py-8 text-center text-sm text-muted-foreground"
+                            >
+                                Tidak ada data
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </template>
             </div>
         </SheetContent>
     </Sheet>
 </template>
+
+<style>
+/* Global styles to ensure sheet appears above dialog */
+[data-slot='sheet-overlay'] {
+    z-index: 150 !important;
+}
+
+/* When MaterialUsageSheet is rendered */
+body:has(.sheet-above-modal) [data-slot='dialog-overlay'] {
+    z-index: 55 !important;
+}
+
+body:has(.sheet-above-modal) [data-slot='dialog-content'] {
+    z-index: 60 !important;
+}
+</style>

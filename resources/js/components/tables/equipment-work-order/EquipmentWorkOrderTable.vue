@@ -127,10 +127,14 @@ const handlePageSizeChange = (per) => {
 const sheetOpen = ref(false);
 const selectedMaterial = ref('');
 const selectedMaterialDesc = ref('');
+const selectedEquipmentNumber = ref('');
 
 const openMaterialSheet = (row) => {
     selectedMaterial.value = row?.material || '';
     selectedMaterialDesc.value = row?.material_description || '';
+    // Use equipment number from row data (when available) or from props
+    selectedEquipmentNumber.value =
+        row?.equipment_number || props.equipmentNumber || '';
     sheetOpen.value = true;
 };
 
@@ -230,8 +234,7 @@ watch(
             :open="sheetOpen"
             :material="selectedMaterial"
             :material-description="selectedMaterialDesc"
-            :equipment-number="equipmentNumber"
-            :date-range="dateRange"
+            :equipment-number="selectedEquipmentNumber"
             @update:open="(v) => (sheetOpen = v)"
         />
     </div>

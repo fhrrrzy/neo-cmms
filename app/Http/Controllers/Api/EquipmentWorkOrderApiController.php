@@ -10,6 +10,14 @@ class EquipmentWorkOrderApiController extends Controller
 {
     public function index(Request $request)
     {
+        // Validate that material filtering requires equipment_number
+        if ($request->filled('material') && !$request->filled('equipment_number')) {
+            return response()->json([
+                'message' => 'Equipment number is required when filtering by material',
+                'error' => 'Material number is not unique without equipment context'
+            ], 400);
+        }
+
         // Grouped-by-material mode
         if ($request->get('group_by') === 'material') {
             $query = EquipmentWorkOrder::query();
@@ -24,8 +32,8 @@ class EquipmentWorkOrderApiController extends Controller
                 $query->where('material', $request->material);
             }
 
-            $query->selectRaw('material, material_description, COUNT(*) as count')
-                ->groupBy('material', 'material_description');
+            $query->selectRaw('material, material_description, equipment_number, COUNT(*) as count')
+                ->groupBy('material', 'material_description', 'equipment_number');
 
             // Sorting for grouped result
             $sortBy = $request->get('sort_by');
@@ -45,6 +53,7 @@ class EquipmentWorkOrderApiController extends Controller
                 return [
                     'material' => $row->material,
                     'material_description' => $row->material_description,
+                    'equipment_number' => $row->equipment_number,
                     'count' => (int) $row->count,
                 ];
             });
@@ -108,15 +117,16 @@ class EquipmentWorkOrderApiController extends Controller
     public function show(string $orderNumber, Request $request)
     {
         if ($request->get('group_by') === 'material') {
-            $items = EquipmentWorkOrder::selectRaw('material, material_description, COUNT(*) as count')
+            $items = EquipmentWorkOrder::selectRaw('material, material_description, equipment_number, COUNT(*) as count')
                 ->where('order_number', $orderNumber)
-                ->groupBy('material', 'material_description')
+                ->groupBy('material', 'material_description', 'equipment_number')
                 ->orderByDesc('count')
                 ->get()
                 ->map(function ($row) {
                     return [
                         'material' => $row->material,
                         'material_description' => $row->material_description,
+                        'equipment_number' => $row->equipment_number,
                         'count' => (int) $row->count,
                     ];
                 });
