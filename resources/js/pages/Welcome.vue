@@ -33,11 +33,12 @@
                     >
                         Log in
                     </Link>
-                    <button
+                    <Link
+                        :href="login()"
                         class="rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-2 font-semibold transition hover:shadow-lg hover:shadow-cyan-500/50"
                     >
                         Get Started
-                    </button>
+                    </Link>
                 </div>
             </div>
         </nav>
