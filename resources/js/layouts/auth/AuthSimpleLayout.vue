@@ -15,6 +15,7 @@ defineProps({
         class="relative flex h-svh flex-col items-center justify-center overflow-hidden"
     >
         <Plasma
+            class="hidden md:block"
             color="#ff6b35"
             :speed="0.6"
             direction="forward"
@@ -23,7 +24,7 @@ defineProps({
             :mouseInteractive="false"
         />
         <div
-            class="absolute top-1/2 left-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-white bg-white p-10 dark:border-black dark:bg-black"
+            class="absolute top-1/2 left-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-accent p-10 md:bg-transparent md:backdrop-blur-3xl md:backdrop-brightness-[0.2]"
         >
             <div class="flex flex-col gap-8">
                 <div class="flex flex-col items-center gap-4">
