@@ -2,7 +2,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.optimized
+      dockerfile: Dockerfile.webdevops
     container_name: cmms-app
     restart: unless-stopped
     working_dir: /var/www/html
@@ -43,7 +43,7 @@ services:
   worker-queue-high:
     build:
       context: .
-      dockerfile: Dockerfile.optimized
+      dockerfile: Dockerfile.webdevops
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -85,7 +85,7 @@ services:
   worker-queue-default:
     build:
       context: .
-      dockerfile: Dockerfile.optimized
+      dockerfile: Dockerfile.webdevops
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -127,7 +127,7 @@ services:
   worker-queue-low:
     build:
       context: .
-      dockerfile: Dockerfile.optimized
+      dockerfile: Dockerfile.webdevops
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -169,7 +169,7 @@ services:
   worker-schedule:
     build:
       context: .
-      dockerfile: Dockerfile.optimized
+      dockerfile: Dockerfile.webdevops
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -211,7 +211,7 @@ services:
   reverb:
     build:
       context: .
-      dockerfile: Dockerfile.optimized
+      dockerfile: Dockerfile.webdevops
     restart: unless-stopped
     working_dir: /var/www/html
     ports:

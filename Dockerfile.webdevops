@@ -1,42 +1,20 @@
 # ====================================
-# Stage 1: PHP Base Image with Extensions
+# Stage 1: Composer Dependencies
 # ====================================
-FROM php:8.4-fpm-alpine AS php-base
-
-# Install build dependencies
-RUN apk add --no-cache --virtual .build-deps \
-    libpng-dev libjpeg-turbo-dev freetype-dev \
-    libzip-dev libxml2-dev icu-dev zlib-dev \
-    autoconf g++ make
-
-# Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql zip xml intl opcache pcntl \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && apk del .build-deps
-
-# Install runtime dependencies
-RUN apk add --no-cache \
-    libpng libjpeg-turbo freetype \
-    libzip libxml2 icu-libs
-
-# ====================================
-# Stage 2: Composer Dependencies
-# ====================================
-FROM php-base AS composer-deps
+FROM webdevops/php:8.4-alpine AS composer-deps
 
 WORKDIR /app
 
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
+# Copy Composer files
 COPY composer.json composer.lock ./
+
+# Install dependencies
 RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
 
 # ====================================
-# Stage 3: Frontend Builder (with PHP for Wayfinder)
+# Stage 2: Frontend Builder
 # ====================================
-FROM php-base AS frontend-builder
+FROM webdevops/php:8.4-alpine AS frontend-builder
 
 WORKDIR /app
 
@@ -44,10 +22,7 @@ WORKDIR /app
 RUN apk add --no-cache nodejs npm \
     && npm install -g pnpm
 
-# Copy Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copy PHP dependencies from previous stage
+# Copy Composer dependencies from previous stage
 COPY --from=composer-deps /app/vendor ./vendor
 
 # Copy package files
@@ -93,9 +68,9 @@ RUN apk add --no-cache sqlite-dev \
     && pnpm run build
 
 # ====================================
-# Stage 4: Final Production Image
+# Stage 3: Final Production Image
 # ====================================
-FROM php-base
+FROM webdevops/php:8.4-alpine
 
 WORKDIR /var/www/html
 
@@ -106,10 +81,7 @@ RUN apk add --no-cache \
     wget \
     netcat-openbsd
 
-# Copy Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Copy PHP dependencies
+# Copy Composer dependencies
 COPY --from=composer-deps /app/vendor ./vendor
 
 # Copy application code
@@ -147,6 +119,8 @@ RUN chmod +x /usr/local/bin/set-permissions.sh \
     && php artisan optimize \
     && php artisan filament:optimize
 
+# Expose ports
 EXPOSE 80 8080
 
+# Use the startup script
 CMD ["/usr/local/bin/start.sh"]
