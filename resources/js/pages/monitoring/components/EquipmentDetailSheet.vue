@@ -84,7 +84,10 @@
                         :loading="loading"
                         :not-found="error === 'Equipment not found'"
                         :equipment-number="equipmentNumber"
-                        :date-range="dateRange"
+                        :date-range="{
+                            start: dateRangeStore.start,
+                            end: dateRangeStore.end,
+                        }"
                         :range-value="rangeValue"
                         :popover-open="popoverOpen"
                         :show-back-button="false"
@@ -173,22 +176,12 @@ const qrcode = useQRCode(equipmentUrl, {
     margin: 3,
 });
 
-// Date range state
+// Date range state - use global store directly
 const dateRangeStore = useDateRangeStore();
-const defaultStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split('T')[0];
-const defaultEnd = new Date().toISOString().split('T')[0];
-const initialStart = dateRangeStore.start || defaultStart;
-const initialEnd = dateRangeStore.end || defaultEnd;
-const dateRange = ref({
-    start: initialStart,
-    end: initialEnd,
-});
 const popoverOpen = ref(false);
 const rangeValue = ref({
-    start: dateRange.value.start ? parseDate(dateRange.value.start) : undefined,
-    end: dateRange.value.end ? parseDate(dateRange.value.end) : undefined,
+    start: dateRangeStore.start ? parseDate(dateRangeStore.start) : undefined,
+    end: dateRangeStore.end ? parseDate(dateRangeStore.end) : undefined,
 });
 
 const printQr = () => {
@@ -218,9 +211,9 @@ const fetchEquipmentDetail = async () => {
 
     try {
         const params = new URLSearchParams();
-        if (dateRange.value.start)
-            params.append('date_start', dateRange.value.start);
-        if (dateRange.value.end) params.append('date_end', dateRange.value.end);
+        if (dateRangeStore.start)
+            params.append('date_start', dateRangeStore.start);
+        if (dateRangeStore.end) params.append('date_end', dateRangeStore.end);
 
         const { data } = await axios.get(
             `/api/equipment/${props.equipmentNumber}?${params}`,
@@ -249,5 +242,35 @@ watch(
         }
     },
     { immediate: true },
+);
+
+// Watch for date range changes in the store and update local rangeValue
+watch(
+    () => ({ start: dateRangeStore.start, end: dateRangeStore.end }),
+    (newRange) => {
+        rangeValue.value = {
+            start: newRange.start ? parseDate(newRange.start) : undefined,
+            end: newRange.end ? parseDate(newRange.end) : undefined,
+        };
+    },
+    { immediate: true },
+);
+
+// Watch for local rangeValue changes and update the store
+watch(
+    rangeValue,
+    (newValue) => {
+        if (newValue?.start && newValue?.end) {
+            const startStr = newValue.start.toString();
+            const endStr = newValue.end.toString();
+            if (
+                startStr !== dateRangeStore.start ||
+                endStr !== dateRangeStore.end
+            ) {
+                dateRangeStore.setRange({ start: startStr, end: endStr });
+            }
+        }
+    },
+    { deep: true },
 );
 </script>
