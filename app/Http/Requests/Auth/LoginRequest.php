@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Auth;
 
 use App\Models\User;
+use App\Services\TurnstileService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -29,6 +30,7 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+            'cf-turnstile-response' => ['required', 'string'],
         ];
     }
 
@@ -40,6 +42,7 @@ class LoginRequest extends FormRequest
     public function validateCredentials(): User
     {
         $this->ensureIsNotRateLimited();
+        $this->validateTurnstile();
 
         /** @var User|null $user */
         $user = Auth::getProvider()->retrieveByCredentials($this->only('email', 'password'));
@@ -55,6 +58,23 @@ class LoginRequest extends FormRequest
         RateLimiter::clear($this->throttleKey());
 
         return $user;
+    }
+
+    /**
+     * Validate the Turnstile token
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    protected function validateTurnstile(): void
+    {
+        $turnstileService = app(TurnstileService::class);
+        $token = $this->input('cf-turnstile-response');
+
+        if (!$turnstileService->verify($token, $this->ip())) {
+            throw ValidationException::withMessages([
+                'cf-turnstile-response' => 'Turnstile verification failed. Please try again.',
+            ]);
+        }
     }
 
     /**
@@ -87,7 +107,7 @@ class LoginRequest extends FormRequest
     {
         return $this->string('email')
             ->lower()
-            ->append('|'.$this->ip())
+            ->append('|' . $this->ip())
             ->transliterate()
             ->value();
     }

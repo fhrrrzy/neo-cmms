@@ -53,4 +53,9 @@ return [
         'retry_delay' => env('EQUIPMENT_API_RETRY_DELAY', 1000), // milliseconds
     ],
 
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY', '0x4AAAAAAB7x0ni3kKv-2Hgw'),
+        'secret_key' => env('TURNSTILE_SECRET_KEY', '0x4AAAAAAB7x0o5K56GqDyNT5OsnHZlryzk'),
+    ],
+
 ];

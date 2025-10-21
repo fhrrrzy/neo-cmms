@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import AuthenticatedSessionController from '@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -11,11 +11,33 @@ import { register } from '@/routes';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
 
-defineProps<{
-    status?: string;
-    canResetPassword: boolean;
-}>();
+defineProps({
+    status: String,
+    canResetPassword: Boolean,
+    turnstileSiteKey: String,
+});
+
+const turnstileToken = ref('');
+
+// Load Turnstile script
+onMounted(() => {
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+
+    // Make callbacks globally available
+    window.onTurnstileSuccess = (token) => {
+        turnstileToken.value = token;
+    };
+
+    window.onTurnstileError = () => {
+        turnstileToken.value = '';
+    };
+});
 </script>
 
 <template>
@@ -37,6 +59,17 @@ defineProps<{
             :reset-on-success="['password']"
             v-slot="{ errors, processing }"
             class="flex flex-col gap-6"
+            @submit="
+                (event) => {
+                    if (!turnstileToken) {
+                        event.preventDefault();
+                        return false;
+                    }
+                    // Add turnstile token to form data
+                    const formData = new FormData(event.target);
+                    formData.append('cf-turnstile-response', turnstileToken);
+                }
+            "
         >
             <div class="grid gap-6">
                 <div class="grid gap-2">
@@ -85,11 +118,22 @@ defineProps<{
                     </Label>
                 </div>
 
+                <!-- Cloudflare Turnstile -->
+                <div class="flex justify-center">
+                    <div
+                        class="cf-turnstile"
+                        :data-sitekey="turnstileSiteKey"
+                        data-callback="onTurnstileSuccess"
+                        data-error-callback="onTurnstileError"
+                        data-theme="light"
+                    ></div>
+                </div>
+
                 <Button
                     type="submit"
                     class="mt-4 w-full"
                     :tabindex="4"
-                    :disabled="processing"
+                    :disabled="processing || !turnstileToken"
                     data-test="login-button"
                 >
                     <LoaderCircle
