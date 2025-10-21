@@ -12,7 +12,7 @@ import { Form, Head } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 
-defineProps({
+const props = defineProps({
     status: String,
     canResetPassword: Boolean,
     turnstileSiteKey: String,
@@ -20,8 +20,12 @@ defineProps({
 
 const turnstileToken = ref('');
 
-// Load Turnstile script
+// Load Turnstile script only in production
 onMounted(() => {
+    if (!props.turnstileSiteKey) {
+        return;
+    }
+
     const script = document.createElement('script');
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
     script.async = true;
@@ -60,13 +64,19 @@ onMounted(() => {
             class="flex flex-col gap-6"
             @submit="
                 (event) => {
-                    if (!turnstileToken) {
+                    // Only check Turnstile token in production
+                    if (props.turnstileSiteKey && !turnstileToken) {
                         event.preventDefault();
                         return false;
                     }
-                    // Add turnstile token to form data
-                    const formData = new FormData(event.target);
-                    formData.append('cf-turnstile-response', turnstileToken);
+                    // Add turnstile token to form data if available
+                    if (props.turnstileSiteKey) {
+                        const formData = new FormData(event.target);
+                        formData.append(
+                            'cf-turnstile-response',
+                            turnstileToken,
+                        );
+                    }
                 }
             "
         >
@@ -117,8 +127,8 @@ onMounted(() => {
                     </Label>
                 </div>
 
-                <!-- Cloudflare Turnstile -->
-                <div class="flex justify-center">
+                <!-- Cloudflare Turnstile - Only show in production -->
+                <div v-if="turnstileSiteKey" class="flex justify-center">
                     <div
                         class="cf-turnstile"
                         :data-sitekey="turnstileSiteKey"
@@ -132,7 +142,9 @@ onMounted(() => {
                     type="submit"
                     class="mt-4 w-full"
                     :tabindex="4"
-                    :disabled="processing || !turnstileToken"
+                    :disabled="
+                        processing || (turnstileSiteKey && !turnstileToken)
+                    "
                     data-test="login-button"
                 >
                     <LoaderCircle

@@ -23,7 +23,7 @@ defineProps({
             :mouseInteractive="false"
         />
         <div
-            class="absolute top-1/2 left-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-black p-10"
+            class="absolute top-1/2 left-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-white bg-white p-10 dark:border-black dark:bg-black"
         >
             <div class="flex flex-col gap-8">
                 <div class="flex flex-col items-center gap-4">

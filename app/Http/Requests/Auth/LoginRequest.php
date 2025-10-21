@@ -27,11 +27,17 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
-            'cf-turnstile-response' => ['required', 'string'],
         ];
+
+        // Only require Turnstile in production
+        if (app()->environment('production')) {
+            $rules['cf-turnstile-response'] = ['required', 'string'];
+        }
+
+        return $rules;
     }
 
     /**
@@ -67,6 +73,11 @@ class LoginRequest extends FormRequest
      */
     protected function validateTurnstile(): void
     {
+        // Only validate Turnstile in production
+        if (!app()->environment('production')) {
+            return;
+        }
+
         $turnstileService = app(TurnstileService::class);
         $token = $this->input('cf-turnstile-response');
 

@@ -19,11 +19,17 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(Request $request): Response
     {
-        return Inertia::render('auth/Login', [
+        $data = [
             'canResetPassword' => Route::has('password.request'),
             'status' => $request->session()->get('status'),
-            'turnstileSiteKey' => config('services.turnstile.site_key'),
-        ]);
+        ];
+
+        // Only pass Turnstile site key in production
+        if (app()->environment('production')) {
+            $data['turnstileSiteKey'] = config('services.turnstile.site_key');
+        }
+
+        return Inertia::render('auth/Login', $data);
     }
 
     /**
