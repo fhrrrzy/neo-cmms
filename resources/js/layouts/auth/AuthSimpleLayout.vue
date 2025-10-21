@@ -1,19 +1,30 @@
-<script setup lang="ts">
+<script setup>
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import Plasma from '@/components/blocks/Backgrounds/Plasma/Plasma.vue';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/vue3';
 
-defineProps<{
-    title?: string;
-    description?: string;
-}>();
+defineProps({
+    title: String,
+    description: String,
+});
 </script>
 
 <template>
     <div
-        class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10"
+        class="relative flex h-svh flex-col items-center justify-center overflow-hidden"
     >
-        <div class="w-full max-w-sm">
+        <Plasma
+            color="#ff6b35"
+            :speed="0.6"
+            direction="forward"
+            :scale="2.2"
+            :opacity="0.8"
+            :mouseInteractive="false"
+        />
+        <div
+            class="absolute top-1/2 left-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-transparent p-10 backdrop-blur-3xl backdrop-brightness-[0.1]"
+        >
             <div class="flex flex-col gap-8">
                 <div class="flex flex-col items-center gap-4">
                     <Link

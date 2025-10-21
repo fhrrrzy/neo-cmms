@@ -1,7 +1,6 @@
 <script setup lang="js">
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
     Popover,
     PopoverContent,
@@ -184,13 +183,74 @@ watch(
 // Apply filters on demand via button
 const applyFilters = async () => {
     await nextTick();
-    if (
-        localFilters.value?.date_range?.start &&
-        localFilters.value?.date_range?.end
-    ) {
-        dateRange.setRange(localFilters.value.date_range);
+
+    // Validate and auto-select all if none selected
+    validateAndAutoSelect();
+
+    // Filter plant selection to only include plants from selected regional
+    const selectedRegionalIds = localFilters.value.regional_ids || [];
+    let filteredPlantIds = localFilters.value.plant_ids || [];
+
+    if (selectedRegionalIds.length > 0) {
+        // Only keep plants that belong to the selected regional
+        filteredPlantIds = filteredPlantIds.filter((plantId) => {
+            const plant = plants.value.find((p) => p.id === plantId);
+            return plant && selectedRegionalIds.includes(plant.regional_id);
+        });
     }
-    emit('filter-change', { ...localFilters.value });
+
+    // Prepare the final filter data
+    const finalFilters = {
+        ...localFilters.value,
+        plant_ids: filteredPlantIds,
+    };
+
+    if (finalFilters?.date_range?.start && finalFilters?.date_range?.end) {
+        dateRange.setRange(finalFilters.date_range);
+    }
+
+    emit('filter-change', finalFilters);
+};
+
+// Validation function to ensure at least one option is selected
+const validateAndAutoSelect = () => {
+    console.log('validateAndAutoSelect called - checking all filters');
+
+    // Auto-select all regions if none selected
+    if (
+        (localFilters.value.regional_ids || []).length === 0 &&
+        regions.value.length > 0
+    ) {
+        console.log('Auto-selecting all regions');
+        selectAllRegions();
+    }
+
+    // Auto-select all plants if none selected
+    if (
+        (localFilters.value.plant_ids || []).length === 0 &&
+        plants.value.length > 0
+    ) {
+        console.log('Auto-selecting all plants');
+        selectAllPlants();
+    }
+
+    // Auto-select all stations if none selected
+    if (
+        (localFilters.value.station_codes || []).length === 0 &&
+        stations.value.length > 0
+    ) {
+        console.log('Auto-selecting all stations');
+        selectAllStations();
+    }
+
+    // Auto-select all equipment types if none selected
+    if (
+        (localFilters.value.equipment_types || []).length === 0 &&
+        equipmentTypes.value.length > 0
+    ) {
+        console.log('Auto-selecting all equipment types');
+        selectAllEquipmentTypes();
+    }
 };
 
 // Date range changes are now handled by the custom DateRangePicker component
@@ -299,6 +359,31 @@ const toggleRegional = async (regionalId) => {
         ...localFilters.value,
         regional_ids: currentIds,
     };
+
+    // Clean up plant selection to only include plants from selected regional
+    cleanupPlantSelection();
+};
+
+// Function to clean up plant selection based on regional selection
+const cleanupPlantSelection = () => {
+    const selectedRegionalIds = localFilters.value.regional_ids || [];
+    const currentPlantIds = localFilters.value.plant_ids || [];
+
+    if (selectedRegionalIds.length > 0) {
+        // Only keep plants that belong to the selected regional
+        const validPlantIds = currentPlantIds.filter((plantId) => {
+            const plant = plants.value.find((p) => p.id === plantId);
+            return plant && selectedRegionalIds.includes(plant.regional_id);
+        });
+
+        // Update plant selection if it changed
+        if (validPlantIds.length !== currentPlantIds.length) {
+            localFilters.value = {
+                ...localFilters.value,
+                plant_ids: validPlantIds,
+            };
+        }
+    }
 };
 
 const togglePlant = async (plantId) => {
@@ -417,28 +502,15 @@ const onRegionalChecked = async (regionalId, checked) => {
 const onPlantChecked = async (plantId, checked) => {
     console.log('onPlantChecked', plantId, checked);
     const currentlySelected = isPlantSelected(plantId);
+
     if (checked && !currentlySelected) {
         await togglePlant(plantId);
     } else if (!checked && currentlySelected) {
+        // Allow complete deselection - no forced minimum
         await togglePlant(plantId);
     }
 
-    // If any plant in the regional is deselected, uncheck the regional template
-    const plant = plants.value.find((p) => p.id === plantId);
-    if (plant) {
-        const regionalId = plant.regional_id;
-        if (!isRegionalFullySelected(regionalId)) {
-            // remove regional from selected templates if present
-            if (isRegionalSelected(regionalId)) {
-                await toggleRegional(regionalId);
-            }
-        } else {
-            // all plants under this regional are selected, ensure regional is checked
-            if (!isRegionalSelected(regionalId)) {
-                await toggleRegional(regionalId);
-            }
-        }
-    }
+    // Regional selection is independent - no automatic regional updates
 };
 
 const onStationChecked = async (stationCode, checked) => {
@@ -447,6 +519,7 @@ const onStationChecked = async (stationCode, checked) => {
     if (checked && !currentlySelected) {
         await toggleStation(stationCode);
     } else if (!checked && currentlySelected) {
+        // Allow complete deselection - no forced minimum
         await toggleStation(stationCode);
     }
 };
@@ -457,6 +530,7 @@ const onEquipmentTypeChecked = async (equipmentType, checked) => {
     if (checked && !currentlySelected) {
         await toggleEquipmentType(equipmentType);
     } else if (!checked && currentlySelected) {
+        // Allow complete deselection - no forced minimum
         await toggleEquipmentType(equipmentType);
     }
 };
@@ -521,52 +595,85 @@ const isEquipmentTypeSelected = (equipmentType) => {
 // Computed properties for display labels
 const regionalLabel = computed(() => {
     const count = (localFilters.value.regional_ids || []).length;
-    return count === 0
-        ? 'Semua Regional'
-        : count === 1
-          ? regions.value.find(
+    const totalRegions = regions.value.length;
+
+    if (count === 0) {
+        return 'Regional';
+    } else if (count === totalRegions) {
+        return 'Regional';
+    } else if (count === 1) {
+        return (
+            regions.value.find(
                 (r) => r.id === localFilters.value.regional_ids[0],
             )?.name || 'Regional'
-          : `${count} Regional dipilih`;
+        );
+    } else {
+        return `${count} Regional dipilih`;
+    }
 });
 
 const plantLabel = computed(() => {
-    const count = (localFilters.value.plant_ids || []).length;
     const selectedRegionalIds = localFilters.value.regional_ids || [];
+    const allSelectedPlantIds = localFilters.value.plant_ids || [];
+
+    // Get only the selected plants that are visible in the current regional filter
+    const visibleSelectedPlants = filteredPlants.value.filter((plant) =>
+        allSelectedPlantIds.includes(plant.id),
+    );
+    const visibleSelectedCount = visibleSelectedPlants.length;
+    const totalVisiblePlants = filteredPlants.value.length;
 
     // If regional is selected but no plants are available, show appropriate message
-    if (selectedRegionalIds.length > 0 && filteredPlants.value.length === 0) {
+    if (selectedRegionalIds.length > 0 && totalVisiblePlants === 0) {
         return 'Pilih Regional terlebih dahulu';
     }
 
-    return count === 0
-        ? selectedRegionalIds.length > 0
-            ? 'Semua Pabrik'
-            : 'Semua Pabrik'
-        : count === 1
-          ? plants.value.find((p) => p.id === localFilters.value.plant_ids[0])
-                ?.name || 'Pabrik'
-          : `${count} Pabrik dipilih`;
+    if (visibleSelectedCount === 0) {
+        return 'Pabrik';
+    } else if (
+        visibleSelectedCount === totalVisiblePlants &&
+        totalVisiblePlants > 0
+    ) {
+        return 'Pabrik';
+    } else if (visibleSelectedCount === 1) {
+        return visibleSelectedPlants[0]?.name || 'Pabrik';
+    } else {
+        return `${visibleSelectedCount} Pabrik dipilih`;
+    }
 });
 
 const stationLabel = computed(() => {
     const count = (localFilters.value.station_codes || []).length;
-    return count === 0
-        ? 'Semua Stasiun'
-        : count === 1
-          ? stations.value.find(
+    const totalStations = stations.value.length;
+
+    if (count === 0) {
+        return 'Stasiun';
+    } else if (count === totalStations) {
+        return 'Stasiun';
+    } else if (count === 1) {
+        return (
+            stations.value.find(
                 (s) => s.code === localFilters.value.station_codes[0],
             )?.description || 'Stasiun'
-          : `${count} Stasiun dipilih`;
+        );
+    } else {
+        return `${count} Stasiun dipilih`;
+    }
 });
 
 const equipmentTypeLabel = computed(() => {
     const count = (localFilters.value.equipment_types || []).length;
-    return count === 0
-        ? 'Semua Tipe'
-        : count === 1
-          ? localFilters.value.equipment_types[0] || 'Tipe'
-          : `${count} Tipe dipilih`;
+    const totalTypes = equipmentTypes.value.length;
+
+    if (count === 0) {
+        return 'Tipe';
+    } else if (count === totalTypes) {
+        return 'Tipe';
+    } else if (count === 1) {
+        return localFilters.value.equipment_types[0] || 'Tipe';
+    } else {
+        return `${count} Tipe dipilih`;
+    }
 });
 
 // Filtered lists based on search
@@ -720,12 +827,130 @@ const isRegionalFullySelected = (regionalId) => {
     return allPlantIds.every((id) => selected.has(id));
 };
 
+// Select all/deselect all functions
+const selectAllRegions = () => {
+    const allRegionIds = regions.value.map((r) => r.id);
+    localFilters.value = {
+        ...localFilters.value,
+        regional_ids: allRegionIds,
+    };
+};
+
+const deselectAllRegions = () => {
+    // Allow complete deselection - no forced minimum
+    // Use direct assignment to avoid triggering unnecessary reactive updates
+    localFilters.value.regional_ids = [];
+    localFilters.value.plant_ids = []; // Also clear plants since regions are cleared
+};
+
+const selectAllPlants = () => {
+    const allPlantIds = plants.value.map((p) => p.id);
+    localFilters.value = {
+        ...localFilters.value,
+        plant_ids: allPlantIds,
+    };
+};
+
+const deselectAllPlants = () => {
+    // Allow complete deselection - no forced minimum
+    // Use direct assignment to avoid triggering unnecessary reactive updates
+    localFilters.value.plant_ids = [];
+    // Regional selection remains independent - do not reset regional_ids
+};
+
+const selectAllStations = () => {
+    const allStationCodes = stations.value.map((s) => s.code);
+    localFilters.value = {
+        ...localFilters.value,
+        station_codes: allStationCodes,
+    };
+};
+
+const deselectAllStations = () => {
+    // Allow complete deselection - no forced minimum
+    // Use direct assignment to avoid triggering unnecessary reactive updates
+    localFilters.value.station_codes = [];
+};
+
+const selectAllEquipmentTypes = () => {
+    const allTypes = equipmentTypes.value;
+    localFilters.value = {
+        ...localFilters.value,
+        equipment_types: allTypes,
+    };
+};
+
+const deselectAllEquipmentTypes = () => {
+    // Allow complete deselection - no forced minimum
+    // Use direct assignment to avoid triggering unnecessary reactive updates
+    localFilters.value.equipment_types = [];
+};
+
+// "Only" functions - select only the specified option
+const selectOnlyRegional = (regionalId) => {
+    localFilters.value = {
+        ...localFilters.value,
+        regional_ids: [regionalId],
+    };
+};
+
+const selectOnlyPlant = (plantId) => {
+    localFilters.value = {
+        ...localFilters.value,
+        plant_ids: [plantId],
+    };
+};
+
+const selectOnlyStation = (stationCode) => {
+    localFilters.value = {
+        ...localFilters.value,
+        station_codes: [stationCode],
+    };
+};
+
+const selectOnlyEquipmentType = (equipmentType) => {
+    localFilters.value = {
+        ...localFilters.value,
+        equipment_types: [equipmentType],
+    };
+};
+
 onMounted(async () => {
     // Fetch all initial data
     await fetchRegions();
     await fetchPlants();
     await fetchStations();
     await fetchEquipmentTypes();
+
+    // Set all options as selected by default if no filters are provided or if arrays are empty
+    const hasRegionalSelection =
+        props.filters?.regional_ids?.length > 0 ||
+        localFilters.value.regional_ids?.length > 0;
+    const hasPlantSelection =
+        props.filters?.plant_ids?.length > 0 ||
+        localFilters.value.plant_ids?.length > 0;
+    const hasStationSelection =
+        props.filters?.station_codes?.length > 0 ||
+        localFilters.value.station_codes?.length > 0;
+    const hasEquipmentTypeSelection =
+        props.filters?.equipment_types?.length > 0 ||
+        localFilters.value.equipment_types?.length > 0;
+
+    if (!hasRegionalSelection) {
+        selectAllRegions();
+    }
+    if (!hasPlantSelection) {
+        selectAllPlants();
+    }
+    if (!hasStationSelection) {
+        selectAllStations();
+    }
+    if (!hasEquipmentTypeSelection) {
+        selectAllEquipmentTypes();
+    }
+
+    // Final validation to ensure everything is selected if nothing was selected
+    validateAndAutoSelect();
 
     await nextTick();
 });
@@ -737,17 +962,19 @@ onMounted(async () => {
         <div class="flex flex-wrap items-end gap-4">
             <!-- Regional Filter -->
             <div class="w-full space-y-2 sm:w-auto">
-                <div class="relative">
-                    <Label>Regional</Label>
-                    <button
-                        v-if="localFilters.regional_ids.length > 0"
-                        class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
-                        @click="resetRegional"
-                    >
-                        Reset
-                    </button>
-                </div>
-                <Popover v-model:open="regionalOpen">
+                <Popover
+                    v-model:open="regionalOpen"
+                    @update:open="
+                        (open) => {
+                            if (!open) {
+                                console.log(
+                                    'Regional popover closed - validating selections',
+                                );
+                                validateAndAutoSelect();
+                            }
+                        }
+                    "
+                >
                     <PopoverTrigger as-child>
                         <Button
                             variant="outline"
@@ -764,7 +991,7 @@ onMounted(async () => {
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent
-                        class="w-[280px] p-0"
+                        class="w-[300px] p-0"
                         :side="'bottom'"
                         :align="'start'"
                         :side-offset="4"
@@ -808,7 +1035,7 @@ onMounted(async () => {
                                     <div
                                         v-for="region in filteredRegions"
                                         :key="region.id"
-                                        class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                        class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
                                     >
                                         <Checkbox
                                             :id="`regional-${region.id}`"
@@ -829,9 +1056,35 @@ onMounted(async () => {
                                         >
                                             {{ region.name }}
                                         </label>
+                                        <button
+                                            class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                                            @click="
+                                                selectOnlyRegional(region.id)
+                                            "
+                                        >
+                                            Only
+                                        </button>
                                     </div>
                                 </div>
                             </ScrollArea>
+                            <div class="flex gap-2 border-t p-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="flex-1"
+                                    @click="selectAllRegions"
+                                >
+                                    Select All
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="flex-1"
+                                    @click="deselectAllRegions"
+                                >
+                                    Deselect All
+                                </Button>
+                            </div>
                         </div>
                     </PopoverContent>
                 </Popover>
@@ -839,17 +1092,19 @@ onMounted(async () => {
 
             <!-- Plant Filter -->
             <div class="w-full space-y-2 sm:w-auto">
-                <div class="relative">
-                    <Label>Pabrik</Label>
-                    <button
-                        v-if="localFilters.plant_ids.length > 0"
-                        class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
-                        @click="resetPlant"
-                    >
-                        Reset
-                    </button>
-                </div>
-                <Popover v-model:open="plantOpen">
+                <Popover
+                    v-model:open="plantOpen"
+                    @update:open="
+                        (open) => {
+                            if (!open) {
+                                console.log(
+                                    'Plant popover closed - validating selections',
+                                );
+                                validateAndAutoSelect();
+                            }
+                        }
+                    "
+                >
                     <PopoverTrigger as-child>
                         <Button
                             variant="outline"
@@ -910,7 +1165,7 @@ onMounted(async () => {
                                     <div
                                         v-for="plant in filteredPlants"
                                         :key="plant.id"
-                                        class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                        class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
                                     >
                                         <Checkbox
                                             :id="`plant-${plant.id}`"
@@ -931,9 +1186,33 @@ onMounted(async () => {
                                         >
                                             {{ plant.name }}
                                         </label>
+                                        <button
+                                            class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                                            @click="selectOnlyPlant(plant.id)"
+                                        >
+                                            Only
+                                        </button>
                                     </div>
                                 </div>
                             </ScrollArea>
+                            <div class="flex gap-2 border-t p-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="flex-1"
+                                    @click="selectAllPlants"
+                                >
+                                    Select All
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="flex-1"
+                                    @click="deselectAllPlants"
+                                >
+                                    Deselect All
+                                </Button>
+                            </div>
                         </div>
                     </PopoverContent>
                 </Popover>
@@ -941,17 +1220,19 @@ onMounted(async () => {
 
             <!-- Station Filter -->
             <div class="w-full space-y-2 sm:w-auto">
-                <div class="relative">
-                    <Label>Stasiun</Label>
-                    <button
-                        v-if="localFilters.station_codes.length > 0"
-                        class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
-                        @click="resetStation"
-                    >
-                        Reset
-                    </button>
-                </div>
-                <Popover v-model:open="stationOpen">
+                <Popover
+                    v-model:open="stationOpen"
+                    @update:open="
+                        (open) => {
+                            if (!open) {
+                                console.log(
+                                    'Station popover closed - validating selections',
+                                );
+                                validateAndAutoSelect();
+                            }
+                        }
+                    "
+                >
                     <PopoverTrigger as-child>
                         <Button
                             variant="outline"
@@ -1012,7 +1293,7 @@ onMounted(async () => {
                                     <div
                                         v-for="station in filteredStations"
                                         :key="station.code"
-                                        class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                        class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
                                     >
                                         <Checkbox
                                             :id="`station-${station.code}`"
@@ -1033,9 +1314,35 @@ onMounted(async () => {
                                         >
                                             {{ station.description }}
                                         </label>
+                                        <button
+                                            class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                                            @click="
+                                                selectOnlyStation(station.code)
+                                            "
+                                        >
+                                            Only
+                                        </button>
                                     </div>
                                 </div>
                             </ScrollArea>
+                            <div class="flex gap-2 border-t p-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="flex-1"
+                                    @click="selectAllStations"
+                                >
+                                    Select All
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="flex-1"
+                                    @click="deselectAllStations"
+                                >
+                                    Deselect All
+                                </Button>
+                            </div>
                         </div>
                     </PopoverContent>
                 </Popover>
@@ -1043,17 +1350,19 @@ onMounted(async () => {
 
             <!-- Equipment Type Filter -->
             <div class="w-full space-y-2 sm:w-auto">
-                <div class="relative">
-                    <Label>Tipe</Label>
-                    <button
-                        v-if="localFilters.equipment_types.length > 0"
-                        class="absolute top-0 right-0 text-xs text-muted-foreground hover:text-foreground"
-                        @click="resetEquipmentType"
-                    >
-                        Reset
-                    </button>
-                </div>
-                <Popover v-model:open="typeOpen">
+                <Popover
+                    v-model:open="typeOpen"
+                    @update:open="
+                        (open) => {
+                            if (!open) {
+                                console.log(
+                                    'Equipment type popover closed - validating selections',
+                                );
+                                validateAndAutoSelect();
+                            }
+                        }
+                    "
+                >
                     <PopoverTrigger as-child>
                         <Button
                             variant="outline"
@@ -1116,7 +1425,7 @@ onMounted(async () => {
                                     <div
                                         v-for="equipmentType in filteredEquipmentTypes"
                                         :key="equipmentType"
-                                        class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
+                                        class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent"
                                     >
                                         <Checkbox
                                             :id="`type-${equipmentType}`"
@@ -1139,9 +1448,37 @@ onMounted(async () => {
                                         >
                                             {{ equipmentType }}
                                         </label>
+                                        <button
+                                            class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                                            @click="
+                                                selectOnlyEquipmentType(
+                                                    equipmentType,
+                                                )
+                                            "
+                                        >
+                                            Only
+                                        </button>
                                     </div>
                                 </div>
                             </ScrollArea>
+                            <div class="flex gap-2 border-t p-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="flex-1"
+                                    @click="selectAllEquipmentTypes"
+                                >
+                                    Select All
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="flex-1"
+                                    @click="deselectAllEquipmentTypes"
+                                >
+                                    Deselect All
+                                </Button>
+                            </div>
                         </div>
                     </PopoverContent>
                 </Popover>
@@ -1149,7 +1486,6 @@ onMounted(async () => {
 
             <!-- Date Range Filter -->
             <div class="w-full space-y-2 sm:w-auto">
-                <Label>Periode Jam Jalan</Label>
                 <Popover v-model:open="datePopoverOpen">
                     <PopoverTrigger as-child>
                         <Button
@@ -1159,8 +1495,8 @@ onMounted(async () => {
                                 isRangeEmpty() ? 'text-muted-foreground' : '',
                             ]"
                         >
-                            <Clock class="mr-2 h-4 w-4" />
-                            <div class="mr-2 h-4 w-px bg-border"></div>
+                            <Clock class="h-4 w-4" />
+                            <div class="h-4 w-px bg-border"></div>
                             <span class="truncate">{{ rangeDisplay() }}</span>
                         </Button>
                     </PopoverTrigger>
