@@ -19,7 +19,8 @@ class MonitoringController extends Controller
             ->select([
                 'equipment.*',
                 'plants.name as plant_name',
-                'stations.description as station_description'
+                'stations.description as station_description',
+                'equipment.description_func_location'
             ])
             ->leftJoin('plants', 'equipment.plant_id', '=', 'plants.id')
             ->leftJoin('stations', 'equipment.station_id', '=', 'stations.id');
@@ -91,7 +92,7 @@ class MonitoringController extends Controller
             $sortDirection = 'asc';
         }
 
-        // Add running hours calculation
+        // Add running hours calculation and biaya calculation
         $query->addSelect([
             'running_times_count' => DB::table('running_times')
                 ->selectRaw('COALESCE(SUM(running_hours), 0)')
@@ -99,7 +100,11 @@ class MonitoringController extends Controller
                 ->whereBetween('date', [$dateStart, $dateEnd]),
             'cumulative_jam_jalan' => DB::table('running_times')
                 ->selectRaw('COALESCE(MAX(counter_reading), 0)')
-                ->whereColumn('running_times.equipment_number', 'equipment.equipment_number')
+                ->whereColumn('running_times.equipment_number', 'equipment.equipment_number'),
+            'biaya' => DB::table('equipment_work_orders')
+                ->selectRaw('COALESCE(SUM(value_withdrawn), 0)')
+                ->whereColumn('equipment_work_orders.equipment_number', 'equipment.equipment_number')
+                ->whereBetween('requirements_date', [$dateStart, $dateEnd])
         ]);
 
         // Apply sorting
@@ -110,17 +115,23 @@ class MonitoringController extends Controller
             case 'equipment_description':
                 $query->orderBy('equipment.equipment_description', $sortDirection);
                 break;
-            case 'plant_name':
+            case 'plant.name':
                 $query->orderBy('plants.name', $sortDirection);
                 break;
-            case 'station_description':
+            case 'station.description':
                 $query->orderBy('stations.description', $sortDirection);
                 break;
             case 'cumulative_jam_jalan':
-                $query->orderBy('cumulative_jam_jalan', $sortDirection);
+                $query->orderByRaw('cumulative_jam_jalan ' . $sortDirection);
                 break;
             case 'running_times_count':
-                $query->orderBy('running_times_count', $sortDirection);
+                $query->orderByRaw('running_times_count ' . $sortDirection);
+                break;
+            case 'functional_location':
+                $query->orderBy('equipment.description_func_location', $sortDirection);
+                break;
+            case 'biaya':
+                $query->orderByRaw('biaya ' . $sortDirection);
                 break;
             default:
                 $query->orderBy('equipment.equipment_number', 'asc');
@@ -152,6 +163,8 @@ class MonitoringController extends Controller
                 ] : null,
                 'running_times_count' => (int) $item->running_times_count,
                 'cumulative_jam_jalan' => (float) $item->cumulative_jam_jalan,
+                'functional_location' => $item->description_func_location,
+                'biaya' => (float) $item->biaya,
             ];
         });
 

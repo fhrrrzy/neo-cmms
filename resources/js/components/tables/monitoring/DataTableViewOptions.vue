@@ -9,7 +9,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Settings } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
     table: {
@@ -18,6 +18,9 @@ const props = defineProps({
     },
 });
 
+const COLUMN_VISIBILITY_KEY = 'monitoring_table_column_visibility';
+const isInitialized = ref(false);
+
 const columns = computed(() =>
     props.table
         .getAllColumns()
@@ -25,6 +28,32 @@ const columns = computed(() =>
             (column) =>
                 typeof column.accessorFn !== 'undefined' && column.getCanHide(),
         ),
+);
+
+// Load column visibility from localStorage on mount
+onMounted(() => {
+    // The DataTable component now handles initial loading
+    // Just mark as initialized to allow saving
+    isInitialized.value = true;
+});
+
+// Function to save column visibility to localStorage
+const saveColumnVisibility = () => {
+    if (props.table?.getState()?.columnVisibility && isInitialized.value) {
+        localStorage.setItem(
+            COLUMN_VISIBILITY_KEY,
+            JSON.stringify(props.table.getState().columnVisibility),
+        );
+    }
+};
+
+// Watch for column visibility changes and save to localStorage
+watch(
+    () => props.table?.getState()?.columnVisibility,
+    () => {
+        saveColumnVisibility();
+    },
+    { deep: true },
 );
 </script>
 
@@ -45,7 +74,10 @@ const columns = computed(() =>
                 class="capitalize"
                 :model-value="column.getIsVisible()"
                 @update:model-value="
-                    (value) => column.toggleVisibility(!!value)
+                    (value) => {
+                        column.toggleVisibility(!!value);
+                        saveColumnVisibility();
+                    }
                 "
             >
                 {{ column.id }}

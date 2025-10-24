@@ -73,7 +73,21 @@ const tableSorting = ref([
     },
 ]);
 const columnFilters = ref([]);
-const columnVisibility = ref({});
+// Load column visibility from localStorage on initialization
+const getInitialColumnVisibility = () => {
+    const savedVisibility = localStorage.getItem(
+        'monitoring_table_column_visibility',
+    );
+    if (savedVisibility) {
+        try {
+            return JSON.parse(savedVisibility);
+        } catch (error) {
+            console.warn('Failed to parse saved column visibility:', error);
+        }
+    }
+    return {};
+};
+const columnVisibility = ref(getInitialColumnVisibility());
 const rowSelection = ref({});
 
 const table = useVueTable({
@@ -215,7 +229,7 @@ defineExpose({
                     <TableBody>
                         <template v-if="isLoading">
                             <TableRow v-for="i in 15" :key="i">
-                                <TableCell v-for="j in 8" :key="j">
+                                <TableCell v-for="j in 10" :key="j">
                                     <Skeleton class="h-4 w-full" />
                                 </TableCell>
                             </TableRow>

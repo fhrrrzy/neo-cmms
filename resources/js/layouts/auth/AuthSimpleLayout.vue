@@ -17,9 +17,9 @@ defineProps({
         <Plasma
             class="hidden md:block"
             color="#ff6b35"
-            :speed="0.6"
-            direction="forward"
-            :scale="2.2"
+            :speed="1.2"
+            direction="reverse"
+            :scale="0.9"
             :opacity="0.8"
             :mouseInteractive="false"
         />

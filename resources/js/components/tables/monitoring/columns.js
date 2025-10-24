@@ -239,6 +239,92 @@ export const columns = [
             return h('span', { class: `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}` }, type);
         },
     },
+
+    {
+        accessorKey: 'functional_location',
+        header: ({ column, table }) => {
+            const sorting = table.options.meta?.sorting;
+            const isSorted = sorting?.sort_by === 'functional_location';
+            const isAsc = sorting?.sort_direction === 'asc';
+            const isDesc = sorting?.sort_direction === 'desc';
+            
+            return h(
+                Button,
+                {
+                    variant: 'ghost',
+                    onClick: () => {
+                        let newDirection;
+                        if (!isSorted) {
+                            newDirection = 'asc';
+                        } else if (isAsc) {
+                            newDirection = 'desc';
+                        } else if (isDesc) {
+                            newDirection = null; // Remove sorting
+                        }
+                        table.options.meta?.onSortChange?.('functional_location', newDirection);
+                    },
+                    class: 'h-8 px-2 lg:px-3',
+                },
+                () => [
+                    'Functional Location Description',
+                    isSorted 
+                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                ],
+            );
+        },
+        cell: ({ row }) => {
+            const functionalLocation = row.getValue('functional_location');
+            return h('div', null, renderValueOrNA(functionalLocation, 'max-w-[150px] truncate'));
+        },
+    },
+    {
+        accessorKey: 'biaya',
+        header: ({ column, table }) => {
+            const sorting = table.options.meta?.sorting;
+            const isSorted = sorting?.sort_by === 'biaya';
+            const isAsc = sorting?.sort_direction === 'asc';
+            const isDesc = sorting?.sort_direction === 'desc';
+            
+            return h(
+                Button,
+                {
+                    variant: 'ghost',
+                    onClick: () => {
+                        let newDirection;
+                        if (!isSorted) {
+                            newDirection = 'asc';
+                        } else if (isAsc) {
+                            newDirection = 'desc';
+                        } else if (isDesc) {
+                            newDirection = null; // Remove sorting
+                        }
+                        table.options.meta?.onSortChange?.('biaya', newDirection);
+                    },
+                    class: 'h-8 w-full px-2 lg:px-3 justify-end',
+                },
+                () => [
+                    'Biaya (Periode)',
+                    isSorted 
+                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                ],
+            );
+        },
+        cell: ({ row }) => {
+            const biaya = Number.parseFloat(row.getValue('biaya'));
+            if (!biaya || biaya === 0) {
+                return h('div', { class: 'text-right text-muted-foreground' }, 'N/A');
+            }
+            const formatted = new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }).format(biaya);
+            return h('div', { class: 'text-right font-mono' }, formatted);
+        },
+    },
         {
         accessorKey: 'running_times_count',
         header: ({ column, table }) => {
