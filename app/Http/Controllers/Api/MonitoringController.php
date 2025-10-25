@@ -70,13 +70,23 @@ class MonitoringController extends Controller
         // Apply search across key fields
         if ($request->filled('search')) {
             $search = trim($request->get('search'));
-            $query->where(function (Builder $q) use ($search) {
-                $like = "%{$search}%";
-                $q->where('equipment.equipment_number', 'like', $like)
-                    ->orWhere('equipment.equipment_description', 'like', $like)
-                    ->orWhere('plants.name', 'like', $like)
-                    ->orWhere('stations.description', 'like', $like);
-            });
+            $like = "%{$search}%";
+            $query->whereAny([
+                'equipment.equipment_number',
+                'equipment.equipment_description',
+                'plants.name',
+                'stations.description',
+            ], 'like', $like);
+        }
+
+        // Apply strict filtering when all conditions must match
+        if ($request->filled('strict_filter')) {
+            $strictTerm = trim($request->get('strict_filter'));
+            $strictLike = "%{$strictTerm}%";
+            $query->whereAll([
+                'equipment.equipment_number',
+                'equipment.equipment_description',
+            ], 'like', $strictLike);
         }
 
         // Get date range for running hours calculation
@@ -92,7 +102,7 @@ class MonitoringController extends Controller
             $sortDirection = 'asc';
         }
 
-        // Add running hours calculation and biaya calculation
+        // Add running hours calculation and biaya calculation using subqueries
         $query->addSelect([
             'running_times_count' => DB::table('running_times')
                 ->selectRaw('COALESCE(SUM(running_hours), 0)')
@@ -104,8 +114,23 @@ class MonitoringController extends Controller
             'biaya' => DB::table('equipment_work_orders')
                 ->selectRaw('COALESCE(SUM(value_withdrawn), 0)')
                 ->whereColumn('equipment_work_orders.equipment_number', 'equipment.equipment_number')
-                ->whereBetween('requirements_date', [$dateStart, $dateEnd])
+                ->whereBetween('requirements_date', [$dateStart, $dateEnd]),
+            'active_work_orders_count' => DB::table('work_orders')
+                ->selectRaw('COUNT(*)')
+                ->whereColumn('work_orders.equipment_number', 'equipment.equipment_number')
+                ->where('work_orders.order_status', '!=', 'COMPLETED')
         ]);
+
+        // Use subquery where clause for equipment with recent activity
+        if ($request->filled('has_recent_activity')) {
+            $query->whereExists(function ($q) use ($dateStart, $dateEnd) {
+                $q->select(DB::raw(1))
+                    ->from('running_times')
+                    ->whereColumn('running_times.equipment_number', 'equipment.equipment_number')
+                    ->whereBetween('date', [$dateStart, $dateEnd])
+                    ->where('running_hours', '>', 0);
+            });
+        }
 
         // Apply sorting
         switch ($sortBy) {
