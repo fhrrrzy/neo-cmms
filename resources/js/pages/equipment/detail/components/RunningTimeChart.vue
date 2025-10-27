@@ -89,7 +89,7 @@ const createChart = () => {
         yAxis: [
             {
                 title: {
-                    text: 'Counter Reading',
+                    text: 'Running Hours',
                     style: { color: theme.series[0] },
                 },
                 labels: { style: { color: theme.series[0] } },
@@ -97,7 +97,7 @@ const createChart = () => {
             },
             {
                 title: {
-                    text: 'Running Hours',
+                    text: 'Counter Reading',
                     style: { color: theme.series[1] },
                 },
                 labels: { style: { color: theme.series[1] } },
@@ -124,10 +124,10 @@ const createChart = () => {
         },
         series: [
             {
-                name: 'Counter Reading',
+                name: 'Running Hours',
                 type: 'line',
                 yAxis: 0,
-                data: chartData.map((i) => [i.x, i.counterReading]),
+                data: chartData.map((i) => [i.x, i.runningHours]),
                 color: theme.series[0],
                 marker: { enabled: true, radius: 4 },
                 boostThreshold: 500, // Boost when more than 500 points
@@ -139,10 +139,10 @@ const createChart = () => {
                 },
             },
             {
-                name: 'Running Hours',
+                name: 'Counter Reading',
                 type: 'line',
                 yAxis: 1,
-                data: chartData.map((i) => [i.x, i.runningHours]),
+                data: chartData.map((i) => [i.x, i.counterReading]),
                 color: theme.series[1],
                 marker: { enabled: true, radius: 4 },
                 boostThreshold: 500, // Boost when more than 500 points

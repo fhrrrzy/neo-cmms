@@ -237,18 +237,6 @@ watch(
                         <div class="space-y-3">
                             <div>
                                 <p class="mb-1 text-xs text-muted-foreground">
-                                    Material
-                                </p>
-                                <p class="text-sm font-semibold">
-                                    {{ material }}
-                                </p>
-                                <p class="mt-0.5 text-xs text-muted-foreground">
-                                    {{ materialDescription || 'N/A' }}
-                                </p>
-                            </div>
-                            <div class="h-px bg-border"></div>
-                            <div>
-                                <p class="mb-1 text-xs text-muted-foreground">
                                     Equipment
                                 </p>
                                 <p class="font-mono text-sm font-semibold">
@@ -261,6 +249,19 @@ watch(
                                     class="mt-0.5 text-xs text-muted-foreground"
                                 >
                                     {{ equipmentDetails.equipment_description }}
+                                </p>
+                            </div>
+                            <div class="h-px bg-border"></div>
+
+                            <div>
+                                <p class="mb-1 text-xs text-muted-foreground">
+                                    Material
+                                </p>
+                                <p class="text-sm font-semibold">
+                                    {{ material }}
+                                </p>
+                                <p class="mt-0.5 text-xs text-muted-foreground">
+                                    {{ materialDescription || 'N/A' }}
                                 </p>
                             </div>
                         </div>
