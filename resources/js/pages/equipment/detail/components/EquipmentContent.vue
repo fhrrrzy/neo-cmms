@@ -204,11 +204,29 @@
 
             <!-- Tabs Content -->
             <Tabs default-value="running" v-model="activeTab">
-                <TabsList class="grid w-full grid-cols-4 md:w-fit">
-                    <TabsTrigger value="running">Running Time</TabsTrigger>
-                    <TabsTrigger value="workorders">Work Orders</TabsTrigger>
-                    <TabsTrigger value="material">Material</TabsTrigger>
-                    <TabsTrigger value="biaya">Biaya</TabsTrigger>
+                <TabsList
+                    class="flex w-full gap-2 overflow-x-auto px-10 md:grid md:w-fit md:grid-cols-4 md:gap-0 md:px-0"
+                >
+                    <TabsTrigger
+                        value="running"
+                        class="min-w-[120px] flex-shrink-0 whitespace-nowrap"
+                        >Running Time</TabsTrigger
+                    >
+                    <TabsTrigger
+                        value="workorders"
+                        class="min-w-[120px] flex-shrink-0 whitespace-nowrap"
+                        >Work Orders</TabsTrigger
+                    >
+                    <TabsTrigger
+                        value="material"
+                        class="min-w-[110px] flex-shrink-0 whitespace-nowrap"
+                        >Material</TabsTrigger
+                    >
+                    <TabsTrigger
+                        value="biaya"
+                        class="min-w-[90px] flex-shrink-0 whitespace-nowrap"
+                        >Biaya</TabsTrigger
+                    >
                 </TabsList>
 
                 <div class="relative overflow-hidden">
