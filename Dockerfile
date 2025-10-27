@@ -90,14 +90,16 @@ COPY . .
 # Copy built frontend assets
 COPY --from=frontend-builder /app/public/build ./public/build
 
-# Create directories
+# Create directories with proper permissions
 RUN mkdir -p /var/www/html/storage/logs \
     /var/www/html/storage/framework/cache \
     /var/www/html/storage/framework/sessions \
     /var/www/html/storage/framework/views \
     /var/log/supervisor \
     /var/log/nginx \
-    /run/nginx
+    /run/nginx \
+    && chown -R www-data:www-data /var/www/html/storage \
+    && chmod -R 775 /var/www/html/storage
 
 # Copy configurations
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
