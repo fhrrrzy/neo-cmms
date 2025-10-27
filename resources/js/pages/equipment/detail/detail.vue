@@ -7,7 +7,8 @@
             :equipment="equipment"
             :loading="loading"
             :not-found="notFound"
-            :equipment-number="props.equipmentNumber"
+            :uuid="props.uuid"
+            :equipment-number="equipment.equipment_number"
             :date-range="dateRange"
             :range-value="rangeValue"
             :popover-open="popoverOpen"
@@ -32,7 +33,8 @@
             :equipment="equipment"
             :loading="loading"
             :not-found="notFound"
-            :equipment-number="props.equipmentNumber"
+            :uuid="props.uuid"
+            :equipment-number="equipment.equipment_number"
             :date-range="dateRange"
             :range-value="rangeValue"
             :popover-open="popoverOpen"
@@ -65,7 +67,7 @@ import EquipmentContent from './components/EquipmentContent.vue';
 import QrShare from './components/QrShare.vue';
 
 const props = defineProps({
-    equipmentNumber: {
+    uuid: {
         type: String,
         required: true,
     },
@@ -124,7 +126,7 @@ const breadcrumbs = computed(() => [
         href: '/equipment',
     },
     {
-        title: equipment.value.equipment_number || props.equipmentNumber,
+        title: equipment.value.equipment_number || props.uuid,
         href: '#',
     },
 ]);
@@ -191,7 +193,7 @@ const fetchEquipmentDetail = async () => {
     notFound.value = false;
     try {
         const { data } = await axios.get(
-            `/api/equipment/${props.equipmentNumber}?${params}`,
+            `/api/equipment/${props.uuid}?${params}`,
         );
         equipment.value = data.equipment;
     } catch (err) {

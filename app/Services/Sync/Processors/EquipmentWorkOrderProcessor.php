@@ -150,6 +150,7 @@ class EquipmentWorkOrderProcessor
         }
 
         return [
+            'uuid' => \Illuminate\Support\Str::uuid(),
             'plant_id' => $plant->id,
             'order_number' => $validOrderNumber,
             'equipment_number' => $equipmentNumber,

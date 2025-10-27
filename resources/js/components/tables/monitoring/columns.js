@@ -265,12 +265,19 @@ export const columns = [
                     },
                     class: 'h-8 px-2 lg:px-3',
                 },
-                () => [
-                    'Functional Location Description',
-                    isSorted 
-                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
-                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
-                ],
+                () => h(
+                    'div',
+                    { class: 'flex items-center leading-tight' },
+                    [
+                        h('div', { class: 'text-xs flex flex-col items-start' }, [
+                            h('div', null, 'Functional Location'),
+                            h('div', { class: 'text-[10px] text-muted-foreground mt-0.5' }, 'Description'),
+                        ]),
+                        isSorted 
+                            ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-3 w-3' })
+                            : h(ArrowUpDown, { class: 'ml-2 h-3 w-3' }),
+                    ],
+                ),
             );
         },
         cell: ({ row }) => {
@@ -303,12 +310,19 @@ export const columns = [
                     },
                     class: 'h-8 w-full px-2 lg:px-3 justify-end',
                 },
-                () => [
-                    'Biaya (Periode)',
-                    isSorted 
-                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
-                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
-                ],
+                () => h(
+                    'div',
+                    { class: 'flex items-center leading-tight' },
+                    [
+                        h('div', { class: 'text-xs flex flex-col items-end' }, [
+                            h('div', null, 'Biaya'),
+                            h('div', { class: 'text-[10px] text-muted-foreground mt-0.5' }, '(Periode)'),
+                        ]),
+                        isSorted 
+                            ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                            : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                    ],
+                ),
             );
         },
         cell: ({ row }) => {
@@ -350,12 +364,19 @@ export const columns = [
                     },
                     class: 'h-8 w-full px-2 lg:px-3 justify-end',
                 },
-                () => [
-                    'Total Jam Jalan (Periode)',
-                    isSorted 
-                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
-                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
-                ],
+                () => h(
+                    'div',
+                    { class: 'flex items-center leading-tight' },
+                    [
+                        h('div', { class: 'text-xs flex flex-col items-end' }, [
+                            h('div', null, 'Total Jam Jalan'),
+                            h('div', { class: 'text-[10px] text-muted-foreground mt-0.5' }, '(Periode)'),
+                        ]),
+                        isSorted 
+                            ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                            : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                    ],
+                ),
             );
         },
         cell: ({ row }) => {
@@ -395,12 +416,19 @@ export const columns = [
                     },
                     class: 'h-8 w-full px-2 lg:px-3 justify-end',
                 },
-                () => [
-                    'Jam Jalan Cummulative',
-                    isSorted 
-                        ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
-                        : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
-                ],
+                () => h(
+                    'div',
+                    { class: 'flex items-center leading-tight' },
+                    [
+                        h('div', { class: 'text-xs flex flex-col items-end' }, [
+                            h('div', null, 'Jam Jalan'),
+                            h('div', { class: 'text-[10px] text-muted-foreground mt-0.5' }, '(Cummulative)'),
+                        ]),
+                        isSorted 
+                            ? h(isAsc ? ArrowUp : ArrowDown, { class: 'ml-2 h-4 w-4' })
+                            : h(ArrowUpDown, { class: 'ml-2 h-4 w-4' }),
+                    ],
+                ),
             );
         },
         cell: ({ row }) => {

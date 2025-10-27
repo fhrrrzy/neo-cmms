@@ -117,6 +117,7 @@ class EquipmentMaterialProcessor
         }
 
         return [
+            'uuid' => \Illuminate\Support\Str::uuid(),
             'plant_id' => $plant->id,
             'material_number' => Arr::get($item, 'material_number') ?? Arr::get($item, 'material'),
             'reservation_number' => Arr::get($item, 'reservation_number') ?? Arr::get($item, 'reservation'),

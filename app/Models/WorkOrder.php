@@ -12,6 +12,7 @@ class WorkOrder extends Model
     use HasFactory;
 
     protected $fillable = [
+        'uuid',
         'mandt',
         'order',
         'order_type',

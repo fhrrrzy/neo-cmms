@@ -197,7 +197,7 @@ const handleSortChange = (sortBy, sortDirection) => {
 
 const handleRowClick = (equipment) => {
     // Open equipment detail in sheet
-    selectedEquipmentNumber.value = equipment.equipment_number;
+    selectedEquipmentNumber.value = equipment.uuid;
     isSheetOpen.value = true;
 };
 

@@ -17,6 +17,7 @@ class Equipment extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'uuid',
         'equipment_number',
         'plant_id',
         'station_id',

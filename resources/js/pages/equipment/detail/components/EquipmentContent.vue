@@ -270,6 +270,7 @@
                                     </div>
                                     <RunningTimeTable
                                         v-else
+                                        :equipment-uuid="equipmentUuid"
                                         :equipment-number="equipmentNumber"
                                         :date-range="dateRange"
                                     />
@@ -362,6 +363,8 @@
                                     </div>
                                     <BiayaTable
                                         v-else
+                                        :equipment="equipment"
+                                        :equipment-uuid="equipmentUuid"
                                         :equipment-number="equipmentNumber"
                                         :date-range="dateRange"
                                         max-height-class="max-h-[60vh]"
@@ -403,9 +406,13 @@ const props = defineProps({
     },
     loading: { type: Boolean, default: false },
     notFound: { type: Boolean, default: false },
-    equipmentNumber: {
+    uuid: {
         type: String,
         required: true,
+    },
+    equipmentNumber: {
+        type: String,
+        required: false,
     },
     dateRange: {
         type: Object,
@@ -477,6 +484,16 @@ const formatDate = (dateString) => {
         day: 'numeric',
     });
 };
+
+// Computed property for equipment number
+const equipmentNumber = computed(() => {
+    return props.equipment?.equipment_number || props.equipmentNumber || '';
+});
+
+// Computed property for UUID
+const equipmentUuid = computed(() => {
+    return props.uuid || props.equipment?.uuid || '';
+});
 
 // Tab transition helper
 const getTransitionName = () => {

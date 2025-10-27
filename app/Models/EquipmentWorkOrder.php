@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class EquipmentWorkOrder extends Model
 {
     protected $fillable = [
+        'uuid',
         'plant_id',
         'order_number',
         'equipment_number',

@@ -172,6 +172,7 @@ class MonitoringController extends Controller
         $transformedData = $paginatedEquipment->getCollection()->map(function ($item) {
             return [
                 'id' => $item->id,
+                'uuid' => $item->uuid,
                 'equipment_number' => $item->equipment_number,
                 'equipment_description' => $item->equipment_description,
                 'company_code' => $item->company_code,
@@ -186,10 +187,10 @@ class MonitoringController extends Controller
                     'id' => $item->station->id,
                     'description' => $item->station->description,
                 ] : null,
-                'running_times_count' => (int) $item->running_times_count,
-                'cumulative_jam_jalan' => (float) $item->cumulative_jam_jalan,
+                'running_times_count' => (int) ($item->running_times_count ?? 0),
+                'cumulative_jam_jalan' => (float) ($item->cumulative_jam_jalan ?? 0),
                 'functional_location' => $item->description_func_location,
-                'biaya' => (float) $item->biaya,
+                'biaya' => (float) ($item->biaya ?? 0),
             ];
         });
 
@@ -252,15 +253,27 @@ class MonitoringController extends Controller
 
     public function biaya(Request $request)
     {
-        // Validate required equipment_number
-        if (!$request->filled('equipment_number')) {
+        // Validate required equipment_uuid
+        if (!$request->filled('equipment_uuid')) {
             return response()->json([
-                'message' => 'Equipment number is required',
-                'error' => 'Missing equipment_number parameter'
+                'message' => 'Equipment UUID is required',
+                'error' => 'Missing equipment_uuid parameter'
             ], 400);
         }
 
-        $equipmentNumber = $request->get('equipment_number');
+        $equipmentUuid = $request->get('equipment_uuid');
+
+        // Get equipment to retrieve equipment_number
+        $equipment = Equipment::where('uuid', $equipmentUuid)->first();
+
+        if (!$equipment) {
+            return response()->json([
+                'message' => 'Equipment not found',
+                'error' => 'Invalid equipment UUID'
+            ], 404);
+        }
+
+        $equipmentNumber = $equipment->equipment_number;
 
         // Get date range (default to last 7 days if not provided)
         $dateStart = $request->get('date_start', now()->subWeek()->toDateString());
@@ -380,6 +393,7 @@ class MonitoringController extends Controller
             'from' => $page > 1 ? (($page - 1) * $perPage) + 1 : ($total > 0 ? 1 : 0),
             'to' => min($page * $perPage, $total),
             'filters' => [
+                'equipment_uuid' => $equipmentUuid,
                 'equipment_number' => $equipmentNumber,
                 'date_start' => $dateStart,
                 'date_end' => $dateEnd,

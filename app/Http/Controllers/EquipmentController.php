@@ -9,7 +9,7 @@ use Inertia\Inertia;
 
 class EquipmentController extends Controller
 {
-    public function show(string $equipmentNumber, Request $request)
+    public function show(string $uuid, Request $request)
     {
         $equipment = Equipment::with(['plant.regional', 'station'])
             ->select([
@@ -19,7 +19,7 @@ class EquipmentController extends Controller
             ])
             ->leftJoin('plants', 'equipment.plant_id', '=', 'plants.id')
             ->leftJoin('stations', 'equipment.station_id', '=', 'stations.id')
-            ->where('equipment.equipment_number', $equipmentNumber)
+            ->where('equipment.uuid', $uuid)
             ->first();
 
         if (!$equipment) {
@@ -43,6 +43,7 @@ class EquipmentController extends Controller
 
         $equipmentData = [
             'id' => $equipment->id,
+            'uuid' => $equipment->uuid,
             'equipment_number' => $equipment->equipment_number,
             'equipment_description' => $equipment->equipment_description,
             'company_code' => $equipment->company_code,
@@ -69,7 +70,7 @@ class EquipmentController extends Controller
         ];
 
         return Inertia::render('equipment/detail/detail', [
-            'equipmentNumber' => $equipmentNumber,
+            'uuid' => $uuid,
             'equipment' => $equipmentData,
         ]);
     }

@@ -135,6 +135,7 @@ class WorkOrderProcessor
         }
 
         return [
+            'uuid' => \Illuminate\Support\Str::uuid(),
             'order' => Arr::get($item, 'order'),
             'mandt' => Arr::get($item, 'mandt'),
             'order_type' => Arr::get($item, 'order_type'),

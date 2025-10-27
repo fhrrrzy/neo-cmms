@@ -13,7 +13,8 @@ import { runningTimeColumns } from './columns';
 import RunningTimePagination from './RunningTimePagination.vue';
 
 const props = defineProps({
-    equipmentNumber: { type: String, required: true },
+    equipmentUuid: { type: String, required: false },
+    equipmentNumber: { type: String, required: false },
     dateRange: {
         type: Object,
         required: true,
@@ -71,8 +72,16 @@ const fetchData = async () => {
             params.append('rt_sort_by', sortBy.value);
             params.append('rt_sort_direction', sortDirection.value);
         }
+        // Use UUID if available, fallback to equipment number
+        const equipmentId = props.equipmentUuid || props.equipmentNumber;
+        if (!equipmentId) {
+            console.error('Equipment UUID or number is required');
+            rows.value = [];
+            loading.value = false;
+            return;
+        }
         const { data } = await axios.get(
-            `/api/equipment/${props.equipmentNumber}?${params}`,
+            `/api/equipment/${equipmentId}?${params}`,
         );
         rows.value = data?.equipment?.recent_running_times || [];
         const meta = data?.equipment?.running_times_pagination;
@@ -102,7 +111,12 @@ const handlePageSizeChange = (perPageValue) => {
 
 onMounted(fetchData);
 watch(
-    () => [props.equipmentNumber, props.dateRange?.start, props.dateRange?.end],
+    () => [
+        props.equipmentUuid,
+        props.equipmentNumber,
+        props.dateRange?.start,
+        props.dateRange?.end,
+    ],
     fetchData,
 );
 </script>

@@ -11,6 +11,7 @@ class RunningTime extends Model
     use HasFactory;
 
     protected $fillable = [
+        'uuid',
         'mandt',
         'point',
         'equipment_number',

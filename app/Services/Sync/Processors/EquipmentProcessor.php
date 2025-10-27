@@ -183,6 +183,7 @@ class EquipmentProcessor
         }
 
         return [
+            'uuid' => \Illuminate\Support\Str::uuid(),
             'equipment_number' => $equipmentNumber,
             'plant_id' => $plant->id,
             'station_id' => $station?->id,

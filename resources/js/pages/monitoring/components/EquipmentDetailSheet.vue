@@ -83,7 +83,8 @@
                         :equipment="equipment"
                         :loading="loading"
                         :not-found="error === 'Equipment not found'"
-                        :equipment-number="equipmentNumber"
+                        :uuid="equipmentNumber"
+                        :equipment-number="equipment.equipment_number"
                         :date-range="{
                             start: dateRangeStore.start,
                             end: dateRangeStore.end,
@@ -215,6 +216,7 @@ const fetchEquipmentDetail = async () => {
             params.append('date_start', dateRangeStore.start);
         if (dateRangeStore.end) params.append('date_end', dateRangeStore.end);
 
+        // props.equipmentNumber is actually UUID in this context
         const { data } = await axios.get(
             `/api/equipment/${props.equipmentNumber}?${params}`,
         );

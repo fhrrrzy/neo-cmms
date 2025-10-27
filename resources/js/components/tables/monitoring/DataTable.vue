@@ -207,7 +207,7 @@ defineExpose({
         <div class="rounded-md border">
             <!-- Desktop Table -->
             <div class="hidden md:block">
-                <Table>
+                <Table class="w-full table-auto">
                     <TableHeader>
                         <TableRow
                             v-for="headerGroup in table.getHeaderGroups()"
@@ -393,6 +393,41 @@ defineExpose({
                                                           .running_times_count,
                                                   ) + ' Jam'
                                                 : 'N/A'
+                                        }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                    <span class="text-muted-foreground"
+                                        >Biaya Periode:</span
+                                    >
+                                    <p
+                                        class="font-mono font-semibold text-primary"
+                                    >
+                                        {{
+                                            row.original.biaya
+                                                ? new Intl.NumberFormat(
+                                                      'id-ID',
+                                                      {
+                                                          style: 'currency',
+                                                          currency: 'IDR',
+                                                          minimumFractionDigits: 0,
+                                                          maximumFractionDigits: 0,
+                                                      },
+                                                  ).format(row.original.biaya)
+                                                : 'N/A'
+                                        }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <span class="text-muted-foreground"
+                                        >Fungsional Lokasi:</span
+                                    >
+                                    <p class="truncate">
+                                        {{
+                                            row.original.functional_location ||
+                                            'N/A'
                                         }}
                                     </p>
                                 </div>

@@ -13,7 +13,9 @@ import axios from 'axios';
 import { onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
-    equipmentNumber: { type: String, required: true },
+    equipmentUuid: { type: String, required: false },
+    equipmentNumber: { type: String, required: false },
+    equipment: { type: Object, required: false },
     dateRange: { type: Object, required: true },
     maxHeightClass: { type: String, default: 'max-h-[80vh]' },
 });
@@ -63,7 +65,15 @@ const fetchData = async () => {
     loading.value = true;
     try {
         const params = new URLSearchParams();
-        params.append('equipment_number', props.equipmentNumber);
+        // Get equipment UUID from equipment object or computed prop
+        const equipmentUuid = props.equipment?.uuid || props.equipmentUuid;
+        if (!equipmentUuid) {
+            console.error('Equipment UUID is required');
+            rows.value = [];
+            loading.value = false;
+            return;
+        }
+        params.append('equipment_uuid', equipmentUuid);
         if (props.dateRange?.start)
             params.append('date_start', props.dateRange.start);
         if (props.dateRange?.end)
@@ -118,7 +128,14 @@ const sortIcon = (column) => {
 
 onMounted(fetchData);
 watch(
-    () => [props.equipmentNumber, props.dateRange?.start, props.dateRange?.end],
+    () => [
+        props.equipmentUuid,
+        props.equipment?.uuid,
+        props.equipmentNumber,
+        props.equipment?.equipment_number,
+        props.dateRange?.start,
+        props.dateRange?.end,
+    ],
     () => {
         page.value = 1;
         fetchData();
@@ -165,51 +182,75 @@ watch(
                 <TableHeader>
                     <TableRow>
                         <TableHead
-                            class="w-12 text-center"
+                            class="w-12 text-center text-xs"
                             @click="handleSort('requirements_date')"
                         >
                             #
                         </TableHead>
-                        <TableHead @click="handleSort('requirements_date')">
-                            Date
-                            <span v-if="sortIcon('requirements_date')">
-                                {{ sortIcon('requirements_date') }}
-                            </span>
-                        </TableHead>
-                        <TableHead @click="handleSort('order_number')">
-                            Order No
-                            <span v-if="sortIcon('order_number')">
-                                {{ sortIcon('order_number') }}
-                            </span>
-                        </TableHead>
-                        <TableHead @click="handleSort('material')">
-                            Material
-                            <span v-if="sortIcon('material')">
-                                {{ sortIcon('material') }}
-                            </span>
-                        </TableHead>
-                        <TableHead class="text-right">
-                            Material Description
+                        <TableHead
+                            class="text-xs"
+                            @click="handleSort('requirements_date')"
+                        >
+                            <div class="leading-tight">
+                                Date
+                                <span v-if="sortIcon('requirements_date')">
+                                    {{ sortIcon('requirements_date') }}
+                                </span>
+                            </div>
                         </TableHead>
                         <TableHead
-                            class="text-right"
+                            class="text-xs"
+                            @click="handleSort('order_number')"
+                        >
+                            <div class="leading-tight">
+                                Order No
+                                <span v-if="sortIcon('order_number')">
+                                    {{ sortIcon('order_number') }}
+                                </span>
+                            </div>
+                        </TableHead>
+                        <TableHead
+                            class="text-xs"
+                            @click="handleSort('material')"
+                        >
+                            <div class="leading-tight">
+                                Material
+                                <span v-if="sortIcon('material')">
+                                    {{ sortIcon('material') }}
+                                </span>
+                            </div>
+                        </TableHead>
+                        <TableHead class="text-right text-xs">
+                            <div class="leading-tight">
+                                Material<br />Description
+                            </div>
+                        </TableHead>
+                        <TableHead
+                            class="text-right text-xs"
                             @click="handleSort('quantity_withdrawn')"
                         >
-                            Qty
-                            <span v-if="sortIcon('quantity_withdrawn')">
-                                {{ sortIcon('quantity_withdrawn') }}
-                            </span>
+                            <div class="leading-tight">
+                                Quantity
+                                <span v-if="sortIcon('quantity_withdrawn')">
+                                    {{ sortIcon('quantity_withdrawn') }}
+                                </span>
+                            </div>
                         </TableHead>
                         <TableHead
-                            class="text-right"
+                            class="text-right text-xs"
                             @click="handleSort('value_withdrawn')"
                         >
-                            Value
-                            <span v-if="sortIcon('value_withdrawn')">
-                                {{ sortIcon('value_withdrawn') }}
-                            </span>
+                            <div class="leading-tight">
+                                Value
+                                <br />(IDR)
+                                <span v-if="sortIcon('value_withdrawn')">
+                                    {{ sortIcon('value_withdrawn') }}
+                                </span>
+                            </div>
                         </TableHead>
-                        <TableHead class="text-left"> Currency </TableHead>
+                        <TableHead class="text-left text-xs leading-tight">
+                            Currency
+                        </TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
