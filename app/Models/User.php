@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
@@ -52,9 +53,21 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Check if the user can access the specified Filament panel.
+     * Only superadmin users can access the admin panel.
+     *
+     * @param Panel $panel
+     * @return bool
+     */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->isSuperadmin();
+        // Only superadmin can access the admin panel
+        if ($panel->getId() === 'admin') {
+            return $this->isSuperadmin();
+        }
+
+        return false;
     }
 
 
