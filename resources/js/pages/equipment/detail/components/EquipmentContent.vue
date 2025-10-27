@@ -204,30 +204,33 @@
 
             <!-- Tabs Content -->
             <Tabs default-value="running" v-model="activeTab">
-                <TabsList
-                    class="flex w-full gap-2 overflow-x-auto px-10 md:grid md:w-fit md:grid-cols-4 md:gap-0 md:px-0"
-                >
-                    <TabsTrigger
-                        value="running"
-                        class="min-w-[120px] flex-shrink-0 whitespace-nowrap"
-                        >Running Time</TabsTrigger
+                <!-- Wrapper for mobile scrolling -->
+                <div class="scrollbar-hidden w-full overflow-scroll rounded-lg">
+                    <TabsList
+                        class="flex gap-2 overflow-x-auto md:grid md:grid-cols-4"
                     >
-                    <TabsTrigger
-                        value="workorders"
-                        class="min-w-[120px] flex-shrink-0 whitespace-nowrap"
-                        >Work Orders</TabsTrigger
-                    >
-                    <TabsTrigger
-                        value="material"
-                        class="min-w-[110px] flex-shrink-0 whitespace-nowrap"
-                        >Material</TabsTrigger
-                    >
-                    <TabsTrigger
-                        value="biaya"
-                        class="min-w-[90px] flex-shrink-0 whitespace-nowrap"
-                        >Biaya</TabsTrigger
-                    >
-                </TabsList>
+                        <TabsTrigger
+                            value="running"
+                            class="min-w-[140px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                            >Running Time</TabsTrigger
+                        >
+                        <TabsTrigger
+                            value="workorders"
+                            class="min-w-[140px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                            >Work Orders</TabsTrigger
+                        >
+                        <TabsTrigger
+                            value="material"
+                            class="min-w-[130px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                            >Material</TabsTrigger
+                        >
+                        <TabsTrigger
+                            value="biaya"
+                            class="min-w-[110px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                            >Biaya</TabsTrigger
+                        >
+                    </TabsList>
+                </div>
 
                 <div class="relative overflow-hidden">
                     <Transition
