@@ -360,6 +360,15 @@ class MonitoringController extends Controller
             ], 400);
         }
 
+        // Get is_mengolah status from daily_plant_data
+        $dailyPlantData = DB::table('daily_plant_data')
+            ->where('plant_id', $plantId)
+            ->where('date', $date)
+            ->select('is_mengolah')
+            ->first();
+
+        $isMengolah = $dailyPlantData ? ($dailyPlantData->is_mengolah != 0) : true;
+
         // Get equipment with running times for that date
         $equipmentWithRunningTime = DB::table('running_times')
             ->join('equipment', 'running_times.equipment_number', '=', 'equipment.equipment_number')
@@ -394,6 +403,7 @@ class MonitoringController extends Controller
             ->get();
 
         return response()->json([
+            'is_mengolah' => $isMengolah,
             'with_running_time' => $equipmentWithRunningTime,
             'without_running_time' => $equipmentWithoutRunningTime,
         ]);

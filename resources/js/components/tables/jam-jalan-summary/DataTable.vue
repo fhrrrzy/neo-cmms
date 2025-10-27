@@ -2,11 +2,9 @@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    Table,
     TableBody,
     TableCell,
     TableHead,
-    TableHeader,
     TableRow,
 } from '@/components/ui/table';
 import {
@@ -123,9 +121,11 @@ defineExpose({
         <!-- Table -->
         <div class="rounded-md border">
             <!-- Table -->
-            <div class="max-h-[80svh] overflow-x-auto overflow-y-auto">
-                <Table class="w-full table-auto border-collapse">
-                    <TableHeader class="sticky top-0 z-20 bg-background">
+            <div class="max-h-[80svh] overflow-auto">
+                <table
+                    class="w-full table-auto caption-bottom border-collapse text-sm"
+                >
+                    <thead class="sticky top-0 z-20 bg-background">
                         <TableRow
                             v-for="headerGroup in table.getHeaderGroups()"
                             :key="headerGroup.id"
@@ -134,10 +134,10 @@ defineExpose({
                                 v-for="header in headerGroup.headers"
                                 :key="header.id"
                                 :class="[
-                                    'border-r border-border',
+                                    'border-r border-border bg-background',
                                     header.id === 'number' ||
                                     header.id === 'plant_name'
-                                        ? 'sticky left-0 z-30 bg-background shadow-[2px_0_4px_rgba(0,0,0,0.1)]'
+                                        ? 'sticky left-0 z-30 shadow-[2px_0_4px_rgba(0,0,0,0.1)]'
                                         : '',
                                 ]"
                             >
@@ -149,7 +149,7 @@ defineExpose({
                                 </div>
                             </TableHead>
                         </TableRow>
-                    </TableHeader>
+                    </thead>
                     <TableBody>
                         <template v-if="isLoading">
                             <TableRow v-for="i in 15" :key="i">
@@ -207,7 +207,7 @@ defineExpose({
                             </TableRow>
                         </template>
                     </TableBody>
-                </Table>
+                </table>
             </div>
         </div>
 

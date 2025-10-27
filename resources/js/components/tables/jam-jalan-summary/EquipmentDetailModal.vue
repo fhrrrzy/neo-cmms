@@ -39,6 +39,7 @@ const props = defineProps({
 
 const loading = ref(false);
 const error = ref(null);
+const isMengolah = ref(true);
 const withRunningTime = ref([]);
 const withoutRunningTime = ref([]);
 
@@ -72,6 +73,7 @@ const fetchEquipmentDetail = async () => {
             },
         });
 
+        isMengolah.value = response.data.is_mengolah ?? true;
         withRunningTime.value = response.data.with_running_time || [];
         withoutRunningTime.value = response.data.without_running_time || [];
     } catch (err) {
@@ -95,44 +97,82 @@ watch(
 
 <template>
     <Dialog :open="isOpen" @update:open="(value) => $emit('close')">
-        <DialogContent class="max-h-[85vh] w-[95vw] max-w-[95vw]">
+        <DialogContent
+            class="max-h-[90vh] w-[95vw] max-w-[95vw] md:w-[80vw] md:max-w-[80vw]"
+        >
             <DialogHeader>
-                <DialogTitle> Equipment Details - {{ plantName }} </DialogTitle>
-                <DialogDescription>
+                <DialogTitle class="text-base md:text-lg">
+                    Equipment Details - {{ plantName }}
+                </DialogTitle>
+                <DialogDescription class="text-xs md:text-sm">
                     {{ formatDate(date) }}
+                    <span
+                        :class="isMengolah ? 'text-blue-600' : 'text-red-600'"
+                    >
+                        • {{ isMengolah ? 'Mengolah' : 'Tidak Mengolah' }}
+                    </span>
                 </DialogDescription>
             </DialogHeader>
 
-            <div v-if="loading" class="flex items-center justify-center p-8">
-                <div class="text-muted-foreground">Loading...</div>
+            <div
+                v-if="loading"
+                class="flex items-center justify-center p-4 md:p-8"
+            >
+                <div class="text-sm text-muted-foreground md:text-base">
+                    Loading...
+                </div>
             </div>
 
-            <div v-else-if="error" class="flex items-center justify-center p-8">
-                <div class="text-destructive">{{ error }}</div>
+            <div
+                v-else-if="error"
+                class="flex items-center justify-center p-4 md:p-8"
+            >
+                <div class="text-sm text-destructive md:text-base">
+                    {{ error }}
+                </div>
             </div>
 
-            <Tabs default-value="with-runtime" v-else class="w-full">
-                <TabsList class="grid w-full grid-cols-2">
-                    <TabsTrigger value="with-runtime">
+            <Tabs
+                default-value="with-runtime"
+                v-else
+                class="flex max-h-[calc(90vh-120px)] w-full flex-col md:max-h-[calc(90vh-140px)]"
+            >
+                <TabsList class="grid w-full grid-cols-2 text-xs md:text-sm">
+                    <TabsTrigger value="with-runtime" class="truncate">
                         With Running Time ({{ withRunningTime.length }})
                     </TabsTrigger>
-                    <TabsTrigger value="without-runtime">
+                    <TabsTrigger value="without-runtime" class="truncate">
                         Without Running Time ({{ withoutRunningTime.length }})
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="with-runtime" class="mt-4">
-                    <div class="max-h-[60vh] overflow-y-auto rounded-md border">
-                        <Table>
+                <TabsContent
+                    value="with-runtime"
+                    class="mt-2 flex-1 overflow-hidden md:mt-4"
+                >
+                    <div
+                        class="max-h-[calc(90vh-200px)] overflow-x-auto overflow-y-auto rounded-md border md:max-h-[calc(90vh-220px)]"
+                    >
+                        <Table class="min-w-full">
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead class="w-[100px]">No</TableHead>
-                                    <TableHead>Equipment Number</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead class="text-right"
+                                <TableRow class="text-xs md:text-sm">
+                                    <TableHead class="w-[40px] md:w-[100px]"
+                                        >No</TableHead
+                                    >
+                                    <TableHead
+                                        class="min-w-[120px] md:min-w-[180px]"
+                                        >Equipment Number</TableHead
+                                    >
+                                    <TableHead
+                                        class="min-w-[150px] md:min-w-[200px]"
+                                        >Description</TableHead
+                                    >
+                                    <TableHead
+                                        class="min-w-[100px] text-right md:min-w-[130px]"
                                         >Running Hours</TableHead
                                     >
-                                    <TableHead class="text-right"
+                                    <TableHead
+                                        class="min-w-[100px] text-right md:min-w-[130px]"
                                         >Counter Reading</TableHead
                                     >
                                 </TableRow>
@@ -155,34 +195,58 @@ watch(
                                     <TableCell class="text-center">{{
                                         index + 1
                                     }}</TableCell>
-                                    <TableCell class="font-mono">{{
-                                        equipment.equipment_number
-                                    }}</TableCell>
-                                    <TableCell>{{
+                                    <TableCell
+                                        class="font-mono text-xs md:text-sm"
+                                        >{{
+                                            equipment.equipment_number
+                                        }}</TableCell
+                                    >
+                                    <TableCell class="text-xs md:text-sm">{{
                                         equipment.equipment_description || 'N/A'
                                     }}</TableCell>
-                                    <TableCell class="text-right font-mono">{{
-                                        formatNumber(equipment.running_hours)
-                                    }}</TableCell>
-                                    <TableCell class="text-right font-mono">{{
-                                        formatNumber(
-                                            equipment.counter_reading || 0,
-                                        )
-                                    }}</TableCell>
+                                    <TableCell
+                                        class="text-right font-mono text-xs md:text-sm"
+                                        >{{
+                                            formatNumber(
+                                                equipment.running_hours,
+                                            )
+                                        }}</TableCell
+                                    >
+                                    <TableCell
+                                        class="text-right font-mono text-xs md:text-sm"
+                                        >{{
+                                            formatNumber(
+                                                equipment.counter_reading || 0,
+                                            )
+                                        }}</TableCell
+                                    >
                                 </TableRow>
                             </TableBody>
                         </Table>
                     </div>
                 </TabsContent>
 
-                <TabsContent value="without-runtime" class="mt-4">
-                    <div class="max-h-[60vh] overflow-y-auto rounded-md border">
-                        <Table>
+                <TabsContent
+                    value="without-runtime"
+                    class="mt-2 flex-1 overflow-hidden md:mt-4"
+                >
+                    <div
+                        class="max-h-[calc(90vh-200px)] overflow-x-auto overflow-y-auto rounded-md border md:max-h-[calc(90vh-220px)]"
+                    >
+                        <Table class="min-w-full">
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead class="w-[100px]">No</TableHead>
-                                    <TableHead>Equipment Number</TableHead>
-                                    <TableHead>Description</TableHead>
+                                <TableRow class="text-xs md:text-sm">
+                                    <TableHead class="w-[40px] md:w-[100px]"
+                                        >No</TableHead
+                                    >
+                                    <TableHead
+                                        class="min-w-[120px] md:min-w-[180px]"
+                                        >Equipment Number</TableHead
+                                    >
+                                    <TableHead
+                                        class="min-w-[150px] md:min-w-[200px]"
+                                        >Description</TableHead
+                                    >
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -205,10 +269,13 @@ watch(
                                     <TableCell class="text-center">{{
                                         index + 1
                                     }}</TableCell>
-                                    <TableCell class="font-mono">{{
-                                        equipment.equipment_number
-                                    }}</TableCell>
-                                    <TableCell>{{
+                                    <TableCell
+                                        class="font-mono text-xs md:text-sm"
+                                        >{{
+                                            equipment.equipment_number
+                                        }}</TableCell
+                                    >
+                                    <TableCell class="text-xs md:text-sm">{{
                                         equipment.equipment_description || 'N/A'
                                     }}</TableCell>
                                 </TableRow>
