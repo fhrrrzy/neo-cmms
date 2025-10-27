@@ -28,6 +28,10 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    disableStore: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(['filter-change']);
@@ -67,8 +71,13 @@ const localFilters = ref({
 // Initialize from localStorage if available
 const dateRange = useDateRangeStore();
 
-// sync from pinia store into local on mount
+// sync from pinia store into local on mount (unless disabled)
 onMounted(() => {
+    if (props.disableStore) {
+        // Don't load from store - use props directly
+        return;
+    }
+
     if (dateRange.start && dateRange.end) {
         localFilters.value.date_range = {
             start: dateRange.start,
@@ -205,7 +214,11 @@ const applyFilters = async () => {
         plant_ids: filteredPlantIds,
     };
 
-    if (finalFilters?.date_range?.start && finalFilters?.date_range?.end) {
+    if (
+        !props.disableStore &&
+        finalFilters?.date_range?.start &&
+        finalFilters?.date_range?.end
+    ) {
         dateRange.setRange(finalFilters.date_range);
     }
 

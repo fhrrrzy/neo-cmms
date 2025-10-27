@@ -11,9 +11,9 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard, monitoring } from '@/routes';
+import { dashboard, jamJalanSummary, monitoring } from '@/routes';
 import { Link } from '@inertiajs/vue3';
-import { LayoutGrid, Monitor } from 'lucide-vue-next';
+import { Activity, LayoutGrid, Monitor } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems = [
@@ -26,6 +26,11 @@ const mainNavItems = [
         title: 'Monitoring',
         href: monitoring(),
         icon: Monitor,
+    },
+    {
+        title: 'Jam Jalan Summary',
+        href: jamJalanSummary(),
+        icon: Activity,
     },
 ];
 

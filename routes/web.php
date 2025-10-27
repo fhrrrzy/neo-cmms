@@ -30,6 +30,10 @@ Route::get('/monitoring', function () {
     return Inertia::render('monitoring/Monitoring');
 })->name('monitoring')->middleware('auth');
 
+Route::get('/jam-jalan-summary', function () {
+    return Inertia::render('jam-jalan-summary/Index');
+})->name('jam-jalan-summary')->middleware('auth');
+
 Route::get('/equipment/{uuid}', function (string $uuid) {
     // Publicly accessible equipment page; data is fetched client-side via API
     return Inertia::render('equipment/detail/detail', [

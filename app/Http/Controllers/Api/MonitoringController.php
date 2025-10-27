@@ -251,6 +251,154 @@ class MonitoringController extends Controller
 
     // equipmentDetail method removed - now handled in web routes with Inertia
 
+    public function jamJalanSummary(Request $request)
+    {
+        // Get date range from request
+        $dateStart = $request->get('date_start', now()->subWeek()->toDateString());
+        $dateEnd = $request->get('date_end', now()->toDateString());
+
+        // Build query for plants with optional filters
+        $plantQuery = Plant::query();
+
+        // Apply regional filter
+        if ($request->filled('regional_ids')) {
+            $regionalIds = is_array($request->regional_ids) ? $request->regional_ids : [$request->regional_ids];
+            $plantQuery->whereIn('regional_id', $regionalIds);
+        }
+
+        // Apply plant filter
+        if ($request->filled('plant_ids')) {
+            $plantIds = is_array($request->plant_ids) ? $request->plant_ids : [$request->plant_ids];
+            $plantQuery->whereIn('id', $plantIds);
+        }
+
+        $plants = $plantQuery->orderBy('name')->get();
+
+        // Get all dates in the range
+        $dates = collect();
+        $currentDate = \Carbon\Carbon::parse($dateStart);
+        $endDate = \Carbon\Carbon::parse($dateEnd);
+
+        while ($currentDate->lte($endDate)) {
+            $dates->push($currentDate->format('Y-m-d'));
+            $currentDate->addDay();
+        }
+
+        // Get daily plant data for the date range
+        $dailyPlantDataMap = [];
+        $dailyPlantDataRecords = DB::table('daily_plant_data')
+            ->whereBetween('date', [$dateStart, $dateEnd])
+            ->get();
+
+        foreach ($dailyPlantDataRecords as $record) {
+            $key = $record->plant_id . '_' . $record->date;
+            $dailyPlantDataMap[$key] = $record;
+        }
+
+        // Get equipment counts for each plant-date combination
+        $equipmentCounts = DB::table('running_times')
+            ->select('running_times.plant_id', 'running_times.date', DB::raw('COUNT(DISTINCT running_times.equipment_number) as equipment_count'))
+            ->whereBetween('running_times.date', [$dateStart, $dateEnd])
+            ->whereRaw('COALESCE(running_times.running_hours, 0) > 0')
+            ->groupBy('running_times.plant_id', 'running_times.date')
+            ->get()
+            ->keyBy(function ($item) {
+                return $item->plant_id . '_' . $item->date;
+            });
+
+        // Build summary data
+        $summaryData = [];
+
+        foreach ($plants as $plant) {
+            $plantData = [
+                'id' => $plant->id,
+                'name' => $plant->name,
+                'dates' => [],
+            ];
+
+            foreach ($dates as $date) {
+                $key = $plant->id . '_' . $date;
+                $equipmentCount = isset($equipmentCounts[$key]) ? $equipmentCounts[$key]->equipment_count : 0;
+
+                // Get is_mengolah status
+                $isMengolah = true;
+                if (isset($dailyPlantDataMap[$key])) {
+                    $dailyData = $dailyPlantDataMap[$key];
+                    $isMengolah = $dailyData->is_mengolah != 0;
+                }
+
+                $plantData['dates'][$date] = [
+                    'count' => $equipmentCount,
+                    'is_mengolah' => $isMengolah,
+                ];
+            }
+
+            $summaryData[] = $plantData;
+        }
+
+        return response()->json([
+            'data' => $summaryData,
+            'dates' => $dates->values()->all(),
+            'filters' => [
+                'date_start' => $dateStart,
+                'date_end' => $dateEnd,
+                'regional_ids' => $request->get('regional_ids'),
+                'plant_ids' => $request->get('plant_ids'),
+            ],
+        ]);
+    }
+
+    public function jamJalanDetail(Request $request)
+    {
+        $plantId = $request->get('plant_id');
+        $date = $request->get('date');
+
+        if (!$plantId || !$date) {
+            return response()->json([
+                'message' => 'Plant ID and date are required',
+                'error' => 'Missing required parameters'
+            ], 400);
+        }
+
+        // Get equipment with running times for that date
+        $equipmentWithRunningTime = DB::table('running_times')
+            ->join('equipment', 'running_times.equipment_number', '=', 'equipment.equipment_number')
+            ->where('running_times.plant_id', $plantId)
+            ->where('running_times.date', $date)
+            ->whereRaw('COALESCE(running_times.running_hours, 0) > 0')
+            ->select([
+                'equipment.equipment_number',
+                'equipment.equipment_description',
+                'running_times.running_hours',
+                'running_times.counter_reading',
+            ])
+            ->orderBy('equipment.equipment_number')
+            ->get();
+
+        // Get equipment without running times (0 or null)
+        $equipmentWithoutRunningTime = DB::table('equipment')
+            ->where('plant_id', $plantId)
+            ->whereNotExists(function ($query) use ($plantId, $date) {
+                $query->select(DB::raw(1))
+                    ->from('running_times')
+                    ->whereRaw('running_times.equipment_number = equipment.equipment_number')
+                    ->where('running_times.plant_id', $plantId)
+                    ->where('running_times.date', $date)
+                    ->whereRaw('COALESCE(running_times.running_hours, 0) > 0');
+            })
+            ->select([
+                'equipment.equipment_number',
+                'equipment.equipment_description',
+            ])
+            ->orderBy('equipment.equipment_number')
+            ->get();
+
+        return response()->json([
+            'with_running_time' => $equipmentWithRunningTime,
+            'without_running_time' => $equipmentWithoutRunningTime,
+        ]);
+    }
+
     public function biaya(Request $request)
     {
         // Validate required equipment_uuid

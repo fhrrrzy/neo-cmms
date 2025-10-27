@@ -1,0 +1,223 @@
+<script setup lang="js">
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import {
+    getCoreRowModel,
+    getSortedRowModel,
+    useVueTable,
+} from '@tanstack/vue-table';
+import { AlertCircle } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import { createColumns } from './columns';
+import EquipmentDetailModal from './EquipmentDetailModal.vue';
+
+const props = defineProps({
+    data: { type: Array, required: true },
+    dates: { type: Array, required: true },
+    loading: { type: Boolean, default: false },
+    error: { type: String, default: null },
+    pagination: {
+        type: Object,
+        default: () => ({
+            total: 0,
+            per_page: 15,
+            current_page: 1,
+            last_page: 1,
+            from: 0,
+            to: 0,
+            has_more_pages: false,
+        }),
+    },
+});
+
+const emit = defineEmits(['close']);
+
+const isModalOpen = ref(false);
+const selectedPlant = ref(null);
+const selectedDate = ref('');
+
+const handleCellClick = (plantId, plantName, date) => {
+    console.log('Cell clicked:', plantId, plantName, date);
+    selectedPlant.value = { id: plantId, name: plantName };
+    selectedDate.value = date;
+    isModalOpen.value = true;
+    console.log(
+        'Modal state:',
+        isModalOpen.value,
+        selectedPlant.value,
+        selectedDate.value,
+    );
+};
+
+// Create columns based on all dates
+const columns = ref(createColumns(props.dates));
+
+// Sorting state
+const tableSorting = ref([]);
+
+// Add original index to data for fixed row numbering
+const dataWithOriginalIndex = computed(() => {
+    return props.data.map((row, index) => ({
+        ...row,
+        _originalIndex: index,
+    }));
+});
+
+// Watch for dates prop changes and regenerate columns
+watch(
+    () => props.dates,
+    (newDates) => {
+        columns.value = createColumns(newDates);
+    },
+    { immediate: true },
+);
+
+const table = useVueTable({
+    get data() {
+        return dataWithOriginalIndex.value;
+    },
+    get columns() {
+        return columns.value;
+    },
+    onSortingChange: (updaterOrValue) => {
+        tableSorting.value =
+            typeof updaterOrValue === 'function'
+                ? updaterOrValue(tableSorting.value)
+                : updaterOrValue;
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    manualPagination: true,
+    state: {
+        get sorting() {
+            return tableSorting.value;
+        },
+    },
+});
+
+const isLoading = computed(() => props.loading);
+const hasError = computed(() => props.error);
+const hasData = computed(() => props.data.length > 0);
+
+defineExpose({
+    handleCellClick,
+});
+</script>
+
+<template>
+    <div class="space-y-4">
+        <!-- Error Alert -->
+        <Alert v-if="hasError" variant="destructive">
+            <AlertCircle class="h-4 w-4" />
+            <AlertDescription>{{ error }}</AlertDescription>
+        </Alert>
+
+        <!-- Table -->
+        <div class="rounded-md border">
+            <!-- Table -->
+            <div class="max-h-[80svh] overflow-x-auto overflow-y-auto">
+                <Table class="w-full table-auto border-collapse">
+                    <TableHeader class="sticky top-0 z-20 bg-background">
+                        <TableRow
+                            v-for="headerGroup in table.getHeaderGroups()"
+                            :key="headerGroup.id"
+                        >
+                            <TableHead
+                                v-for="header in headerGroup.headers"
+                                :key="header.id"
+                                :class="[
+                                    'border-r border-border',
+                                    header.id === 'number' ||
+                                    header.id === 'plant_name'
+                                        ? 'sticky left-0 z-30 bg-background shadow-[2px_0_4px_rgba(0,0,0,0.1)]'
+                                        : '',
+                                ]"
+                            >
+                                <div v-if="!header.isPlaceholder">
+                                    <component
+                                        :is="header.column.columnDef.header"
+                                        v-bind="header.getContext()"
+                                    />
+                                </div>
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <template v-if="isLoading">
+                            <TableRow v-for="i in 15" :key="i">
+                                <TableCell v-for="j in 10" :key="j">
+                                    <Skeleton class="h-4 w-full" />
+                                </TableCell>
+                            </TableRow>
+                        </template>
+                        <template v-else-if="!hasData">
+                            <TableRow>
+                                <TableCell
+                                    :colspan="table.getAllColumns().length"
+                                    class="h-24 text-center"
+                                >
+                                    Tidak ada data plant
+                                </TableCell>
+                            </TableRow>
+                        </template>
+                        <template v-else>
+                            <TableRow
+                                v-for="row in table.getRowModel().rows"
+                                :key="row.id"
+                            >
+                                <TableCell
+                                    v-for="cell in row.getVisibleCells()"
+                                    :key="cell.id"
+                                    :class="[
+                                        'border-r border-border',
+                                        cell.column.id.startsWith('date_')
+                                            ? 'cursor-pointer hover:bg-accent/50'
+                                            : '',
+                                        cell.column.id === 'number' ||
+                                        cell.column.id === 'plant_name'
+                                            ? 'sticky left-0 z-10 bg-background shadow-[2px_0_4px_rgba(0,0,0,0.1)]'
+                                            : '',
+                                    ]"
+                                    @click="
+                                        cell.column.id.startsWith('date_')
+                                            ? handleCellClick(
+                                                  row.original.id,
+                                                  row.original.name,
+                                                  cell.column.id.replace(
+                                                      'date_',
+                                                      '',
+                                                  ),
+                                              )
+                                            : null
+                                    "
+                                >
+                                    <component
+                                        :is="cell.column.columnDef.cell"
+                                        v-bind="cell.getContext()"
+                                    />
+                                </TableCell>
+                            </TableRow>
+                        </template>
+                    </TableBody>
+                </Table>
+            </div>
+        </div>
+
+        <!-- Equipment Detail Modal -->
+        <EquipmentDetailModal
+            :is-open="isModalOpen"
+            :plant-id="selectedPlant?.id"
+            :plant-name="selectedPlant?.name || ''"
+            :date="selectedDate"
+            @close="isModalOpen = false"
+        />
+    </div>
+</template>

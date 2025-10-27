@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="js">
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -7,12 +7,14 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { urlIsActive } from '@/lib/utils';
-import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 
-defineProps<{
-    items: NavItem[];
-}>();
+const props = defineProps({
+    items: {
+        type: Array,
+        required: true,
+    },
+});
 
 const page = usePage();
 </script>

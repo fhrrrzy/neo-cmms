@@ -1,0 +1,18 @@
+// Utility functions for jam-jalan-summary table
+
+export const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+    });
+};
+
+export const getCellClass = (isMengolah, count) => {
+    // If is_mengolah is true but count is 0 or null, make it red
+    if (isMengolah && (count === 0 || count === null)) return 'bg-red-500/50';
+    // If is_mengolah is false, make it blue
+    if (!isMengolah) return 'bg-blue-500/50';
+    return '';
+};
+
