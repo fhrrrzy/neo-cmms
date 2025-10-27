@@ -204,10 +204,11 @@
 
             <!-- Tabs Content -->
             <Tabs default-value="running" v-model="activeTab">
-                <TabsList class="grid w-full grid-cols-3 md:w-fit">
+                <TabsList class="grid w-full grid-cols-4 md:w-fit">
                     <TabsTrigger value="running">Running Time</TabsTrigger>
                     <TabsTrigger value="workorders">Work Orders</TabsTrigger>
                     <TabsTrigger value="material">Material</TabsTrigger>
+                    <TabsTrigger value="biaya">Biaya</TabsTrigger>
                 </TabsList>
 
                 <div class="relative overflow-hidden">
@@ -337,6 +338,37 @@
                                 </CardContent>
                             </Card>
                         </TabsContent>
+
+                        <TabsContent
+                            v-else-if="activeTab === 'biaya'"
+                            key="biaya"
+                            value="biaya"
+                            class="pt-4"
+                        >
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Biaya</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div
+                                        v-if="isLoadingBiaya"
+                                        class="space-y-3"
+                                    >
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                        <Skeleton class="h-10 w-full" />
+                                    </div>
+                                    <BiayaTable
+                                        v-else
+                                        :equipment-number="equipmentNumber"
+                                        :date-range="dateRange"
+                                        max-height-class="max-h-[60vh]"
+                                    />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
                     </Transition>
                 </div>
             </Tabs>
@@ -346,6 +378,7 @@
 
 <script setup>
 import Noise from '@/components/blocks/Animations/Noise/Noise.vue';
+import BiayaTable from '@/components/tables/biaya/BiayaTable.vue';
 import EquipmentWorkOrderTable from '@/components/tables/equipment-work-order/EquipmentWorkOrderTable.vue';
 import RunningTimeTable from '@/components/tables/running-time/RunningTimeTable.vue';
 import WorkOrderTable from '@/components/tables/work-order/WorkOrderTable.vue';
@@ -411,6 +444,7 @@ const previousTab = ref('running');
 const isLoadingRunningTime = ref(false);
 const isLoadingWorkOrders = ref(false);
 const isLoadingMaterial = ref(false);
+const isLoadingBiaya = ref(false);
 
 // Computed properties
 const isRangeEmpty = computed(
@@ -446,7 +480,7 @@ const formatDate = (dateString) => {
 
 // Tab transition helper
 const getTransitionName = () => {
-    const tabOrder = ['running', 'workorders', 'material'];
+    const tabOrder = ['running', 'workorders', 'material', 'biaya'];
     const currentIndex = tabOrder.indexOf(activeTab.value);
     const previousIndex = tabOrder.indexOf(previousTab.value);
 
@@ -478,6 +512,11 @@ watch(activeTab, (newTab, oldTab) => {
         isLoadingMaterial.value = true;
         setTimeout(() => {
             isLoadingMaterial.value = false;
+        }, 200);
+    } else if (newTab === 'biaya') {
+        isLoadingBiaya.value = true;
+        setTimeout(() => {
+            isLoadingBiaya.value = false;
         }, 200);
     }
 });

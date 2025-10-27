@@ -14,6 +14,7 @@ Route::get('/user', function (Request $request) {
 // Monitoring API routes
 Route::prefix('monitoring')->group(function () {
     Route::get('/equipment', [MonitoringController::class, 'equipment']);
+    Route::get('/biaya', [MonitoringController::class, 'biaya']);
 });
 
 // Equipment API routes - removed, now using Inertia data passing

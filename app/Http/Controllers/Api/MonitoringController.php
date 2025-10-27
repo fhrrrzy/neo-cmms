@@ -249,4 +249,146 @@ class MonitoringController extends Controller
     }
 
     // equipmentDetail method removed - now handled in web routes with Inertia
+
+    public function biaya(Request $request)
+    {
+        // Validate required equipment_number
+        if (!$request->filled('equipment_number')) {
+            return response()->json([
+                'message' => 'Equipment number is required',
+                'error' => 'Missing equipment_number parameter'
+            ], 400);
+        }
+
+        $equipmentNumber = $request->get('equipment_number');
+
+        // Get date range (default to last 7 days if not provided)
+        $dateStart = $request->get('date_start', now()->subWeek()->toDateString());
+        $dateEnd = $request->get('date_end', now()->toDateString());
+
+        // Query equipment work orders for biaya data
+        $query = DB::table('equipment_work_orders')
+            ->select([
+                'equipment_work_orders.*',
+                'work_orders.order_type',
+                'work_orders.description as order_description',
+                'work_orders.order_status',
+                'work_orders.cause_text',
+                'work_orders.item_text',
+                'plants.name as plant_name',
+            ])
+            ->leftJoin('work_orders', 'equipment_work_orders.order_number', '=', 'work_orders.order')
+            ->leftJoin('plants', 'equipment_work_orders.plant_id', '=', 'plants.id')
+            ->where('equipment_work_orders.equipment_number', $equipmentNumber)
+            ->whereBetween('equipment_work_orders.requirements_date', [$dateStart, $dateEnd])
+            ->where('equipment_work_orders.value_withdrawn', '>', 0) // Only show records with actual value
+            ->orderBy('equipment_work_orders.requirements_date', 'desc');
+
+        // Apply search filter using whereAny
+        if ($request->filled('search')) {
+            $search = trim($request->get('search'));
+            $like = "%{$search}%";
+            $query->whereAny([
+                'equipment_work_orders.order_number',
+                'equipment_work_orders.material',
+                'equipment_work_orders.material_description',
+                'work_orders.description',
+            ], 'like', $like);
+        }
+
+        // Apply material filter
+        if ($request->filled('material')) {
+            $query->where('equipment_work_orders.material', $request->material);
+        }
+
+        // Apply order number filter
+        if ($request->filled('order_number')) {
+            $query->where('equipment_work_orders.order_number', $request->order_number);
+        }
+
+        // Handle sorting
+        $sortBy = $request->get('sort_by', 'requirements_date');
+        $sortDirection = strtolower($request->get('sort_direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        // Validate sort direction
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+
+        // Map sort fields
+        $allowedSorts = [
+            'requirements_date' => 'equipment_work_orders.requirements_date',
+            'order_number' => 'equipment_work_orders.order_number',
+            'material' => 'equipment_work_orders.material',
+            'material_description' => 'equipment_work_orders.material_description',
+            'quantity_withdrawn' => 'equipment_work_orders.quantity_withdrawn',
+            'value_withdrawn' => 'equipment_work_orders.value_withdrawn',
+            'order_type' => 'work_orders.order_type',
+            'order_status' => 'work_orders.order_status',
+        ];
+
+        if (isset($allowedSorts[$sortBy])) {
+            $query->orderBy($allowedSorts[$sortBy], $sortDirection);
+        } else {
+            $query->orderBy('equipment_work_orders.requirements_date', 'desc');
+        }
+
+        // Pagination
+        $perPage = (int) $request->get('per_page', 15);
+        $page = (int) $request->get('page', 1);
+
+        // Get total count before pagination
+        $total = (clone $query)->count();
+
+        // Apply pagination
+        $biayaData = $query->skip(($page - 1) * $perPage)->take($perPage)->get();
+
+        // Transform the data
+        $transformedData = $biayaData->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'order_number' => $item->order_number,
+                'equipment_number' => $item->equipment_number,
+                'requirements_date' => $item->requirements_date,
+                'material' => $item->material,
+                'material_description' => $item->material_description,
+                'requirement_quantity' => $item->requirement_quantity ? (float) $item->requirement_quantity : null,
+                'quantity_withdrawn' => $item->quantity_withdrawn ? (float) $item->quantity_withdrawn : null,
+                'value_withdrawn' => $item->value_withdrawn ? (float) $item->value_withdrawn : null,
+                'currency' => $item->currency,
+                'base_unit_of_measure' => $item->base_unit_of_measure,
+                'reservation' => $item->reservation,
+                'reservation_status' => $item->reservation_status,
+                'movement_type' => $item->movement_type,
+                'plant_name' => $item->plant_name,
+                'order_type' => $item->order_type,
+                'order_description' => $item->order_description,
+                'order_status' => $item->order_status,
+                'cause_text' => $item->cause_text,
+                'item_text' => $item->item_text,
+            ];
+        });
+
+        $lastPage = (int) ceil($total / max($perPage, 1));
+
+        return response()->json([
+            'data' => $transformedData,
+            'total' => $total,
+            'per_page' => $perPage,
+            'current_page' => $page,
+            'last_page' => $lastPage,
+            'from' => $page > 1 ? (($page - 1) * $perPage) + 1 : ($total > 0 ? 1 : 0),
+            'to' => min($page * $perPage, $total),
+            'filters' => [
+                'equipment_number' => $equipmentNumber,
+                'date_start' => $dateStart,
+                'date_end' => $dateEnd,
+                'search' => $request->get('search'),
+                'material' => $request->get('material'),
+                'order_number' => $request->get('order_number'),
+                'sort_by' => $sortBy,
+                'sort_direction' => $sortDirection,
+            ],
+        ]);
+    }
 }
