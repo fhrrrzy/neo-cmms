@@ -208,9 +208,11 @@ class ConcurrentApiSyncService
                     \Illuminate\Support\Facades\Log::error('Sync batch failed', [
                         'api_type' => $apiType,
                         'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
                         'items_count' => $processed,
                     ]);
-                    report($e);
+                    // Re-throw to trigger transaction rollback
+                    throw $e;
                 }
             });
 

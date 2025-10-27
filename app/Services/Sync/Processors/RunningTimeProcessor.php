@@ -15,6 +15,41 @@ class RunningTimeProcessor
     private const BATCH_SIZE = 2000;
 
     /**
+     * Normalize api_created_at to MySQL datetime format
+     * Handles Carbon objects, ISO strings, and MySQL datetime strings
+     */
+    private function normalizeApiCreatedAt($value): ?string
+    {
+        if (is_null($value)) {
+            return null;
+        }
+
+        if (is_object($value) && method_exists($value, 'format')) {
+            // Carbon object
+            return $value->format('Y-m-d H:i:s');
+        }
+
+        if (is_string($value)) {
+            try {
+                // If it's ISO format (contains T and Z)
+                if (strpos($value, 'T') !== false && strpos($value, 'Z') !== false) {
+                    return Carbon::parse($value)->format('Y-m-d H:i:s');
+                }
+                // If it's already MySQL datetime format, return as is
+                if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$/', $value)) {
+                    return $value;
+                }
+                // Try parsing as any date and converting to MySQL format
+                return Carbon::parse($value)->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Process a single running time item (legacy method for backward compatibility)
      */
     public function process(array $item, array $allowedPlantCodes = []): void
@@ -109,9 +144,15 @@ class RunningTimeProcessor
         $ts = Arr::get($item, 'api_created_at') ?? Arr::get($item, 'CREATED_AT');
         if ($ts) {
             try {
-                $apiCreatedAt = Carbon::parse($ts);
+                // Parse and format to MySQL datetime format
+                $apiCreatedAt = Carbon::parse($ts)->format('Y-m-d H:i:s');
             } catch (\Exception $e) {
-                // Skip invalid dates
+                // If it's already in MySQL format, use it as is
+                if (is_string($ts) && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $ts)) {
+                    $apiCreatedAt = $ts;
+                } else {
+                    // Skip invalid dates
+                }
             }
         }
 
@@ -265,14 +306,25 @@ class RunningTimeProcessor
                         $missingDate = $startDate->toDateString();
 
                         // Use the previous record's data, but set running_hours to 0
-                        $missingDatesData[] = array_merge($records[$i], [
+                        // Only copy specific fields to avoid issues with array data from database records
+                        $missingDatesData[] = [
                             'uuid' => DB::raw('UUID()'),
+                            'equipment_number' => $records[$i]['equipment_number'],
                             'date' => $missingDate,
+                            'plant_id' => $records[$i]['plant_id'],
+                            'mandt' => $records[$i]['mandt'],
+                            'point' => $records[$i]['point'],
                             'date_time' => $startDate->format('Y-m-d H:i:s'),
                             'running_hours' => 0,
+                            'counter_reading' => $records[$i]['counter_reading'],
+                            'maintenance_text' => $records[$i]['maintenance_text'],
+                            'company_code' => $records[$i]['company_code'],
+                            'equipment_description' => $records[$i]['equipment_description'],
+                            'object_number' => $records[$i]['object_number'],
+                            'api_created_at' => $this->normalizeApiCreatedAt($records[$i]['api_created_at']),
                             'created_at' => now(),
                             'updated_at' => now(),
-                        ]);
+                        ];
 
                         $startDate->addDay();
                     }
