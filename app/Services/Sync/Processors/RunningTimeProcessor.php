@@ -172,7 +172,7 @@ class RunningTimeProcessor
      * Fill missing dates by duplicating the last available record
      * When API returns nothing for a date, we duplicate the previous date's data
      * but set running_hours to 0 to indicate no activity that day
-     * This also handles backdated data by re-scanning all records after sync
+     * Only fills gaps within the date range of the currently synced data
      */
     private function fillMissingDates(array $insertedData): void
     {
@@ -180,64 +180,90 @@ class RunningTimeProcessor
             return;
         }
 
-        // Group by equipment_number
-        $groupedByEquipment = [];
-        foreach ($insertedData as $row) {
-            $groupedByEquipment[$row['equipment_number']][] = $row;
-        }
+        // Get the date range from the inserted data (the current sync batch)
+        $dates = array_column($insertedData, 'date');
+        $minDate = min($dates);
+        $maxDate = max($dates);
 
         $uniqueEquipmentNumbers = array_unique(array_column($insertedData, 'equipment_number'));
 
-        // Re-scan all records for each equipment to ensure gaps are filled
-        // This handles backdated data - when new old data is added, it fills gaps between old and new ranges
-        foreach ($uniqueEquipmentNumbers as $equipmentNumber) {
-            $this->fillGapsForEquipment($equipmentNumber);
+        // Only fill gaps within the current sync date range
+        $this->fillGapsForMultipleEquipment($uniqueEquipmentNumbers, $minDate, $maxDate);
+    }
+
+    /**
+     * Fill gaps for multiple equipment in batch - much faster than individual queries
+     * Processes equipment in chunks to avoid memory issues with large datasets
+     */
+    private function fillGapsForMultipleEquipment(array $equipmentNumbers, string $minDate, string $maxDate): void
+    {
+        if (empty($equipmentNumbers)) {
+            return;
+        }
+
+        // Process equipment in chunks to avoid loading too much data into memory
+        $equipmentChunks = array_chunk($equipmentNumbers, 500); // Process 500 equipment at a time
+
+        foreach ($equipmentChunks as $chunk) {
+            $this->fillGapsForEquipmentChunk($chunk, $minDate, $maxDate);
         }
     }
 
     /**
-     * Fill gaps for a specific equipment by scanning all existing records
-     * This handles both forward and backdated data
+     * Fill gaps for a chunk of equipment
+     * Only fills gaps within the specified date range (the current sync batch range)
      */
-    private function fillGapsForEquipment(string $equipmentNumber): void
+    private function fillGapsForEquipmentChunk(array $equipmentNumbers, string $minDate, string $maxDate): void
     {
-        // Get ALL existing records for this equipment, ordered by date
-        $existingRecords = RunningTime::where('equipment_number', $equipmentNumber)
+        // Only fetch records within the current sync date range
+        // This prevents filling gaps from historical data outside the current sync
+        $allRecords = RunningTime::whereIn('equipment_number', $equipmentNumbers)
+            ->whereBetween('date', [$minDate, $maxDate])
             ->orderBy('date')
-            ->get();
+            ->get()
+            ->groupBy('equipment_number');
 
-        // If no records, this is first sync - don't fill gaps
-        if ($existingRecords->isEmpty()) {
-            return;
-        }
+        $allMissingDatesData = [];
 
-        $missingDatesData = [];
-        $records = $existingRecords->toArray();
+        foreach ($equipmentNumbers as $equipmentNumber) {
+            $existingRecords = $allRecords->get($equipmentNumber);
 
-        // Get the first date as the anchor start
-        $minDate = Carbon::parse($records[0]['date']);
-        $maxDate = Carbon::parse(end($records)['date']);
+            if (!$existingRecords || $existingRecords->isEmpty()) {
+                continue;
+            }
 
-        // Check for gaps in the entire dataset
-        for ($i = 0; $i < count($records) - 1; $i++) {
-            $currentDate = Carbon::parse($records[$i]['date']);
-            $nextDate = Carbon::parse($records[$i + 1]['date']);
+            $records = $existingRecords->values()->toArray();
+            $missingDatesData = [];
 
-            $daysDiff = $currentDate->diffInDays($nextDate);
+            // Check for gaps in the dataset - only within the sync date range
+            $syncedMinDate = Carbon::parse($minDate);
+            $syncedMaxDate = Carbon::parse($maxDate);
 
-            // Only fill gaps between existing records
-            if ($daysDiff > 1) {
-                $startDate = $currentDate->copy()->addDay();
+            for ($i = 0; $i < count($records) - 1; $i++) {
+                $currentDate = Carbon::parse($records[$i]['date']);
+                $nextDate = Carbon::parse($records[$i + 1]['date']);
 
-                while ($startDate->lt($nextDate)) {
-                    $missingDate = $startDate->toDateString();
+                // Only fill gaps if both dates are within the sync range
+                if ($currentDate->lt($syncedMinDate) || $nextDate->gt($syncedMaxDate)) {
+                    continue;
+                }
 
-                    // Check if this date already exists
-                    $exists = RunningTime::where('equipment_number', $equipmentNumber)
-                        ->where('date', $missingDate)
-                        ->exists();
+                $daysDiff = $currentDate->diffInDays($nextDate);
 
-                    if (!$exists) {
+                // Only fill gaps between existing records
+                // Limit gap size to avoid filling entire years of missing data
+                if ($daysDiff > 1 && $daysDiff <= 30) {
+                    $startDate = $currentDate->copy()->addDay();
+
+                    while ($startDate->lt($nextDate)) {
+                        // Ensure we don't fill dates outside the sync range
+                        if ($startDate->lt($syncedMinDate) || $startDate->gt($syncedMaxDate)) {
+                            $startDate->addDay();
+                            continue;
+                        }
+
+                        $missingDate = $startDate->toDateString();
+
                         // Use the previous record's data, but set running_hours to 0
                         $missingDatesData[] = array_merge($records[$i], [
                             'uuid' => DB::raw('UUID()'),
@@ -247,42 +273,60 @@ class RunningTimeProcessor
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
-                    }
 
-                    $startDate->addDay();
+                        $startDate->addDay();
+                    }
                 }
+            }
+
+            // Collect all missing dates data for bulk insert
+            if (!empty($missingDatesData)) {
+                $allMissingDatesData = array_merge($allMissingDatesData, $missingDatesData);
+
+                Log::info('RunningTimeProcessor: Filling missing dates for equipment', [
+                    'equipment_number' => $equipmentNumber,
+                    'count' => count($missingDatesData),
+                ]);
             }
         }
 
-        // Bulk insert missing dates
-        if (!empty($missingDatesData)) {
-            Log::info('RunningTimeProcessor: Filling missing dates for equipment', [
-                'equipment_number' => $equipmentNumber,
-                'count' => count($missingDatesData),
-                'date_range' => [
-                    'min' => $minDate->toDateString(),
-                    'max' => $maxDate->toDateString(),
-                ]
-            ]);
+        // Bulk insert all missing dates in a single operation
+        if (!empty($allMissingDatesData)) {
+            // Check which dates already exist to avoid duplicates
+            $existingDates = RunningTime::whereIn('equipment_number', $equipmentNumbers)
+                ->whereIn('date', array_column($allMissingDatesData, 'date'))
+                ->select(['equipment_number', 'date'])
+                ->get()
+                ->map(function ($record) {
+                    return $record->equipment_number . '-' . $record->date;
+                })
+                ->toArray();
 
-            RunningTime::upsert(
-                $missingDatesData,
-                ['equipment_number', 'date'],
-                [
-                    'plant_id',
-                    'mandt',
-                    'point',
-                    'date_time',
-                    'running_hours',
-                    'counter_reading',
-                    'maintenance_text',
-                    'company_code',
-                    'equipment_description',
-                    'object_number',
-                    'api_created_at',
-                    'updated_at'
-                ]
-            );
+            // Filter out dates that already exist
+            $filteredMissingDates = array_filter($allMissingDatesData, function ($item) use ($existingDates) {
+                return !in_array($item['equipment_number'] . '-' . $item['date'], $existingDates);
+            });
+
+            if (!empty($filteredMissingDates)) {
+                RunningTime::upsert(
+                    $filteredMissingDates,
+                    ['equipment_number', 'date'],
+                    [
+                        'plant_id',
+                        'mandt',
+                        'point',
+                        'date_time',
+                        'running_hours',
+                        'counter_reading',
+                        'maintenance_text',
+                        'company_code',
+                        'equipment_description',
+                        'object_number',
+                        'api_created_at',
+                        'updated_at'
+                    ]
+                );
+            }
         }
     }
 }

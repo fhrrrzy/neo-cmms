@@ -167,6 +167,7 @@ class ConcurrentSyncJob implements ShouldQueue
                         'equipment_work_order_materials' => 'Equipment Work Order Materials',
                         'running_time' => 'Running Time',
                         'work_orders' => 'Work Orders',
+                        'daily_plant_data' => 'Daily Plant Data',
                         default => ucfirst($type)
                     };
                     $syncedResults[] = $typeLabel . ': ' . ($results[$type]['success'] ?? 0);
