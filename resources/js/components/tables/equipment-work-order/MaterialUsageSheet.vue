@@ -99,7 +99,7 @@ const fetchRunningHoursForItems = async (list) => {
                 `/api/equipment/${encodeURIComponent(eq)}?${p}`,
             );
             const rt = data?.equipment?.recent_running_times?.[0];
-            const hours = rt?.counter_reading ?? rt?.hours ?? null;
+            const hours = rt?.counter_reading ?? rt?.running_hours ?? null;
             runningHoursByKey.value[key] = hours;
         } catch {
             runningHoursByKey.value[key] = null;
@@ -138,10 +138,37 @@ const formatNumber = (n, digits = 2) => {
     }).format(v);
 };
 
+// Format hours: if effectively zero, show 0 (no decimals); otherwise 2 decimals
+const formatHours = (n) => {
+    const v = Number(n);
+    if (!isFinite(v)) return 'N/A';
+    if (Math.abs(v) < 0.005) return '0';
+    return new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(v);
+};
+
 const getHoursFor = (eq, dt) => {
     const key = `${eq}|${dt?.slice(0, 10)}`;
     const val = runningHoursByKey.value[key];
     return val === undefined ? null : val;
+};
+
+const counterGapBetween = (currentItem, nextItem) => {
+    if (!currentItem || !nextItem) return null;
+    const cur = getHoursFor(
+        currentItem?.equipment_number,
+        currentItem?.requirements_date,
+    );
+    const nxt = getHoursFor(
+        nextItem?.equipment_number,
+        nextItem?.requirements_date,
+    );
+    if (cur == null || nxt == null) return null;
+    const gap = Number(cur) - Number(nxt);
+    if (!isFinite(gap)) return null;
+    return gap;
 };
 
 const loadStoredDateRange = () => {
@@ -286,15 +313,40 @@ watch(
                                 <!-- Days gap badge on line -->
                                 <div
                                     v-if="idx < items.length - 1"
-                                    class="absolute top-[calc(50%+0.75rem)] left-[7px] z-10 flex -translate-x-1/2 items-center rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground ring-1 ring-border"
+                                    class="absolute top-[calc(50%+0.75rem)] left-[7px] z-10 flex -translate-x-1/2 flex-col items-center rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground ring-1 ring-border"
                                 >
-                                    {{
-                                        dayDiffBetween(
-                                            ewo.requirements_date,
-                                            items[idx + 1]?.requirements_date,
-                                        )
-                                    }}
-                                    hari
+                                    <div>
+                                        {{
+                                            dayDiffBetween(
+                                                ewo.requirements_date,
+                                                items[idx + 1]
+                                                    ?.requirements_date,
+                                            )
+                                        }}
+                                        hari
+                                    </div>
+                                    <div
+                                        class="mt-0.5 text-[10px] text-muted-foreground"
+                                    >
+                                        <template
+                                            v-if="
+                                                counterGapBetween(
+                                                    ewo,
+                                                    items[idx + 1],
+                                                ) !== null
+                                            "
+                                        >
+                                            {{
+                                                formatHours(
+                                                    counterGapBetween(
+                                                        ewo,
+                                                        items[idx + 1],
+                                                    ),
+                                                )
+                                            }}
+                                            Jam
+                                        </template>
+                                    </div>
                                 </div>
 
                                 <!-- Timeline node -->
@@ -318,12 +370,11 @@ watch(
                                         Counter reading:
                                         <span class="font-mono font-medium">
                                             {{
-                                                formatNumber(
+                                                formatHours(
                                                     getHoursFor(
                                                         ewo.equipment_number,
                                                         ewo.requirements_date,
                                                     ),
-                                                    2,
                                                 )
                                             }}
                                         </span>

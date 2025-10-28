@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class EquipmentApiController extends Controller
 {
-    public function show(string $uuid, Request $request)
+    public function show(string $id, Request $request)
     {
         $equipment = Equipment::with(['plant.regional', 'station'])
             ->select([
@@ -19,7 +19,11 @@ class EquipmentApiController extends Controller
             ])
             ->leftJoin('plants', 'equipment.plant_id', '=', 'plants.id')
             ->leftJoin('stations', 'equipment.station_id', '=', 'stations.id')
-            ->where('equipment.uuid', $uuid)
+            // Accept either UUID or equipment_number
+            ->where(function ($q) use ($id) {
+                $q->where('equipment.uuid', $id)
+                    ->orWhere('equipment.equipment_number', $id);
+            })
             ->first();
 
         if (!$equipment) {

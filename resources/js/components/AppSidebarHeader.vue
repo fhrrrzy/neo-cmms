@@ -56,7 +56,7 @@ const modKeyLabel = isMac ? '⌘' : 'Ctrl';
                 <!-- md and up: outline, with label and shortcut -->
                 <Button
                     variant="outline"
-                    class="hidden h-9 items-center gap-2 px-3 md:inline-flex"
+                    class="hidden"
                     @click="handleSearchClick"
                 >
                     <Search class="h-4 w-4" />
