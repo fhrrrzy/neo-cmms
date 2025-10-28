@@ -7,6 +7,7 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from '@/components/ui/empty';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
     TableBody,
@@ -30,6 +31,7 @@ const props = defineProps({
 
 const rows = ref([]);
 const loading = ref(false);
+const initialized = ref(false);
 const page = ref(1);
 const perPage = ref(15);
 const sortBy = ref('count');
@@ -115,6 +117,7 @@ const fetchData = async () => {
         };
     } finally {
         loading.value = false;
+        initialized.value = true;
     }
 };
 
@@ -162,7 +165,28 @@ watch(
 </script>
 
 <template>
-    <div v-if="rows?.length > 0" class="space-y-4">
+    <!-- Skeleton while loading or before first fetch completes -->
+    <div v-if="!initialized || loading" class="space-y-2">
+        <Skeleton class="h-8 w-1/3" />
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead v-for="n in 5" :key="n">
+                        <Skeleton class="h-4 w-24" />
+                    </TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                <TableRow v-for="i in 8" :key="i">
+                    <TableCell v-for="j in 5" :key="j">
+                        <Skeleton class="h-4 w-full" />
+                    </TableCell>
+                </TableRow>
+            </TableBody>
+        </Table>
+    </div>
+
+    <div v-else-if="rows?.length > 0" class="space-y-4">
         <Table>
             <TableHeader>
                 <TableRow>

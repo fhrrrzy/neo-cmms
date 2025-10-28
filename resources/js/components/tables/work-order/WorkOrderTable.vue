@@ -15,6 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
     TableBody,
@@ -39,6 +40,7 @@ const props = defineProps({
 
 const rows = ref([]);
 const loading = ref(false);
+const initialized = ref(false);
 const page = ref(1);
 const perPage = ref(15);
 const sortBy = ref('created_on');
@@ -53,6 +55,9 @@ const pagination = ref({
     per_page: 15,
     last_page: 1,
 });
+
+// Track totals for pagination visibility
+const lastTotal = ref(0);
 
 const tableContext = {
     options: {
@@ -133,8 +138,10 @@ const fetchData = async () => {
             current_page: data?.current_page ?? page.value,
             last_page: data?.last_page ?? 1,
         };
+        lastTotal.value = pagination.value.total;
     } finally {
         loading.value = false;
+        initialized.value = true;
     }
 };
 
@@ -214,11 +221,28 @@ const displayedRows = computed(() => {
         return matchesType && haystack.includes(term);
     });
 });
+
+const hasData = computed(() => (displayedRows.value || []).length > 0);
+const isFiltered = computed(
+    () => Boolean((search.value || '').trim()) || orderType.value !== 'ALL',
+);
+const showTable = computed(
+    () => initialized.value && (hasData.value || isFiltered.value),
+);
 </script>
 
 <template>
     <div class="w-full">
-        <div class="mb-4 flex flex-wrap justify-end gap-2 md:flex-nowrap">
+        <div v-if="!initialized || loading" class="mb-4">
+            <div class="flex gap-2">
+                <Skeleton class="h-9 w-64" />
+                <Skeleton class="h-9 w-40" />
+            </div>
+        </div>
+        <div
+            v-else-if="showTable"
+            class="mb-4 flex flex-wrap justify-end gap-2 md:flex-nowrap"
+        >
             <div class="">
                 <Input
                     v-model="search"
@@ -305,107 +329,152 @@ const displayedRows = computed(() => {
                 </button>
             </span>
         </div>
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead
-                        v-for="col in workOrderColumns"
-                        :key="col.id || col.accessorKey || col.key"
+        <template v-if="!initialized || loading">
+            <div class="space-y-2">
+                <Skeleton class="h-8 w-1/3" />
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead v-for="n in 6" :key="n">
+                                <Skeleton class="h-4 w-24" />
+                            </TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow v-for="i in 8" :key="i">
+                            <TableCell v-for="j in 6" :key="j">
+                                <Skeleton class="h-4 w-full" />
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </div>
+        </template>
+        <template v-else-if="showTable">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead
+                            v-for="col in workOrderColumns"
+                            :key="col.id || col.accessorKey || col.key"
+                        >
+                            <component
+                                :is="
+                                    typeof col.header === 'function'
+                                        ? col.header({
+                                              table: tableContext,
+                                              column: col,
+                                          })
+                                        : h('span', null, col.label)
+                                "
+                            />
+                        </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow v-if="!hasData">
+                        <TableCell
+                            :colspan="workOrderColumns.length"
+                            class="p-8 text-center text-sm text-muted-foreground"
+                        >
+                            Data tidak ditemukan untuk filter saat ini
+                            <button
+                                class="ml-2 rounded-md border px-2 py-1 hover:bg-accent"
+                                @click="
+                                    () => {
+                                        search = '';
+                                        orderType = 'ALL';
+                                        page = 1;
+                                        fetchData();
+                                    }
+                                "
+                            >
+                                Clear filter
+                            </button>
+                        </TableCell>
+                    </TableRow>
+                    <TableRow
+                        v-else
+                        v-for="(wo, idx) in displayedRows"
+                        :key="wo.id"
+                        class="cursor-pointer hover:bg-muted/50"
+                        @click="openWorkOrder(wo)"
                     >
-                        <component
-                            :is="
-                                typeof col.header === 'function'
-                                    ? col.header({
-                                          table: tableContext,
-                                          column: col,
-                                      })
-                                    : h('span', null, col.label)
-                            "
-                        />
-                    </TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                <TableRow v-if="displayedRows.length === 0">
-                    <TableCell :colspan="workOrderColumns.length" class="p-8">
-                        <div class="flex items-center justify-center">
-                            <Empty>
-                                <EmptyHeader>
-                                    <EmptyMedia variant="icon">
-                                        <ClipboardList />
-                                    </EmptyMedia>
-                                    <EmptyTitle>No Work Orders</EmptyTitle>
-                                    <EmptyDescription>
-                                        No work orders found
-                                    </EmptyDescription>
-                                </EmptyHeader>
-                            </Empty>
-                        </div>
-                    </TableCell>
-                </TableRow>
-                <TableRow
-                    v-else
-                    v-for="(wo, idx) in displayedRows"
-                    :key="wo.id"
-                    class="cursor-pointer hover:bg-muted/50"
-                    @click="openWorkOrder(wo)"
-                >
-                    <TableCell class="text-center font-medium">
-                        {{
-                            (pagination.current_page - 1) *
-                                pagination.per_page +
-                            idx +
-                            1
-                        }}
-                    </TableCell>
-                    <TableCell class="font-mono text-sm">
-                        {{
-                            renderOrNA(
-                                new Date(wo.created_on).toLocaleDateString(
-                                    'en-US',
-                                    {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: 'numeric',
-                                    },
-                                ),
-                            )
-                        }}
-                    </TableCell>
-                    <TableCell class="font-mono text-sm">{{
-                        renderOrNA(wo.order)
-                    }}</TableCell>
-                    <TableCell>{{ orderTypeToLabel(wo.order_type) }}</TableCell>
-                    <TableCell
-                        class="max-w-[320px] truncate"
-                        :title="wo.description"
-                    >
-                        {{ renderOrNA(wo.description) }}
-                    </TableCell>
-                    <TableCell
-                        class="max-w-[320px] truncate"
-                        :title="wo.cause_text"
-                    >
-                        {{ renderOrNA(wo.cause_text) }}
-                    </TableCell>
-                    <TableCell
-                        class="max-w-[320px] truncate"
-                        :title="wo.item_text"
-                    >
-                        {{ renderOrNA(wo.item_text) }}
-                    </TableCell>
-                </TableRow>
-            </TableBody>
-        </Table>
+                        <TableCell class="text-center font-medium">
+                            {{
+                                (pagination.current_page - 1) *
+                                    pagination.per_page +
+                                idx +
+                                1
+                            }}
+                        </TableCell>
+                        <TableCell class="font-mono text-sm">
+                            {{
+                                renderOrNA(
+                                    new Date(wo.created_on).toLocaleDateString(
+                                        'en-US',
+                                        {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                        },
+                                    ),
+                                )
+                            }}
+                        </TableCell>
+                        <TableCell class="font-mono text-sm">{{
+                            renderOrNA(wo.order)
+                        }}</TableCell>
+                        <TableCell>{{
+                            orderTypeToLabel(wo.order_type)
+                        }}</TableCell>
+                        <TableCell
+                            class="max-w-[320px] truncate"
+                            :title="wo.description"
+                        >
+                            {{ renderOrNA(wo.description) }}
+                        </TableCell>
+                        <TableCell
+                            class="max-w-[320px] truncate"
+                            :title="wo.cause_text"
+                        >
+                            {{ renderOrNA(wo.cause_text) }}
+                        </TableCell>
+                        <TableCell
+                            class="max-w-[320px] truncate"
+                            :title="wo.item_text"
+                        >
+                            {{ renderOrNA(wo.item_text) }}
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
 
-        <!-- Pagination -->
-        <div class="mt-4">
-            <WorkOrderPagination
-                :pagination="pagination"
-                @page-change="handlePageChange"
-                @page-size-change="handlePageSizeChange"
-            />
-        </div>
+            <!-- Pagination -->
+            <div v-if="hasData" class="mt-4">
+                <WorkOrderPagination
+                    :pagination="pagination"
+                    @page-change="handlePageChange"
+                    @page-size-change="handlePageSizeChange"
+                />
+            </div>
+        </template>
+
+        <template v-else>
+            <div class="flex items-center justify-center py-20">
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <ClipboardList />
+                        </EmptyMedia>
+                        <EmptyTitle>No Work Orders</EmptyTitle>
+                        <EmptyDescription>
+                            No work orders found
+                        </EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
+            </div>
+        </template>
 
         <!-- Dialog with items table -->
         <WorkOrderItemsDialog

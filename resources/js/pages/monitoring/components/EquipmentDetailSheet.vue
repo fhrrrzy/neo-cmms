@@ -4,6 +4,8 @@
             side="bottom"
             class="h-[100vh] max-h-[100vh] w-full overflow-hidden p-0"
             :hide-close="true"
+            @after-enter="onAfterEnter"
+            @before-leave="onBeforeLeave"
         >
             <!-- Header -->
             <div
@@ -79,25 +81,28 @@
                     </div>
                 </div>
                 <div class="p-6">
-                    <EquipmentContent
-                        :equipment="equipment"
-                        :loading="loading"
-                        :not-found="error === 'Equipment not found'"
-                        :uuid="equipmentNumber"
-                        :equipment-number="equipment.equipment_number"
-                        :date-range="{
-                            start: dateRangeStore.start,
-                            end: dateRangeStore.end,
-                        }"
-                        :range-value="rangeValue"
-                        :popover-open="popoverOpen"
-                        :show-back-button="false"
-                        :show-qr-button="false"
-                        @open-qr="isQrOpen = true"
-                        @go-back="close"
-                        @update:range-value="rangeValue = $event"
-                        @update:popover-open="popoverOpen = $event"
-                    />
+                    <!-- Mount heavy content only after sheet finishes entering -->
+                    <div v-if="entered">
+                        <EquipmentContent
+                            :equipment="equipment"
+                            :loading="loading"
+                            :not-found="error === 'Equipment not found'"
+                            :uuid="equipmentNumber"
+                            :equipment-number="equipment.equipment_number"
+                            :date-range="{
+                                start: dateRangeStore.start,
+                                end: dateRangeStore.end,
+                            }"
+                            :range-value="rangeValue"
+                            :popover-open="popoverOpen"
+                            :show-back-button="false"
+                            :show-qr-button="false"
+                            @open-qr="isQrOpen = true"
+                            @go-back="close"
+                            @update:range-value="rangeValue = $event"
+                            @update:popover-open="popoverOpen = $event"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -124,7 +129,7 @@ import { parseDate } from '@internationalized/date';
 import { useQRCode } from '@vueuse/integrations/useQRCode';
 import axios from 'axios';
 import { AlertCircle, ArrowLeft, ExternalLink, QrCode } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 const props = defineProps({
     isOpen: {
@@ -163,6 +168,7 @@ const equipment = ref({
 
 const loading = ref(false);
 const error = ref(null);
+const entered = ref(false);
 
 // QR Code state
 const isQrOpen = ref(false);
@@ -221,6 +227,11 @@ const fetchEquipmentDetail = async () => {
             `/api/equipment/${props.equipmentNumber}?${params}`,
         );
         equipment.value = data.equipment;
+        // Defer any heavy reflow work until next tick/idle
+        await nextTick();
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => {});
+        }
     } catch (err) {
         if (err?.response?.status === 404) {
             error.value = 'Equipment not found';
@@ -233,6 +244,13 @@ const fetchEquipmentDetail = async () => {
     } finally {
         loading.value = false;
     }
+};
+const onAfterEnter = () => {
+    entered.value = true;
+};
+
+const onBeforeLeave = () => {
+    entered.value = false;
 };
 
 // Watch for both equipment number and sheet open state changes

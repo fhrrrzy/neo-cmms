@@ -65,6 +65,7 @@ const createChart = () => {
         counterReading: parseFloat(item.counter_reading) || 0,
         runningHours: parseFloat(item.running_hours) || 0,
     }));
+    const enableMarkers = chartData.length <= 200;
 
     if (chart) chart.destroy();
 
@@ -119,9 +120,26 @@ const createChart = () => {
         tooltip: {
             shared: true,
             crosshairs: true,
+            animation: false,
             backgroundColor: isDarkMode() ? '#111827' : '#ffffff',
             borderColor: theme.grid,
             style: { color: theme.text },
+            formatter: function () {
+                const date = Highcharts.dateFormat('%e %b %Y', this.x);
+                const rhPoint = (this.points || []).find(
+                    (p) => p.series.name === 'Running Hours',
+                );
+                const crPoint = (this.points || []).find(
+                    (p) => p.series.name === 'Counter Reading',
+                );
+                const rhVal = rhPoint
+                    ? Highcharts.numberFormat(rhPoint.y, 2)
+                    : '-';
+                const crVal = crPoint
+                    ? Highcharts.numberFormat(crPoint.y, 2)
+                    : '-';
+                return `<b>${date}</b><br/>Running Hours: ${rhVal} Jam<br/>Counter Reading: ${crVal}`;
+            },
         },
         legend: {
             layout: 'vertical',
@@ -148,7 +166,7 @@ const createChart = () => {
                 yAxis: 0,
                 data: chartData.map((i) => [i.x, i.runningHours]),
                 color: theme.series[0],
-                marker: { enabled: true, radius: 4 },
+                marker: { enabled: enableMarkers, radius: 3 },
                 boostThreshold: 500, // Boost when more than 500 points
                 opacity: 0.75,
                 states: {
@@ -163,7 +181,7 @@ const createChart = () => {
                 yAxis: 1,
                 data: chartData.map((i) => [i.x, i.counterReading]),
                 color: theme.series[1],
-                marker: { enabled: true, radius: 4 },
+                marker: { enabled: enableMarkers, radius: 3 },
                 boostThreshold: 500, // Boost when more than 500 points
                 opacity: 0.75,
                 states: {
