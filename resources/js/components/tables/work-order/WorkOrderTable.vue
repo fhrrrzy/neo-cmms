@@ -218,8 +218,8 @@ const displayedRows = computed(() => {
 
 <template>
     <div class="w-full">
-        <div class="mb-3 grid grid-cols-1 gap-2 md:grid-cols-3">
-            <div class="md:col-span-2">
+        <div class="mb-4 flex flex-wrap justify-end gap-2 md:flex-nowrap">
+            <div class="">
                 <Input
                     v-model="search"
                     type="text"
