@@ -1,19 +1,18 @@
-<script setup lang="ts">
+<script setup>
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useInitials } from '@/composables/useInitials';
-import type { User } from '@/types';
 import { computed } from 'vue';
+import BoringAvatar from 'vue-boring-avatars';
 
-interface Props {
-    user: User;
-    showEmail?: boolean;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-    showEmail: false,
+const props = defineProps({
+    user: {
+        type: Object,
+        required: true,
+    },
+    showEmail: {
+        type: Boolean,
+        default: false,
+    },
 });
-
-const { getInitials } = useInitials();
 
 // Compute whether we should show the avatar image
 const showAvatar = computed(
@@ -23,9 +22,20 @@ const showAvatar = computed(
 
 <template>
     <Avatar class="h-8 w-8 overflow-hidden rounded-lg">
-        <AvatarImage v-if="showAvatar" :src="user.avatar!" :alt="user.name" />
+        <AvatarImage v-if="showAvatar" :src="user.avatar" :alt="user.name" />
         <AvatarFallback class="rounded-lg text-black dark:text-white">
-            {{ getInitials(user.name) }}
+            <BoringAvatar
+                :name="user.name"
+                variant="beam"
+                square
+                :colors="[
+                    '#92A1C6',
+                    '#146A7C',
+                    '#F0AB3D',
+                    '#C271B4',
+                    '#C20D90',
+                ]"
+            />
         </AvatarFallback>
     </Avatar>
 

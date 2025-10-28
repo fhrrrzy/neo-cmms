@@ -1,5 +1,12 @@
 <script setup>
 import WorkOrderItemsDialog from '@/components/tables/work-order/WorkOrderItemsDialog.vue';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -17,6 +24,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import axios from 'axios';
+import { ClipboardList } from 'lucide-vue-next';
 import { computed, h, onMounted, ref, watch } from 'vue';
 import { workOrderColumns } from './columns';
 import WorkOrderPagination from './WorkOrderPagination.vue';
@@ -319,11 +327,20 @@ const displayedRows = computed(() => {
             </TableHeader>
             <TableBody>
                 <TableRow v-if="displayedRows.length === 0">
-                    <TableCell
-                        :colspan="workOrderColumns.length"
-                        class="h-24 text-center"
-                    >
-                        No work orders found
+                    <TableCell :colspan="workOrderColumns.length" class="p-8">
+                        <div class="flex items-center justify-center">
+                            <Empty>
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <ClipboardList />
+                                    </EmptyMedia>
+                                    <EmptyTitle>No Work Orders</EmptyTitle>
+                                    <EmptyDescription>
+                                        No work orders found
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                            </Empty>
+                        </div>
                     </TableCell>
                 </TableRow>
                 <TableRow

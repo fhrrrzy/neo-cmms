@@ -1,6 +1,13 @@
 <script setup>
 import WorkOrderPagination from '@/components/tables/work-order/WorkOrderPagination.vue';
 import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
+import {
     Table,
     TableBody,
     TableCell,
@@ -9,6 +16,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import axios from 'axios';
+import { Package } from 'lucide-vue-next';
 import { computed, h, onMounted, ref, watch } from 'vue';
 import { equipmentWorkOrderGroupedByMaterialColumns } from './columns';
 import MaterialUsageSheet from './MaterialUsageSheet.vue';
@@ -238,7 +246,15 @@ watch(
             @update:open="(v) => (sheetOpen = v)"
         />
     </div>
-    <div v-else class="py-8 text-center text-muted-foreground">
-        <p>No equipment work orders found</p>
+    <div v-else class="py-8">
+        <Empty>
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <Package />
+                </EmptyMedia>
+                <EmptyTitle>No Material</EmptyTitle>
+                <EmptyDescription> No Material found </EmptyDescription>
+            </EmptyHeader>
+        </Empty>
     </div>
 </template>

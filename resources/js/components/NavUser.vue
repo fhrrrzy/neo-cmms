@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import UserInfo from '@/components/UserInfo.vue';
 import {
     DropdownMenu,

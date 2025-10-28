@@ -7,6 +7,13 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
+import {
     Table,
     TableBody,
     TableCell,
@@ -16,6 +23,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import axios from 'axios';
+import { Factory, Factory2 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 
 const props = defineProps({
@@ -179,11 +187,21 @@ watch(
                             </TableHeader>
                             <TableBody>
                                 <TableRow v-if="withRunningTime.length === 0">
-                                    <TableCell
-                                        :colspan="5"
-                                        class="text-center text-muted-foreground"
-                                    >
-                                        No equipment found with running time
+                                    <TableCell :colspan="5" class="p-8">
+                                        <Empty>
+                                            <EmptyHeader>
+                                                <EmptyMedia variant="icon">
+                                                    <Factory />
+                                                </EmptyMedia>
+                                                <EmptyTitle
+                                                    >No Equipment</EmptyTitle
+                                                >
+                                                <EmptyDescription>
+                                                    No equipment found with
+                                                    running time
+                                                </EmptyDescription>
+                                            </EmptyHeader>
+                                        </Empty>
                                     </TableCell>
                                 </TableRow>
                                 <TableRow
@@ -253,11 +271,21 @@ watch(
                                 <TableRow
                                     v-if="withoutRunningTime.length === 0"
                                 >
-                                    <TableCell
-                                        :colspan="3"
-                                        class="text-center text-muted-foreground"
-                                    >
-                                        All equipment have running time data
+                                    <TableCell :colspan="3" class="p-8">
+                                        <Empty>
+                                            <EmptyHeader>
+                                                <EmptyMedia variant="icon">
+                                                    <Factory2 />
+                                                </EmptyMedia>
+                                                <EmptyTitle
+                                                    >All Have Data</EmptyTitle
+                                                >
+                                                <EmptyDescription>
+                                                    All equipment have running
+                                                    time data
+                                                </EmptyDescription>
+                                            </EmptyHeader>
+                                        </Empty>
                                     </TableCell>
                                 </TableRow>
                                 <TableRow

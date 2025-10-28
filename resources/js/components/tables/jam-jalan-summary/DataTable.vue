@@ -1,5 +1,12 @@
 <script setup lang="js">
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     TableBody,
@@ -12,7 +19,7 @@ import {
     getSortedRowModel,
     useVueTable,
 } from '@tanstack/vue-table';
-import { AlertCircle } from 'lucide-vue-next';
+import { AlertCircle, Factory } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { createColumns } from './columns';
 import EquipmentDetailModal from './EquipmentDetailModal.vue';
@@ -162,9 +169,21 @@ defineExpose({
                             <TableRow>
                                 <TableCell
                                     :colspan="table.getAllColumns().length"
-                                    class="h-24 text-center"
+                                    class="p-8"
                                 >
-                                    Tidak ada data plant
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="icon">
+                                                <Factory />
+                                            </EmptyMedia>
+                                            <EmptyTitle
+                                                >No Plant Data</EmptyTitle
+                                            >
+                                            <EmptyDescription>
+                                                Tidak ada data plant
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                    </Empty>
                                 </TableCell>
                             </TableRow>
                         </template>

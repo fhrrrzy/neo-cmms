@@ -1,5 +1,12 @@
 <script setup>
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
@@ -15,7 +22,7 @@ import {
     getSortedRowModel,
     useVueTable,
 } from '@tanstack/vue-table';
-import { AlertCircle } from 'lucide-vue-next';
+import { AlertCircle, Database } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { columns } from './columns';
 import DataTablePagination from './DataTablePagination.vue';
@@ -238,9 +245,22 @@ defineExpose({
                             <TableRow>
                                 <TableCell
                                     :colspan="table.getAllColumns().length"
-                                    class="h-24 text-center"
+                                    class="p-8"
                                 >
-                                    Tidak ada data equipment yang ditemukan
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="icon">
+                                                <Database />
+                                            </EmptyMedia>
+                                            <EmptyTitle
+                                                >No Equipment Found</EmptyTitle
+                                            >
+                                            <EmptyDescription>
+                                                Tidak ada data equipment yang
+                                                ditemukan
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                    </Empty>
                                 </TableCell>
                             </TableRow>
                         </template>
@@ -279,8 +299,18 @@ defineExpose({
                     </div>
                 </template>
                 <template v-else-if="!hasData">
-                    <div class="p-8 text-center text-muted-foreground">
-                        <p>Tidak ada data equipment yang ditemukan</p>
+                    <div class="p-8">
+                        <Empty>
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <Database />
+                                </EmptyMedia>
+                                <EmptyTitle>No Equipment Found</EmptyTitle>
+                                <EmptyDescription>
+                                    Tidak ada data equipment yang ditemukan
+                                </EmptyDescription>
+                            </EmptyHeader>
+                        </Empty>
                     </div>
                 </template>
                 <template v-else>

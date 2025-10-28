@@ -1,5 +1,12 @@
 <script setup>
 import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
+import {
     Table,
     TableBody,
     TableCell,
@@ -8,6 +15,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import axios from 'axios';
+import { Clock } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
 import { runningTimeColumns } from './columns';
 import RunningTimePagination from './RunningTimePagination.vue';
@@ -141,11 +149,18 @@ watch(
             </TableHeader>
             <TableBody>
                 <TableRow v-if="rows.length === 0">
-                    <TableCell
-                        :colspan="runningTimeColumns.length"
-                        class="h-24 text-center"
-                    >
-                        No running times data available
+                    <TableCell :colspan="runningTimeColumns.length" class="p-8">
+                        <Empty>
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <Clock />
+                                </EmptyMedia>
+                                <EmptyTitle>No Running Times</EmptyTitle>
+                                <EmptyDescription>
+                                    No running times data available
+                                </EmptyDescription>
+                            </EmptyHeader>
+                        </Empty>
                     </TableCell>
                 </TableRow>
                 <TableRow v-else v-for="(time, index) in rows" :key="index">

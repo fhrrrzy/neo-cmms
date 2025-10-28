@@ -1,5 +1,12 @@
 <script setup>
 import WorkOrderPagination from '@/components/tables/work-order/WorkOrderPagination.vue';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import Skeleton from '@/components/ui/skeleton/Skeleton.vue';
 import {
     Table,
@@ -10,6 +17,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import axios from 'axios';
+import { DollarSign } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
@@ -300,8 +308,18 @@ watch(
             </Table>
         </div>
 
-        <div v-else class="py-8 text-center text-muted-foreground">
-            <p>No biaya data found for this equipment</p>
+        <div v-else class="py-8">
+            <Empty>
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <DollarSign />
+                    </EmptyMedia>
+                    <EmptyTitle>No Cost Data</EmptyTitle>
+                    <EmptyDescription>
+                        No biaya data found for this equipment
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         </div>
 
         <WorkOrderPagination

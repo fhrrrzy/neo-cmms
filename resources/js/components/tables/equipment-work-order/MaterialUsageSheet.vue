@@ -1,9 +1,16 @@
 <script setup>
 import { Button } from '@/components/ui/button';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { loadDateRange } from '@/lib/dateRangeStorage';
 import axios from 'axios';
-import { ArrowLeft } from 'lucide-vue-next';
+import { ArrowLeft, History } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
@@ -340,11 +347,20 @@ watch(
                                     </div>
                                 </div>
                             </div>
-                            <div
-                                v-if="items.length === 0"
-                                class="py-8 text-center text-sm text-muted-foreground"
-                            >
-                                Tidak ada data
+                            <div v-if="items.length === 0" class="py-8">
+                                <Empty>
+                                    <EmptyHeader>
+                                        <EmptyMedia variant="icon">
+                                            <History />
+                                        </EmptyMedia>
+                                        <EmptyTitle
+                                            >No Maintenance History</EmptyTitle
+                                        >
+                                        <EmptyDescription>
+                                            Tidak ada data
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                </Empty>
                             </div>
                         </div>
                     </div>

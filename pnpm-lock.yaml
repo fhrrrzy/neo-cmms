@@ -104,6 +104,9 @@ importers:
       vue:
         specifier: ^3.5.13
         version: 3.5.22(typescript@5.9.3)
+      vue-boring-avatars:
+        specifier: ^1.4.0
+        version: 1.4.0
       vue-chartjs:
         specifier: ^5.3.2
         version: 5.3.2(chart.js@4.5.0)(vue@3.5.22(typescript@5.9.3))
@@ -3104,6 +3107,9 @@ packages:
 
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
+
+  vue-boring-avatars@1.4.0:
+    resolution: {integrity: sha512-J1TpAKKteZXoQ+KqU894lPfEWF1YdybeIFnKg4KSyZT3r+lY4X+XtniBxTFEfoJXX8eI0pJErrjHmrGsO7n1fA==}
 
   vue-chartjs@5.3.2:
     resolution: {integrity: sha512-NrkbRRoYshbXbWqJkTN6InoDVwVb90C0R7eAVgMWcB9dPikbruaOoTFjFYHE/+tNPdIe6qdLCDjfjPHQ0fw4jw==}
@@ -6156,6 +6162,8 @@ snapshots:
       stylus: 0.57.0
 
   vscode-uri@3.1.0: {}
+
+  vue-boring-avatars@1.4.0: {}
 
   vue-chartjs@5.3.2(chart.js@4.5.0)(vue@3.5.22(typescript@5.9.3)):
     dependencies:

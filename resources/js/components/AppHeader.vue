@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
@@ -28,53 +28,33 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import UserMenuContent from '@/components/UserMenuContent.vue';
-import { getInitials } from '@/composables/useInitials';
 import { toUrl, urlIsActive } from '@/lib/utils';
 import { dashboard } from '@/routes';
-import type { BreadcrumbItem, NavItem } from '@/types';
-import { InertiaLinkProps, Link, usePage } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next';
 import { computed } from 'vue';
+import BoringAvatar from 'vue-boring-avatars';
 
-interface PageProps {
-    auth: {
-        user: {
-            id: number;
-            name: string;
-            email: string;
-            email_verified_at: string | null;
-            avatar?: string;
-            created_at: string;
-            updated_at: string;
-        };
-    };
-    [key: string]: any;
-}
-
-interface Props {
-    breadcrumbs?: BreadcrumbItem[];
-}
-
-const props = withDefaults(defineProps<Props>(), {
-    breadcrumbs: () => [],
+const props = defineProps({
+    breadcrumbs: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const page = usePage();
 const auth = computed(() => page.props.auth);
 
-const isCurrentRoute = computed(
-    () => (url: NonNullable<InertiaLinkProps['href']>) =>
-        urlIsActive(url, page.url),
-);
+const isCurrentRoute = computed(() => (url) => urlIsActive(url, page.url));
 
 const activeItemStyles = computed(
-    () => (url: NonNullable<InertiaLinkProps['href']>) =>
+    () => (url) =>
         isCurrentRoute.value(toUrl(url))
             ? 'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
             : '',
 );
 
-const mainNavItems: NavItem[] = [
+const mainNavItems = [
     {
         title: 'Dashboard',
         href: dashboard(),
@@ -82,7 +62,7 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const rightNavItems: NavItem[] = [
+const rightNavItems = [
     {
         title: 'Repository',
         href: 'https://github.com/laravel/vue-starter-kit',
@@ -267,7 +247,11 @@ const rightNavItems: NavItem[] = [
                                     <AvatarFallback
                                         class="rounded-lg bg-neutral-200 font-semibold text-black dark:bg-neutral-700 dark:text-white"
                                     >
-                                        {{ getInitials(auth.user?.name) }}
+                                        <!-- {{ getInitials(auth.user?.name) }} -->
+                                        <BoringAvatar
+                                            :name="auth.user?.name"
+                                            variant="beam"
+                                        />
                                     </AvatarFallback>
                                 </Avatar>
                             </Button>
