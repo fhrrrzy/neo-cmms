@@ -45,6 +45,7 @@ class EquipmentMaterialProcessor
         DB::transaction(function () use ($chunk, $allowedPlantCodes) {
             $lookupData = $this->preloadLookupData($chunk, $allowedPlantCodes);
             $equipmentMaterialData = [];
+            $deletions = [];
 
             foreach ($chunk as $item) {
                 $plantCode = Arr::get($item, 'plant');
@@ -61,7 +62,31 @@ class EquipmentMaterialProcessor
                     continue;
                 }
 
+                $deletionFlag = Arr::get($item, 'deletion_flag') ?? Arr::get($item, 'item_deleted');
+                if ($deletionFlag === 'X') {
+                    $deletions[] = [
+                        'plant_id' => $plant->id,
+                        'material_number' => Arr::get($item, 'material_number') ?? Arr::get($item, 'material'),
+                        'reservation_number' => Arr::get($item, 'reservation_number') ?? Arr::get($item, 'reservation'),
+                    ];
+                    continue; // skip insert/upsert for deletion flagged records
+                }
+
                 $equipmentMaterialData[] = $this->prepareEquipmentMaterialData($item, $plant, $lookupData);
+            }
+
+            // Perform deletions for items flagged with deletion_flag = 'X'
+            if (!empty($deletions)) {
+                foreach (array_chunk($deletions, 500) as $deleteChunk) {
+                    foreach ($deleteChunk as $d) {
+                        if (!empty($d['plant_id']) && !empty($d['material_number']) && !empty($d['reservation_number'])) {
+                            EquipmentMaterial::where('plant_id', $d['plant_id'])
+                                ->where('material_number', $d['material_number'])
+                                ->where('reservation_number', $d['reservation_number'])
+                                ->delete();
+                        }
+                    }
+                }
             }
 
             $this->bulkUpsertEquipmentMaterials($equipmentMaterialData);

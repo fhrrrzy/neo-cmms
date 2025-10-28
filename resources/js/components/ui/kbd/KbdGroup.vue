@@ -1,0 +1,19 @@
+<script setup>
+import { cn } from "@/lib/utils"
+
+const props = defineProps({
+  class: {
+    type: String,
+    default: '',
+  },
+})
+</script>
+
+<template>
+  <kbd
+    data-slot="kbd-group"
+    :class="cn('inline-flex items-center gap-1', props.class)"
+  >
+    <slot />
+  </kbd>
+</template>

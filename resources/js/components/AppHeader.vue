@@ -2,6 +2,7 @@
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
+import GlobalSearch from '@/components/GlobalSearch.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,6 +10,7 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import {
     NavigationMenu,
     NavigationMenuItem,
@@ -32,7 +34,7 @@ import { toUrl, urlIsActive } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import BoringAvatar from 'vue-boring-avatars';
 
 const props = defineProps({
@@ -44,8 +46,23 @@ const props = defineProps({
 
 const page = usePage();
 const auth = computed(() => page.props.auth);
+const globalSearchRef = ref(null);
+
+// Detect platform for shortcut hint
+const isMac =
+    typeof navigator !== 'undefined'
+        ? /Mac|iPhone|iPad|iPod/i.test(navigator.platform || '') ||
+          /Mac/i.test(navigator.userAgent || '')
+        : false;
+const modKeyLabel = isMac ? '⌘' : 'Ctrl';
 
 const isCurrentRoute = computed(() => (url) => urlIsActive(url, page.url));
+
+const handleSearchClick = () => {
+    if (globalSearchRef.value) {
+        globalSearchRef.value.open();
+    }
+};
 
 const activeItemStyles = computed(
     () => (url) =>
@@ -185,12 +202,16 @@ const rightNavItems = [
                     <div class="relative flex items-center space-x-1">
                         <Button
                             variant="ghost"
-                            size="icon"
-                            class="group h-9 w-9 cursor-pointer"
+                            class="group inline-flex h-9 items-center gap-2 px-3"
+                            @click="handleSearchClick"
                         >
                             <Search
-                                class="size-5 opacity-80 group-hover:opacity-100"
+                                class="h-4 w-4 opacity-80 group-hover:opacity-100"
                             />
+                            <KbdGroup>
+                                <Kbd>{{ modKeyLabel }}</Kbd>
+                                <Kbd>K</Kbd>
+                            </KbdGroup>
                         </Button>
 
                         <div class="hidden space-x-1 lg:flex">
@@ -274,5 +295,7 @@ const rightNavItems = [
                 <Breadcrumbs :breadcrumbs="breadcrumbs" />
             </div>
         </div>
+
+        <GlobalSearch ref="globalSearchRef" />
     </div>
 </template>

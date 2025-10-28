@@ -1,6 +1,13 @@
 <script setup>
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import {
     Empty,
     EmptyDescription,
     EmptyHeader,
@@ -16,12 +23,15 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import QrShare from '@/pages/equipment/detail/components/QrShare.vue';
+import EquipmentDetailSheet from '@/pages/monitoring/components/EquipmentDetailSheet.vue';
 import {
     getCoreRowModel,
     getFilteredRowModel,
     getSortedRowModel,
     useVueTable,
 } from '@tanstack/vue-table';
+import { useQRCode } from '@vueuse/integrations/useQRCode';
 import { AlertCircle, Database } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { columns } from './columns';
@@ -66,11 +76,36 @@ const emit = defineEmits([
     'page-size-change',
     'sort-change',
     'row-click',
+    'show-qr',
+    'open-new-tab',
 ]);
 
 // Sheet state management
 const isSheetOpen = ref(false);
 const selectedEquipment = ref(null);
+
+// QR Modal state
+const isQrOpen = ref(false);
+const qrEquipment = ref(null);
+const qrEquipmentUrl = computed(() => {
+    if (!qrEquipment.value?.uuid) return '';
+    return `${window.location.origin}/equipment/${encodeURIComponent(qrEquipment.value.uuid)}`;
+});
+const qrCode = useQRCode(qrEquipmentUrl, {
+    errorCorrectionLevel: 'H',
+    margin: 3,
+});
+
+const printQr = () => {
+    const qrSrc = qrCode?.value;
+    if (!qrSrc) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(
+        `<!doctype html><html><head><title>QR Code</title><style>body{margin:0} .container{display:flex;align-items:center;justify-content:center;height:100vh;padding:16px;} .content{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center} img{width:320px;height:320px} p{margin:0;white-space:pre-line;color:#000}@media print{img{width:320px;height:320px}}</style></head><body><div class="container"><div class="content"><img src="${qrSrc}" alt="QR Code" /><p>${qrEquipment.value?.equipment_description || ''}</p></div></div><script>window.onload=()=>{window.focus();window.print();window.close();};<\/script></body></html>`,
+    );
+    printWindow.document.close();
+};
 
 // Initialize sorting state from props
 const tableSorting = ref([
@@ -177,6 +212,21 @@ const handleRowClick = (equipment) => {
     emit('row-click', equipment);
 };
 
+const handleShowQr = (equipment) => {
+    qrEquipment.value = equipment;
+    isQrOpen.value = true;
+    emit('show-qr', equipment);
+};
+
+const handleOpenNewTab = (equipment) => {
+    const uuid = equipment?.uuid;
+    if (uuid) {
+        const url = `/equipment/${encodeURIComponent(uuid)}`;
+        window.open(url, '_blank');
+    }
+    emit('open-new-tab', equipment);
+};
+
 // Watch for sorting changes from parent and update table sorting
 watch(
     () => props.sorting,
@@ -265,23 +315,52 @@ defineExpose({
                             </TableRow>
                         </template>
                         <template v-else>
-                            <TableRow
+                            <ContextMenu
                                 v-for="row in table.getRowModel().rows"
                                 :key="row.id"
-                                :data-state="row.getIsSelected() && 'selected'"
-                                class="cursor-pointer hover:bg-muted/50"
-                                @click="handleRowClick(row.original)"
                             >
-                                <TableCell
-                                    v-for="cell in row.getVisibleCells()"
-                                    :key="cell.id"
-                                >
-                                    <component
-                                        :is="cell.column.columnDef.cell"
-                                        v-bind="cell.getContext()"
-                                    />
-                                </TableCell>
-                            </TableRow>
+                                <ContextMenuTrigger as-child>
+                                    <TableRow
+                                        :data-state="
+                                            row.getIsSelected() && 'selected'
+                                        "
+                                        class="cursor-pointer hover:bg-muted/50"
+                                        @click="handleRowClick(row.original)"
+                                    >
+                                        <TableCell
+                                            v-for="cell in row.getVisibleCells()"
+                                            :key="cell.id"
+                                        >
+                                            <component
+                                                :is="cell.column.columnDef.cell"
+                                                v-bind="cell.getContext()"
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent class="w-56">
+                                    <ContextMenuItem
+                                        @click.stop="handleShowQr(row.original)"
+                                    >
+                                        Show QR
+                                    </ContextMenuItem>
+                                    <ContextMenuItem
+                                        @click.stop="
+                                            handleOpenNewTab(row.original)
+                                        "
+                                    >
+                                        Open in new tab
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem
+                                        @click.stop="
+                                            handleRowClick(row.original)
+                                        "
+                                    >
+                                        Open details
+                                    </ContextMenuItem>
+                                </ContextMenuContent>
+                            </ContextMenu>
                         </template>
                     </TableBody>
                 </Table>
@@ -314,156 +393,202 @@ defineExpose({
                     </div>
                 </template>
                 <template v-else>
-                    <div
+                    <ContextMenu
                         v-for="row in table.getRowModel().rows"
                         :key="row.id"
-                        class="cursor-pointer border-b p-4 hover:bg-muted/50"
-                        @click="handleRowClick(row.original)"
                     >
-                        <div class="space-y-2">
-                            <div class="flex items-center justify-between">
-                                <h3 class="font-mono font-medium">
-                                    {{ row.original.equipment_number }}
-                                </h3>
-                                <span
-                                    v-if="row.original.equipment_type"
-                                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="{
-                                        'bg-emerald-100 text-emerald-800':
-                                            row.original.equipment_type ===
-                                            'Mesin Produksi',
-                                        'bg-sky-100 text-sky-800':
-                                            row.original.equipment_type ===
-                                            'Kendaraan',
-                                        'bg-amber-100 text-amber-800':
-                                            row.original.equipment_type ===
-                                            'Alat dan Utilitas',
-                                        'bg-violet-100 text-violet-800':
-                                            row.original.equipment_type ===
-                                            'IT & Telekomunikasi',
-                                        'bg-rose-100 text-rose-800':
-                                            row.original.equipment_type ===
-                                            'Aset PMN',
-                                        'bg-muted text-foreground': ![
-                                            'Mesin Produksi',
-                                            'Kendaraan',
-                                            'Alat dan Utilitas',
-                                            'IT & Telekomunikasi',
-                                            'Aset PMN',
-                                        ].includes(row.original.equipment_type),
-                                    }"
-                                >
-                                    {{ row.original.equipment_type }}
-                                </span>
-                            </div>
-                            <p class="truncate text-sm text-muted-foreground">
-                                {{
-                                    row.original.equipment_description || 'N/A'
-                                }}
-                            </p>
-                            <div class="grid grid-cols-2 gap-2 text-sm">
-                                <div>
-                                    <span class="text-muted-foreground"
-                                        >Pabrik:</span
+                        <ContextMenuTrigger as-child>
+                            <div
+                                class="cursor-pointer border-b p-4 hover:bg-muted/50"
+                                @click="handleRowClick(row.original)"
+                            >
+                                <div class="space-y-2">
+                                    <div
+                                        class="flex items-center justify-between"
                                     >
-                                    <p>
-                                        {{ row.original.plant?.name || 'N/A' }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span class="text-muted-foreground"
-                                        >Stasiun:</span
-                                    >
-                                    <p>
-                                        {{
-                                            row.original.station?.description ||
-                                            'N/A'
-                                        }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2 text-sm">
-                                <div>
-                                    <span class="text-muted-foreground"
-                                        >Jam Jalan:</span
-                                    >
-                                    <p class="font-mono">
-                                        {{
-                                            row.original.cumulative_jam_jalan
-                                                ? new Intl.NumberFormat(
-                                                      'id-ID',
-                                                      {
-                                                          minimumFractionDigits: 2,
-                                                          maximumFractionDigits: 2,
-                                                      },
-                                                  ).format(
-                                                      row.original
-                                                          .cumulative_jam_jalan,
-                                                  ) + ' Jam'
-                                                : 'N/A'
-                                        }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span class="text-muted-foreground"
-                                        >Total Periode:</span
-                                    >
-                                    <p class="font-mono">
-                                        {{
-                                            row.original.running_times_count &&
-                                            row.original.running_times_count > 0
-                                                ? new Intl.NumberFormat(
-                                                      'id-ID',
-                                                      {
-                                                          minimumFractionDigits: 2,
-                                                          maximumFractionDigits: 2,
-                                                      },
-                                                  ).format(
-                                                      row.original
-                                                          .running_times_count,
-                                                  ) + ' Jam'
-                                                : 'N/A'
-                                        }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2 text-sm">
-                                <div>
-                                    <span class="text-muted-foreground"
-                                        >Biaya Periode:</span
-                                    >
+                                        <h3 class="font-mono font-medium">
+                                            {{ row.original.equipment_number }}
+                                        </h3>
+                                        <span
+                                            v-if="row.original.equipment_type"
+                                            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                                            :class="{
+                                                'bg-emerald-100 text-emerald-800':
+                                                    row.original
+                                                        .equipment_type ===
+                                                    'Mesin Produksi',
+                                                'bg-sky-100 text-sky-800':
+                                                    row.original
+                                                        .equipment_type ===
+                                                    'Kendaraan',
+                                                'bg-amber-100 text-amber-800':
+                                                    row.original
+                                                        .equipment_type ===
+                                                    'Alat dan Utilitas',
+                                                'bg-violet-100 text-violet-800':
+                                                    row.original
+                                                        .equipment_type ===
+                                                    'IT & Telekomunikasi',
+                                                'bg-rose-100 text-rose-800':
+                                                    row.original
+                                                        .equipment_type ===
+                                                    'Aset PMN',
+                                                'bg-muted text-foreground': ![
+                                                    'Mesin Produksi',
+                                                    'Kendaraan',
+                                                    'Alat dan Utilitas',
+                                                    'IT & Telekomunikasi',
+                                                    'Aset PMN',
+                                                ].includes(
+                                                    row.original.equipment_type,
+                                                ),
+                                            }"
+                                        >
+                                            {{ row.original.equipment_type }}
+                                        </span>
+                                    </div>
                                     <p
-                                        class="font-mono font-semibold text-primary"
+                                        class="truncate text-sm text-muted-foreground"
                                     >
                                         {{
-                                            row.original.biaya
-                                                ? new Intl.NumberFormat(
-                                                      'id-ID',
-                                                      {
-                                                          style: 'currency',
-                                                          currency: 'IDR',
-                                                          minimumFractionDigits: 0,
-                                                          maximumFractionDigits: 0,
-                                                      },
-                                                  ).format(row.original.biaya)
-                                                : 'N/A'
+                                            row.original
+                                                .equipment_description || 'N/A'
                                         }}
                                     </p>
-                                </div>
-                                <div>
-                                    <span class="text-muted-foreground"
-                                        >Fungsional Lokasi:</span
-                                    >
-                                    <p class="truncate">
-                                        {{
-                                            row.original.functional_location ||
-                                            'N/A'
-                                        }}
-                                    </p>
+                                    <div class="grid grid-cols-2 gap-2 text-sm">
+                                        <div>
+                                            <span class="text-muted-foreground"
+                                                >Pabrik:</span
+                                            >
+                                            <p>
+                                                {{
+                                                    row.original.plant?.name ||
+                                                    'N/A'
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span class="text-muted-foreground"
+                                                >Stasiun:</span
+                                            >
+                                            <p>
+                                                {{
+                                                    row.original.station
+                                                        ?.description || 'N/A'
+                                                }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-sm">
+                                        <div>
+                                            <span class="text-muted-foreground"
+                                                >Jam Jalan:</span
+                                            >
+                                            <p class="font-mono">
+                                                {{
+                                                    row.original
+                                                        .cumulative_jam_jalan
+                                                        ? new Intl.NumberFormat(
+                                                              'id-ID',
+                                                              {
+                                                                  minimumFractionDigits: 2,
+                                                                  maximumFractionDigits: 2,
+                                                              },
+                                                          ).format(
+                                                              row.original
+                                                                  .cumulative_jam_jalan,
+                                                          ) + ' Jam'
+                                                        : 'N/A'
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span class="text-muted-foreground"
+                                                >Total Periode:</span
+                                            >
+                                            <p class="font-mono">
+                                                {{
+                                                    row.original
+                                                        .running_times_count &&
+                                                    row.original
+                                                        .running_times_count > 0
+                                                        ? new Intl.NumberFormat(
+                                                              'id-ID',
+                                                              {
+                                                                  minimumFractionDigits: 2,
+                                                                  maximumFractionDigits: 2,
+                                                              },
+                                                          ).format(
+                                                              row.original
+                                                                  .running_times_count,
+                                                          ) + ' Jam'
+                                                        : 'N/A'
+                                                }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-sm">
+                                        <div>
+                                            <span class="text-muted-foreground"
+                                                >Biaya Periode:</span
+                                            >
+                                            <p
+                                                class="font-mono font-semibold text-primary"
+                                            >
+                                                {{
+                                                    row.original.biaya
+                                                        ? new Intl.NumberFormat(
+                                                              'id-ID',
+                                                              {
+                                                                  style: 'currency',
+                                                                  currency:
+                                                                      'IDR',
+                                                                  minimumFractionDigits: 0,
+                                                                  maximumFractionDigits: 0,
+                                                              },
+                                                          ).format(
+                                                              row.original
+                                                                  .biaya,
+                                                          )
+                                                        : 'N/A'
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span class="text-muted-foreground"
+                                                >Fungsional Lokasi:</span
+                                            >
+                                            <p class="truncate">
+                                                {{
+                                                    row.original
+                                                        .functional_location ||
+                                                    'N/A'
+                                                }}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent class="w-56">
+                            <ContextMenuItem
+                                @click.stop="handleShowQr(row.original)"
+                            >
+                                Show QR
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                                @click.stop="handleOpenNewTab(row.original)"
+                            >
+                                Open in new tab
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                                @click.stop="handleRowClick(row.original)"
+                            >
+                                Open details
+                            </ContextMenuItem>
+                        </ContextMenuContent>
+                    </ContextMenu>
                 </template>
             </div>
         </div>
@@ -480,6 +605,17 @@ defineExpose({
             :is-open="isSheetOpen"
             :equipment-number="selectedEquipment?.equipment_number || ''"
             @close="isSheetOpen = false"
+        />
+
+        <!-- QR Modal -->
+        <QrShare
+            v-if="qrEquipment"
+            :open="isQrOpen"
+            :qrcode="qrCode"
+            :description="qrEquipment.equipment_description"
+            :equipment-url="qrEquipmentUrl"
+            @update:open="isQrOpen = $event"
+            @print="printQr"
         />
     </div>
 </template>

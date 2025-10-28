@@ -58,23 +58,18 @@ const fetchItems = async () => {
     }
 
     try {
-        // Fetch equipment details and items in parallel
-        await Promise.all([
-            fetchEquipmentDetails(),
-            (async () => {
-                const params = new URLSearchParams();
-                params.append('material', props.material);
-                params.append('equipment_number', props.equipmentNumber);
-                params.append('sort_by', 'requirements_date');
-                params.append('sort_direction', 'desc');
-                const { data } = await axios.get(
-                    `/api/equipment-work-orders?${params}`,
-                );
-                const list = Array.isArray(data?.data) ? data.data : [];
-                items.value = list;
-                await fetchRunningHoursForItems(list);
-            })(),
-        ]);
+        // Fetch items only; skip equipment details to avoid 404 on /api/equipment/:equipmentNumber
+        const params = new URLSearchParams();
+        params.append('material', props.material);
+        params.append('equipment_number', props.equipmentNumber);
+        params.append('sort_by', 'requirements_date');
+        params.append('sort_direction', 'desc');
+        const { data } = await axios.get(
+            `/api/equipment-work-orders?${params}`,
+        );
+        const list = Array.isArray(data?.data) ? data.data : [];
+        items.value = list;
+        await fetchRunningHoursForItems(list);
     } catch (e) {
         error.value = e?.response?.data?.message || 'Gagal memuat data';
     } finally {
