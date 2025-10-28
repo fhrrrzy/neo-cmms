@@ -135,3 +135,13 @@ defineExpose({
         </CommandList>
     </CommandDialog>
 </template>
+
+<style>
+/* Ensure global search dialog is always on top of sheets */
+[data-slot='dialog-overlay'] {
+    z-index: 1000 !important;
+}
+[data-slot='dialog-content'] {
+    z-index: 1005 !important;
+}
+</style>

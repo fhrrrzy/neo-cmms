@@ -70,15 +70,26 @@ const createChart = () => {
 
     const theme = getTheme();
     chart = Highcharts.chart(container.value, {
-        chart: { type: 'line', height: 400, backgroundColor: 'transparent' },
+        chart: {
+            type: 'line',
+            height: 400,
+            backgroundColor: 'transparent',
+            animation: false,
+        },
         boost: {
             useGPUTranslations: true,
             enabled: true,
             // Boost when there are more than 1000 points
             seriesThreshold: 10,
         },
-        title: { text: 'Running Time Analysis', style: { color: theme.text } },
-        subtitle: { text: props.subtitle, style: { color: theme.mutedText } },
+        title: {
+            text: 'Running Time Analysis',
+            style: { color: theme.text },
+        },
+        subtitle: {
+            text: props.subtitle,
+            style: { color: theme.mutedText },
+        },
         xAxis: {
             type: 'datetime',
             title: { text: 'Date', style: { color: theme.text } },
@@ -92,7 +103,7 @@ const createChart = () => {
                     text: 'Running Hours',
                     style: { color: theme.series[0] },
                 },
-                labels: { style: { color: theme.series[0] } },
+                labels: { style: { color: theme.text } },
                 gridLineColor: theme.grid,
             },
             {
@@ -100,7 +111,7 @@ const createChart = () => {
                     text: 'Counter Reading',
                     style: { color: theme.series[1] },
                 },
-                labels: { style: { color: theme.series[1] } },
+                labels: { style: { color: theme.text } },
                 opposite: true,
                 gridLineColor: theme.grid,
             },
@@ -122,6 +133,14 @@ const createChart = () => {
             backgroundColor: 'transparent',
             itemStyle: { color: theme.text },
         },
+        plotOptions: {
+            series: {
+                animation: false,
+            },
+            line: {
+                animation: false,
+            },
+        },
         series: [
             {
                 name: 'Running Hours',
@@ -131,7 +150,7 @@ const createChart = () => {
                 color: theme.series[0],
                 marker: { enabled: true, radius: 4 },
                 boostThreshold: 500, // Boost when more than 500 points
-                opacity: 0.5,
+                opacity: 0.75,
                 states: {
                     hover: {
                         opacity: 1,
@@ -146,7 +165,7 @@ const createChart = () => {
                 color: theme.series[1],
                 marker: { enabled: true, radius: 4 },
                 boostThreshold: 500, // Boost when more than 500 points
-                opacity: 0.5,
+                opacity: 0.75,
                 states: {
                     hover: {
                         opacity: 1,
