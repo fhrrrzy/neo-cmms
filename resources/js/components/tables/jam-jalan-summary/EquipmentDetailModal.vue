@@ -21,7 +21,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import axios from 'axios';
 import { Factory } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
@@ -50,6 +50,7 @@ const error = ref(null);
 const isMengolah = ref(true);
 const withRunningTime = ref([]);
 const withoutRunningTime = ref([]);
+const activeTab = ref('with-runtime');
 
 const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -115,7 +116,7 @@ watch(
                 <DialogDescription class="text-xs md:text-sm">
                     {{ formatDate(date) }}
                     <span
-                        :class="isMengolah ? 'text-blue-600' : 'text-red-600'"
+                        :class="isMengolah ? 'text-green-600' : 'text-red-600'"
                     >
                         • {{ isMengolah ? 'Mengolah' : 'Tidak Mengolah' }}
                     </span>
@@ -141,7 +142,7 @@ watch(
             </div>
 
             <Tabs
-                default-value="with-runtime"
+                v-model="activeTab"
                 v-else
                 class="flex max-h-[calc(90vh-120px)] w-full flex-col md:max-h-[calc(90vh-140px)]"
             >
@@ -154,164 +155,200 @@ watch(
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent
-                    value="with-runtime"
-                    class="mt-2 flex-1 overflow-hidden md:mt-4"
-                >
-                    <div
-                        class="max-h-[calc(90vh-200px)] overflow-x-auto overflow-y-auto rounded-md border md:max-h-[calc(90vh-220px)]"
-                    >
-                        <Table class="min-w-full">
-                            <TableHeader>
-                                <TableRow class="text-xs md:text-sm">
-                                    <TableHead class="w-[40px] md:w-[100px]"
-                                        >No</TableHead
-                                    >
-                                    <TableHead
-                                        class="min-w-[120px] md:min-w-[180px]"
-                                        >Equipment Number</TableHead
-                                    >
-                                    <TableHead
-                                        class="min-w-[150px] md:min-w-[200px]"
-                                        >Description</TableHead
-                                    >
-                                    <TableHead
-                                        class="min-w-[100px] text-right md:min-w-[130px]"
-                                        >Running Hours</TableHead
-                                    >
-                                    <TableHead
-                                        class="min-w-[100px] text-right md:min-w-[130px]"
-                                        >Counter Reading</TableHead
-                                    >
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow v-if="withRunningTime.length === 0">
-                                    <TableCell :colspan="5" class="p-8">
-                                        <Empty>
-                                            <EmptyHeader>
-                                                <EmptyMedia variant="icon">
-                                                    <Factory />
-                                                </EmptyMedia>
-                                                <EmptyTitle
-                                                    >No Equipment</EmptyTitle
-                                                >
-                                                <EmptyDescription>
-                                                    No equipment found with
-                                                    running time
-                                                </EmptyDescription>
-                                            </EmptyHeader>
-                                        </Empty>
-                                    </TableCell>
-                                </TableRow>
-                                <TableRow
-                                    v-for="(
-                                        equipment, index
-                                    ) in withRunningTime"
-                                    :key="equipment.equipment_number"
-                                >
-                                    <TableCell class="text-center">{{
-                                        index + 1
-                                    }}</TableCell>
-                                    <TableCell
-                                        class="font-mono text-xs md:text-sm"
-                                        >{{
-                                            equipment.equipment_number
-                                        }}</TableCell
-                                    >
-                                    <TableCell class="text-xs md:text-sm">{{
-                                        equipment.equipment_description || 'N/A'
-                                    }}</TableCell>
-                                    <TableCell
-                                        class="text-right font-mono text-xs md:text-sm"
-                                        >{{
-                                            formatNumber(
-                                                equipment.running_hours,
-                                            )
-                                        }}</TableCell
-                                    >
-                                    <TableCell
-                                        class="text-right font-mono text-xs md:text-sm"
-                                        >{{
-                                            formatNumber(
-                                                equipment.counter_reading || 0,
-                                            )
-                                        }}</TableCell
-                                    >
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </div>
-                </TabsContent>
+                <div class="relative mt-2 flex-1 overflow-hidden md:mt-4">
+                    <Transition name="slide-x" mode="out-in">
+                        <div :key="activeTab">
+                            <div
+                                v-if="activeTab === 'with-runtime'"
+                                class="max-h-[calc(90vh-200px)] overflow-x-auto overflow-y-auto rounded-md border md:max-h-[calc(90vh-220px)]"
+                            >
+                                <Table class="min-w-full">
+                                    <TableHeader>
+                                        <TableRow class="text-xs md:text-sm">
+                                            <TableHead
+                                                class="w-[40px] md:w-[100px]"
+                                                >No</TableHead
+                                            >
+                                            <TableHead
+                                                class="min-w-[120px] md:min-w-[180px]"
+                                                >Equipment Number</TableHead
+                                            >
+                                            <TableHead
+                                                class="min-w-[150px] md:min-w-[200px]"
+                                                >Description</TableHead
+                                            >
+                                            <TableHead
+                                                class="min-w-[100px] text-right md:min-w-[130px]"
+                                                >Running Hours</TableHead
+                                            >
+                                            <TableHead
+                                                class="min-w-[100px] text-right md:min-w-[130px]"
+                                                >Counter Reading</TableHead
+                                            >
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow
+                                            v-if="withRunningTime.length === 0"
+                                        >
+                                            <TableCell :colspan="5" class="p-8">
+                                                <Empty>
+                                                    <EmptyHeader>
+                                                        <EmptyMedia
+                                                            variant="icon"
+                                                        >
+                                                            <Factory />
+                                                        </EmptyMedia>
+                                                        <EmptyTitle
+                                                            >No
+                                                            Equipment</EmptyTitle
+                                                        >
+                                                        <EmptyDescription>
+                                                            No equipment found
+                                                            with running time
+                                                        </EmptyDescription>
+                                                    </EmptyHeader>
+                                                </Empty>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow
+                                            v-for="(
+                                                equipment, index
+                                            ) in withRunningTime"
+                                            :key="equipment.equipment_number"
+                                        >
+                                            <TableCell class="text-center">{{
+                                                index + 1
+                                            }}</TableCell>
+                                            <TableCell
+                                                class="font-mono text-xs md:text-sm"
+                                                >{{
+                                                    equipment.equipment_number
+                                                }}</TableCell
+                                            >
+                                            <TableCell
+                                                class="text-xs md:text-sm"
+                                                >{{
+                                                    equipment.equipment_description ||
+                                                    'N/A'
+                                                }}</TableCell
+                                            >
+                                            <TableCell
+                                                class="text-right font-mono text-xs md:text-sm"
+                                                >{{
+                                                    formatNumber(
+                                                        equipment.running_hours,
+                                                    )
+                                                }}</TableCell
+                                            >
+                                            <TableCell
+                                                class="text-right font-mono text-xs md:text-sm"
+                                                >{{
+                                                    formatNumber(
+                                                        equipment.counter_reading ||
+                                                            0,
+                                                    )
+                                                }}</TableCell
+                                            >
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
 
-                <TabsContent
-                    value="without-runtime"
-                    class="mt-2 flex-1 overflow-hidden md:mt-4"
-                >
-                    <div
-                        class="max-h-[calc(90vh-200px)] overflow-x-auto overflow-y-auto rounded-md border md:max-h-[calc(90vh-220px)]"
-                    >
-                        <Table class="min-w-full">
-                            <TableHeader>
-                                <TableRow class="text-xs md:text-sm">
-                                    <TableHead class="w-[40px] md:w-[100px]"
-                                        >No</TableHead
-                                    >
-                                    <TableHead
-                                        class="min-w-[120px] md:min-w-[180px]"
-                                        >Equipment Number</TableHead
-                                    >
-                                    <TableHead
-                                        class="min-w-[150px] md:min-w-[200px]"
-                                        >Description</TableHead
-                                    >
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow
-                                    v-if="withoutRunningTime.length === 0"
-                                >
-                                    <TableCell :colspan="3" class="p-8">
-                                        <Empty>
-                                            <EmptyHeader>
-                                                <EmptyMedia variant="icon">
-                                                    <Factory />
-                                                </EmptyMedia>
-                                                <EmptyTitle
-                                                    >All Have Data</EmptyTitle
-                                                >
-                                                <EmptyDescription>
-                                                    All equipment have running
-                                                    time data
-                                                </EmptyDescription>
-                                            </EmptyHeader>
-                                        </Empty>
-                                    </TableCell>
-                                </TableRow>
-                                <TableRow
-                                    v-for="(
-                                        equipment, index
-                                    ) in withoutRunningTime"
-                                    :key="equipment.equipment_number"
-                                >
-                                    <TableCell class="text-center">{{
-                                        index + 1
-                                    }}</TableCell>
-                                    <TableCell
-                                        class="font-mono text-xs md:text-sm"
-                                        >{{
-                                            equipment.equipment_number
-                                        }}</TableCell
-                                    >
-                                    <TableCell class="text-xs md:text-sm">{{
-                                        equipment.equipment_description || 'N/A'
-                                    }}</TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </div>
-                </TabsContent>
+                            <div
+                                v-else
+                                class="max-h-[calc(90vh-200px)] overflow-x-auto overflow-y-auto rounded-md border md:max-h-[calc(90vh-220px)]"
+                            >
+                                <Table class="min-w-full">
+                                    <TableHeader>
+                                        <TableRow class="text-xs md:text-sm">
+                                            <TableHead
+                                                class="w-[40px] md:w-[100px]"
+                                                >No</TableHead
+                                            >
+                                            <TableHead
+                                                class="min-w-[120px] md:min-w-[180px]"
+                                                >Equipment Number</TableHead
+                                            >
+                                            <TableHead
+                                                class="min-w-[150px] md:min-w-[200px]"
+                                                >Description</TableHead
+                                            >
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow
+                                            v-if="
+                                                withoutRunningTime.length === 0
+                                            "
+                                        >
+                                            <TableCell :colspan="3" class="p-8">
+                                                <Empty>
+                                                    <EmptyHeader>
+                                                        <EmptyMedia
+                                                            variant="icon"
+                                                        >
+                                                            <Factory />
+                                                        </EmptyMedia>
+                                                        <EmptyTitle
+                                                            >All Have
+                                                            Data</EmptyTitle
+                                                        >
+                                                        <EmptyDescription>
+                                                            All equipment have
+                                                            running time data
+                                                        </EmptyDescription>
+                                                    </EmptyHeader>
+                                                </Empty>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow
+                                            v-for="(
+                                                equipment, index
+                                            ) in withoutRunningTime"
+                                            :key="equipment.equipment_number"
+                                        >
+                                            <TableCell class="text-center">{{
+                                                index + 1
+                                            }}</TableCell>
+                                            <TableCell
+                                                class="font-mono text-xs md:text-sm"
+                                                >{{
+                                                    equipment.equipment_number
+                                                }}</TableCell
+                                            >
+                                            <TableCell
+                                                class="text-xs md:text-sm"
+                                                >{{
+                                                    equipment.equipment_description ||
+                                                    'N/A'
+                                                }}</TableCell
+                                            >
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                    </Transition>
+                </div>
             </Tabs>
         </DialogContent>
     </Dialog>
 </template>
+
+<style>
+.slide-x-enter-active,
+.slide-x-leave-active {
+    transition:
+        transform 200ms ease,
+        opacity 200ms ease;
+}
+.slide-x-enter-from {
+    transform: translateX(12px);
+    opacity: 0.01;
+}
+.slide-x-leave-to {
+    transform: translateX(-12px);
+    opacity: 0.01;
+}
+</style>

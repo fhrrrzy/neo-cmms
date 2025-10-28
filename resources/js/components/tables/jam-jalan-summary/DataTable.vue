@@ -125,6 +125,26 @@ defineExpose({
             <AlertDescription>{{ error }}</AlertDescription>
         </Alert>
 
+        <!-- Legend -->
+        <div
+            class="flex flex-wrap items-center gap-3 rounded-md border bg-card p-3 text-xs sm:text-sm"
+        >
+            <div class="flex items-center gap-2">
+                <span
+                    class="inline-block h-3 w-3 rounded-full bg-blue-500 sm:h-3.5 sm:w-3.5"
+                ></span>
+                <span class="text-muted-foreground">Tidak mengolah</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span
+                    class="inline-block h-3 w-3 rounded-full bg-red-500 sm:h-3.5 sm:w-3.5"
+                ></span>
+                <span class="text-muted-foreground"
+                    >Mengolah tapi tidak ada data</span
+                >
+            </div>
+        </div>
+
         <!-- Table -->
         <div class="rounded-md border">
             <!-- Table -->
