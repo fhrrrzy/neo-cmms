@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import axios from 'axios';
-import { Factory, Factory2 } from 'lucide-vue-next';
+import { Factory } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 
 const props = defineProps({
@@ -275,7 +275,7 @@ watch(
                                         <Empty>
                                             <EmptyHeader>
                                                 <EmptyMedia variant="icon">
-                                                    <Factory2 />
+                                                    <Factory />
                                                 </EmptyMedia>
                                                 <EmptyTitle
                                                     >All Have Data</EmptyTitle
