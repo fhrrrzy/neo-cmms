@@ -123,7 +123,7 @@ import { useDateRangeStore } from '@/stores/useDateRangeStore';
 import { parseDate } from '@internationalized/date';
 import { useQRCode } from '@vueuse/integrations/useQRCode';
 import axios from 'axios';
-import { ArrowLeft, ExternalLink, QrCode } from 'lucide-vue-next';
+import { AlertCircle, ArrowLeft, ExternalLink, QrCode } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
@@ -240,10 +240,16 @@ watch(
     [() => props.equipmentNumber, () => props.isOpen],
     ([newNumber, isOpen]) => {
         if (newNumber && isOpen) {
-            fetchEquipmentDetail();
+            // Show skeleton immediately, defer network to next frames for smooth animation
+            loading.value = true;
+            error.value = null;
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    fetchEquipmentDetail();
+                });
+            });
         }
     },
-    { immediate: true },
 );
 
 // Watch for date range changes in the store and update local rangeValue

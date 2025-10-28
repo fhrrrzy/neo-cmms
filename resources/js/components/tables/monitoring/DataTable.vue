@@ -42,6 +42,10 @@ const props = defineProps({
         type: Array,
         required: true,
     },
+    openSheetOnRowClick: {
+        type: Boolean,
+        default: false,
+    },
     loading: {
         type: Boolean,
         default: false,
@@ -212,6 +216,16 @@ const handleRowClick = (equipment) => {
     emit('row-click', equipment);
 };
 
+const handlePrimaryClick = (equipment, evt) => {
+    // Only respond to left-clicks
+    if (evt && typeof evt.button === 'number' && evt.button !== 0) return;
+    if (props.openSheetOnRowClick) {
+        handleRowClick(equipment);
+    } else {
+        emit('row-click', equipment);
+    }
+};
+
 const handleShowQr = (equipment) => {
     qrEquipment.value = equipment;
     isQrOpen.value = true;
@@ -325,7 +339,12 @@ defineExpose({
                                             row.getIsSelected() && 'selected'
                                         "
                                         class="cursor-pointer hover:bg-muted/50"
-                                        @click="handleRowClick(row.original)"
+                                        @click="
+                                            handlePrimaryClick(
+                                                row.original,
+                                                $event,
+                                            )
+                                        "
                                     >
                                         <TableCell
                                             v-for="cell in row.getVisibleCells()"
@@ -400,7 +419,9 @@ defineExpose({
                         <ContextMenuTrigger as-child>
                             <div
                                 class="cursor-pointer border-b p-4 hover:bg-muted/50"
-                                @click="handleRowClick(row.original)"
+                                @click="
+                                    handlePrimaryClick(row.original, $event)
+                                "
                             >
                                 <div class="space-y-2">
                                     <div
