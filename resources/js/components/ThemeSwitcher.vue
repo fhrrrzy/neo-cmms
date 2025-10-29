@@ -39,7 +39,7 @@ const themes: { value: Theme; label: string; description: string; colors: string
         value: 'ocean-breeze',
         label: 'Ocean Breeze',
         description: 'Cool oceanic blue and teal tones',
-        colors: ['hsl(142.0859 70.5628% 45.2941%)', 'hsl(160.1183 84.0796% 39.4118%)', 'hsl(161.3793 93.5484% 30.3922%)', 'hsl(162.9310 93.5484% 24.3137%)'],
+        colors: ['hsl(199.6154 89.1304% 48.2353%)', 'hsl(187.5000 85.3659% 53.1373%)', 'hsl(188.0952 94.5055% 42.7451%)', 'hsl(197.1429 71.4286% 33.5294%)'],
     },
     {
         value: 'supabase',
