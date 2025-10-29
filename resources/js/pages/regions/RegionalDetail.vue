@@ -146,42 +146,6 @@ onMounted(() => {
                         <p class="text-xs text-muted-foreground">
                             Category: {{ region.category }}
                         </p>
-
-                        <!-- Regional Details Grid -->
-                        <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                            <div class="space-y-1">
-                                <p class="text-xs font-medium text-muted-foreground">
-                                    Category
-                                </p>
-                                <p class="text-sm font-semibold">
-                                    {{ region.category }}
-                                </p>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-xs font-medium text-muted-foreground">
-                                    Regional Number
-                                </p>
-                                <p class="text-sm font-semibold">
-                                    {{ region.no }}
-                                </p>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-xs font-medium text-muted-foreground">
-                                    Total Plants
-                                </p>
-                                <p class="text-sm font-semibold">
-                                    {{ stats.total_plants }}
-                                </p>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-xs font-medium text-muted-foreground">
-                                    Active Plants
-                                </p>
-                                <p class="text-sm font-semibold">
-                                    {{ stats.active_plants }}
-                                </p>
-                            </div>
-                        </div>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
                         <Button variant="outline" class="w-full md:w-auto" @click="goBack">
@@ -307,8 +271,8 @@ onMounted(() => {
                                             </p>
                                             <div class="flex items-center gap-2">
                                                 <Badge :variant="plant.is_active
-                                                        ? 'default'
-                                                        : 'secondary'
+                                                    ? 'default'
+                                                    : 'secondary'
                                                     ">
                                                     {{
                                                         plant.is_active
@@ -362,8 +326,8 @@ onMounted(() => {
                                         </td>
                                         <td class="px-4 py-3">
                                             <Badge :variant="plant.is_active
-                                                    ? 'default'
-                                                    : 'secondary'
+                                                ? 'default'
+                                                : 'secondary'
                                                 ">
                                                 {{
                                                     plant.is_active
