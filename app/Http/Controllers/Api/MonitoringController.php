@@ -376,6 +376,7 @@ class MonitoringController extends Controller
             ->where('running_times.date', $date)
             ->whereRaw('COALESCE(running_times.running_hours, 0) > 0')
             ->select([
+                'equipment.uuid',
                 'equipment.equipment_number',
                 'equipment.equipment_description',
                 'running_times.running_hours',
@@ -396,6 +397,7 @@ class MonitoringController extends Controller
                     ->whereRaw('COALESCE(running_times.running_hours, 0) > 0');
             })
             ->select([
+                'equipment.uuid',
                 'equipment.equipment_number',
                 'equipment.equipment_description',
             ])
