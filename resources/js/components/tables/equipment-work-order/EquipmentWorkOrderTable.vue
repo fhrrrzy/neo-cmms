@@ -150,6 +150,15 @@ const openMaterialSheet = (row) => {
 };
 
 onMounted(fetchData);
+
+// Only refetch when props actually change, not on every re-render
+const lastWatchedValues = ref({
+    equipmentNumber: props.equipmentNumber,
+    dateStart: props.dateRange?.start,
+    dateEnd: props.dateRange?.end,
+    orderNumber: props.orderNumber,
+});
+
 watch(
     () => [
         props.equipmentNumber,
@@ -157,9 +166,23 @@ watch(
         props.dateRange?.end,
         props.orderNumber,
     ],
-    () => {
-        page.value = 1;
-        fetchData();
+    ([newEquipNum, newStart, newEnd, newOrderNum]) => {
+        const changed =
+            lastWatchedValues.value.equipmentNumber !== newEquipNum ||
+            lastWatchedValues.value.dateStart !== newStart ||
+            lastWatchedValues.value.dateEnd !== newEnd ||
+            lastWatchedValues.value.orderNumber !== newOrderNum;
+
+        if (changed) {
+            lastWatchedValues.value = {
+                equipmentNumber: newEquipNum,
+                dateStart: newStart,
+                dateEnd: newEnd,
+                orderNumber: newOrderNum,
+            };
+            page.value = 1;
+            fetchData();
+        }
     },
 );
 </script>
@@ -190,85 +213,58 @@ watch(
         <Table>
             <TableHeader>
                 <TableRow>
-                    <TableHead
-                        v-for="col in activeColumns"
-                        :key="col.id || col.accessorKey || col.key"
-                        :class="col.align === 'right' ? 'text-right' : ''"
-                    >
-                        <component
-                            :is="
-                                typeof col.header === 'function'
-                                    ? col.header({
-                                          table: tableContext,
-                                          column: col,
-                                      })
-                                    : h('span', null, col.label)
-                            "
-                        />
+                    <TableHead v-for="col in activeColumns" :key="col.id || col.accessorKey || col.key"
+                        :class="col.align === 'right' ? 'text-right' : ''">
+                        <component :is="typeof col.header === 'function'
+                            ? col.header({
+                                table: tableContext,
+                                column: col,
+                            })
+                            : h('span', null, col.label)
+                            " />
                     </TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
-                <TableRow
-                    v-for="(item, idx) in rows"
-                    :key="item.id || `${item.material}-${idx}`"
-                    class="cursor-pointer hover:bg-muted/50"
-                    @click="openMaterialSheet(item)"
-                >
+                <TableRow v-for="(item, idx) in rows" :key="item.id || `${item.material}-${idx}`"
+                    class="cursor-pointer hover:bg-muted/50" @click="openMaterialSheet(item)">
                     <TableCell class="text-center font-medium">
                         {{
                             (pagination.current_page - 1) *
-                                pagination.per_page +
+                            pagination.per_page +
                             idx +
                             1
                         }}
                     </TableCell>
-                    <template
-                        v-for="col in activeColumns.slice(1)"
-                        :key="col.id || col.accessorKey || col.key"
-                    >
-                        <TableCell
-                            :class="
-                                col.align === 'right'
-                                    ? 'text-right'
-                                    : col.class || ''
-                            "
-                        >
-                            <component
-                                :is="
-                                    typeof col.cell === 'function'
-                                        ? col.cell({
-                                              item,
-                                              column: col,
-                                              index: idx,
-                                              table: tableContext,
-                                          })
-                                        : h(
-                                              'span',
-                                              null,
-                                              item[col.accessorKey || col.key],
-                                          )
-                                "
-                            />
+                    <template v-for="col in activeColumns.slice(1)" :key="col.id || col.accessorKey || col.key">
+                        <TableCell :class="col.align === 'right'
+                            ? 'text-right'
+                            : col.class || ''
+                            ">
+                            <component :is="typeof col.cell === 'function'
+                                ? col.cell({
+                                    item,
+                                    column: col,
+                                    index: idx,
+                                    table: tableContext,
+                                })
+                                : h(
+                                    'span',
+                                    null,
+                                    item[col.accessorKey || col.key],
+                                )
+                                " />
                         </TableCell>
                     </template>
                 </TableRow>
             </TableBody>
         </Table>
-        <WorkOrderPagination
-            v-if="!isDetailMode"
-            :pagination="pagination"
-            @page-change="handlePageChange"
-            @page-size-change="handlePageSizeChange"
-        />
+        <WorkOrderPagination v-if="!isDetailMode" :pagination="pagination" @page-change="handlePageChange"
+            @page-size-change="handlePageSizeChange" />
 
-        <MaterialUsageSheet
-            :open="sheetOpen"
-            :material="selectedMaterial"
-            :material-description="selectedMaterialDesc"
-            :equipment-number="selectedEquipmentNumber"
-            @update:open="(v) => (sheetOpen = v)"
-        />
+        <MaterialUsageSheet v-if="sheetOpen" :open="sheetOpen" :material="selectedMaterial"
+            :material-description="selectedMaterialDesc" :equipment-number="selectedEquipmentNumber"
+            @update:open="(v) => (sheetOpen = v)" />
     </div>
     <div v-else class="py-8">
         <Empty>

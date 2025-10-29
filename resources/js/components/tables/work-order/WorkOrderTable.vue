@@ -146,9 +146,31 @@ const fetchData = async () => {
 };
 
 onMounted(fetchData);
+
+// Only refetch when props actually change, not on every re-render
+const lastWatchedValues = ref({
+    dateStart: props.dateRange?.start,
+    dateEnd: props.dateRange?.end,
+    equipmentNumber: props.equipmentNumber,
+});
+
 watch(
     () => [props.dateRange?.start, props.dateRange?.end, props.equipmentNumber],
-    fetchData,
+    ([newStart, newEnd, newEquipNum]) => {
+        const changed =
+            lastWatchedValues.value.dateStart !== newStart ||
+            lastWatchedValues.value.dateEnd !== newEnd ||
+            lastWatchedValues.value.equipmentNumber !== newEquipNum;
+
+        if (changed) {
+            lastWatchedValues.value = {
+                dateStart: newStart,
+                dateEnd: newEnd,
+                equipmentNumber: newEquipNum,
+            };
+            fetchData();
+        }
+    },
 );
 
 watch(
@@ -183,7 +205,7 @@ if (typeof window !== 'undefined') {
     mql.addEventListener('change', updateMatch);
 }
 
-const openWorkOrder = async (wo) => {
+const openWorkOrder = (wo) => {
     selectedOrderNumber.value = String(wo.order || wo.order_number || '');
     showSheet.value = true;
 };
@@ -239,92 +261,57 @@ const showTable = computed(
                 <Skeleton class="h-9 w-40" />
             </div>
         </div>
-        <div
-            v-else-if="showTable"
-            class="mb-4 flex flex-wrap justify-end gap-2 md:flex-nowrap"
-        >
+        <div v-else-if="showTable" class="mb-4 flex flex-wrap justify-end gap-2 md:flex-nowrap">
             <div class="">
-                <Input
-                    v-model="search"
-                    type="text"
-                    placeholder="Cari order, deskripsi, cause, item..."
-                    class="h-9"
-                />
+                <Input v-model="search" type="text" placeholder="Cari order, deskripsi, cause, item..." class="h-9" />
             </div>
             <div>
-                <Select
-                    :model-value="orderType"
-                    @update:model-value="
-                        (v) => {
-                            orderType = v;
-                            page = 1; /* FE filtered */
-                        }
-                    "
-                >
+                <Select :model-value="orderType" @update:model-value="
+                    (v) => {
+                        orderType = v;
+                        page = 1; /* FE filtered */
+                    }
+                ">
                     <SelectTrigger class="h-9">
-                        <SelectValue
-                            :placeholder="selectionTypeToModelLabel(orderType)"
-                        />
+                        <SelectValue :placeholder="selectionTypeToModelLabel(orderType)" />
                     </SelectTrigger>
                     <SelectContent side="top">
                         <SelectItem value="ALL">Semua Jenis</SelectItem>
-                        <SelectItem value="1"
-                            >PM01 - Preventive Maintenance</SelectItem
-                        >
-                        <SelectItem value="2"
-                            >PM02 - Corrective Maintenance</SelectItem
-                        >
-                        <SelectItem value="3"
-                            >PM03 - Emergency Maintenance</SelectItem
-                        >
-                        <SelectItem value="4"
-                            >PM04 - Project Maintenance</SelectItem
-                        >
+                        <SelectItem value="1">PM01 - Preventive Maintenance</SelectItem>
+                        <SelectItem value="2">PM02 - Corrective Maintenance</SelectItem>
+                        <SelectItem value="3">PM03 - Emergency Maintenance</SelectItem>
+                        <SelectItem value="4">PM04 - Project Maintenance</SelectItem>
                         <SelectItem value="ANOMALY">Anomaly</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
         </div>
         <!-- Active filters -->
-        <div
-            v-if="search || orderType !== 'ALL'"
-            class="mb-3 flex flex-wrap items-center gap-2"
-        >
-            <span
-                v-if="search"
-                class="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs"
-            >
+        <div v-if="search || orderType !== 'ALL'" class="mb-3 flex flex-wrap items-center gap-2">
+            <span v-if="search" class="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs">
                 Search: <span class="font-medium">{{ search }}</span>
-                <button
-                    class="rounded-full p-1 hover:bg-background"
-                    @click="
-                        () => {
-                            search = '';
-                            page = 1;
-                            fetchData();
-                        }
-                    "
-                >
+                <button class="rounded-full p-1 hover:bg-background" @click="
+                    () => {
+                        search = '';
+                        page = 1;
+                        fetchData();
+                    }
+                ">
                     ✕
                 </button>
             </span>
-            <span
-                v-if="orderType !== 'ALL'"
-                class="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs"
-            >
+            <span v-if="orderType !== 'ALL'"
+                class="inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs">
                 Jenis:
                 <span class="font-medium">{{
                     selectionTypeToModelLabel(orderType)
-                }}</span>
-                <button
-                    class="rounded-full p-1 hover:bg-background"
-                    @click="
-                        () => {
-                            orderType = 'ALL';
-                            page = 1; // FE filtered
-                        }
-                    "
-                >
+                    }}</span>
+                <button class="rounded-full p-1 hover:bg-background" @click="
+                    () => {
+                        orderType = 'ALL';
+                        page = 1; // FE filtered
+                    }
+                ">
                     ✕
                 </button>
             </span>
@@ -354,56 +341,40 @@ const showTable = computed(
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead
-                            v-for="col in workOrderColumns"
-                            :key="col.id || col.accessorKey || col.key"
-                        >
-                            <component
-                                :is="
-                                    typeof col.header === 'function'
-                                        ? col.header({
-                                              table: tableContext,
-                                              column: col,
-                                          })
-                                        : h('span', null, col.label)
-                                "
-                            />
+                        <TableHead v-for="col in workOrderColumns" :key="col.id || col.accessorKey || col.key">
+                            <component :is="typeof col.header === 'function'
+                                ? col.header({
+                                    table: tableContext,
+                                    column: col,
+                                })
+                                : h('span', null, col.label)
+                                " />
                         </TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     <TableRow v-if="!hasData">
-                        <TableCell
-                            :colspan="workOrderColumns.length"
-                            class="p-8 text-center text-sm text-muted-foreground"
-                        >
+                        <TableCell :colspan="workOrderColumns.length"
+                            class="p-8 text-center text-sm text-muted-foreground">
                             Data tidak ditemukan untuk filter saat ini
-                            <button
-                                class="ml-2 rounded-md border px-2 py-1 hover:bg-accent"
-                                @click="
-                                    () => {
-                                        search = '';
-                                        orderType = 'ALL';
-                                        page = 1;
-                                        fetchData();
-                                    }
-                                "
-                            >
+                            <button class="ml-2 rounded-md border px-2 py-1 hover:bg-accent" @click="
+                                () => {
+                                    search = '';
+                                    orderType = 'ALL';
+                                    page = 1;
+                                    fetchData();
+                                }
+                            ">
                                 Clear filter
                             </button>
                         </TableCell>
                     </TableRow>
-                    <TableRow
-                        v-else
-                        v-for="(wo, idx) in displayedRows"
-                        :key="wo.id"
-                        class="cursor-pointer hover:bg-muted/50"
-                        @click="openWorkOrder(wo)"
-                    >
+                    <TableRow v-else v-for="(wo, idx) in displayedRows" :key="wo.id"
+                        class="cursor-pointer hover:bg-muted/50" @click="openWorkOrder(wo)">
                         <TableCell class="text-center font-medium">
                             {{
                                 (pagination.current_page - 1) *
-                                    pagination.per_page +
+                                pagination.per_page +
                                 idx +
                                 1
                             }}
@@ -424,26 +395,17 @@ const showTable = computed(
                         </TableCell>
                         <TableCell class="font-mono text-sm">{{
                             renderOrNA(wo.order)
-                        }}</TableCell>
+                            }}</TableCell>
                         <TableCell>{{
                             orderTypeToLabel(wo.order_type)
-                        }}</TableCell>
-                        <TableCell
-                            class="max-w-[320px] truncate"
-                            :title="wo.description"
-                        >
+                            }}</TableCell>
+                        <TableCell class="max-w-[320px] truncate" :title="wo.description">
                             {{ renderOrNA(wo.description) }}
                         </TableCell>
-                        <TableCell
-                            class="max-w-[320px] truncate"
-                            :title="wo.cause_text"
-                        >
+                        <TableCell class="max-w-[320px] truncate" :title="wo.cause_text">
                             {{ renderOrNA(wo.cause_text) }}
                         </TableCell>
-                        <TableCell
-                            class="max-w-[320px] truncate"
-                            :title="wo.item_text"
-                        >
+                        <TableCell class="max-w-[320px] truncate" :title="wo.item_text">
                             {{ renderOrNA(wo.item_text) }}
                         </TableCell>
                     </TableRow>
@@ -452,11 +414,8 @@ const showTable = computed(
 
             <!-- Pagination -->
             <div v-if="hasData" class="mt-4">
-                <WorkOrderPagination
-                    :pagination="pagination"
-                    @page-change="handlePageChange"
-                    @page-size-change="handlePageSizeChange"
-                />
+                <WorkOrderPagination :pagination="pagination" @page-change="handlePageChange"
+                    @page-size-change="handlePageSizeChange" />
             </div>
         </template>
 
@@ -477,10 +436,7 @@ const showTable = computed(
         </template>
 
         <!-- Dialog with items table -->
-        <WorkOrderItemsDialog
-            :open="showSheet"
-            :order-number="selectedOrderNumber"
-            @update:open="(v) => (showSheet = v)"
-        />
+        <WorkOrderItemsDialog v-if="showSheet" :open="showSheet" :order-number="selectedOrderNumber"
+            @update:open="(v) => (showSheet = v)" />
     </div>
 </template>
