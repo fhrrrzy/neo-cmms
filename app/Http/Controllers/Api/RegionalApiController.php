@@ -12,10 +12,20 @@ class RegionalApiController extends Controller
     /**
      * Get all regions with plant counts
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $regions = Region::withCount('plants')
-            ->orderBy('no')
+        $query = Region::withCount('plants');
+
+        // Apply search filter if provided
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('category', 'like', "%{$search}%")
+                    ->orWhere('no', 'like', "%{$search}%");
+            });
+        }
+
+        $regions = $query->orderBy('no')
             ->get()
             ->map(function ($region) {
                 return [
@@ -28,7 +38,7 @@ class RegionalApiController extends Controller
             });
 
         return response()->json([
-            'data' => $regions,
+            'data' => $regions->values(),
         ]);
     }
 
@@ -63,13 +73,13 @@ class RegionalApiController extends Controller
         // Calculate regional statistics
         $totalPlants = $region->plants()->count();
         $activePlants = $region->plants()->where('is_active', true)->count();
-        
+
         // Total equipment across all plants in this region
         $totalEquipment = $region->plants()
             ->withCount('equipment')
             ->get()
             ->sum('equipment_count');
-        
+
         // Total work orders across all plants
         $totalWorkOrders = $region->plants()
             ->withCount('workOrders')

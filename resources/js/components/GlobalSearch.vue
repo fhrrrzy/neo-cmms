@@ -125,7 +125,7 @@ const searchRegional = async (query) => {
             },
         });
         // Limit to 5 results
-        regionalResults.value = (response.data || []).slice(0, 5);
+        regionalResults.value = (response.data.data || []).slice(0, 5);
     } catch (error) {
         console.error('Regional search error:', error);
         regionalResults.value = [];
@@ -417,7 +417,7 @@ defineExpose({
                                 </div>
                                 <span class="text-xs text-muted-foreground line-clamp-1">{{
                                     equipment.equipment_description
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                     </div>
