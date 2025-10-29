@@ -1,0 +1,439 @@
+{
+    "info": {
+        "_postman_id": "cmms-webhook-api-collection",
+        "name": "CMMS Webhook API",
+        "description": "API collection for CMMS synchronization webhooks. All endpoints require API key authentication via X-Webhook-Key header.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "cmms-api"
+    },
+    "auth": {
+        "type": "apikey",
+        "apikey": [
+            {
+                "key": "value",
+                "value": "{{WEBHOOK_API_KEY}}",
+                "type": "string"
+            },
+            {
+                "key": "key",
+                "value": "X-Webhook-Key",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Sync Equipment",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{BASE_URL}}/api/webhook/sync/equipment",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "webhook",
+                        "sync",
+                        "equipment"
+                    ],
+                    "query": [
+                        {
+                            "key": "plant_codes",
+                            "value": "3F04",
+                            "description": "Single plant code",
+                            "disabled": true
+                        },
+                        {
+                            "key": "plant_codes",
+                            "value": "3F04,3F05,3F06",
+                            "description": "Multiple plant codes (comma-separated)",
+                            "disabled": true
+                        }
+                    ]
+                },
+                "description": "Dispatch a job to sync equipment data for all active plants or specific plant codes.\n\n**Parameters:**\n- `plant_codes` (optional): Single plant code or comma-separated list of plant codes\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Equipment sync job dispatched to queue\",\n  \"data\": {\n    \"plant_codes\": [\"3F04\"],\n    \"types\": [\"equipment\"],\n    \"job_dispatched\": true\n  }\n}\n```"
+            },
+            "response": []
+        },
+        {
+            "name": "Sync Running Time",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{BASE_URL}}/api/webhook/sync/running-time?start_date={{START_DATE}}&end_date={{END_DATE}}",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "webhook",
+                        "sync",
+                        "running-time"
+                    ],
+                    "query": [
+                        {
+                            "key": "start_date",
+                            "value": "{{START_DATE}}",
+                            "description": "Start date (YYYY-MM-DD), defaults to 3 days ago"
+                        },
+                        {
+                            "key": "end_date",
+                            "value": "{{END_DATE}}",
+                            "description": "End date (YYYY-MM-DD), defaults to today"
+                        },
+                        {
+                            "key": "plant_codes",
+                            "value": "3F04",
+                            "description": "Optional: specific plant codes",
+                            "disabled": true
+                        }
+                    ]
+                },
+                "description": "Dispatch a job to sync running time (jam jalan) data for all active plants.\n\n**Parameters:**\n- `start_date` (optional): Start date in YYYY-MM-DD format (default: 3 days ago)\n- `end_date` (optional): End date in YYYY-MM-DD format (default: today)\n- `plant_codes` (optional): Specific plant codes to sync\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Running time sync job dispatched to queue\",\n  \"date_range\": {\n    \"start\": \"2025-10-26\",\n    \"end\": \"2025-10-29\"\n  },\n  \"data\": {\n    \"plant_codes\": [\"3F04\"],\n    \"types\": [\"running_time\"],\n    \"job_dispatched\": true\n  }\n}\n```"
+            },
+            "response": []
+        },
+        {
+            "name": "Sync Work Orders",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{BASE_URL}}/api/webhook/sync/work-orders?start_date={{START_DATE}}&end_date={{END_DATE}}",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "webhook",
+                        "sync",
+                        "work-orders"
+                    ],
+                    "query": [
+                        {
+                            "key": "start_date",
+                            "value": "{{START_DATE}}",
+                            "description": "Start date (YYYY-MM-DD)"
+                        },
+                        {
+                            "key": "end_date",
+                            "value": "{{END_DATE}}",
+                            "description": "End date (YYYY-MM-DD)"
+                        },
+                        {
+                            "key": "plant_codes",
+                            "value": "",
+                            "description": "Optional: specific plant codes",
+                            "disabled": true
+                        }
+                    ]
+                },
+                "description": "Dispatch a job to sync work orders data.\n\n**Parameters:**\n- `start_date` (optional): Start date in YYYY-MM-DD format\n- `end_date` (optional): End date in YYYY-MM-DD format\n- `plant_codes` (optional): Specific plant codes\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Work orders sync job dispatched to queue\",\n  \"date_range\": {\n    \"start\": \"2025-10-26\",\n    \"end\": \"2025-10-29\"\n  },\n  \"data\": {\n    \"plant_codes\": [...],\n    \"types\": [\"work_orders\"],\n    \"job_dispatched\": true\n  }\n}\n```"
+            },
+            "response": []
+        },
+        {
+            "name": "Sync Equipment Work Orders",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{BASE_URL}}/api/webhook/sync/equipment-work-orders?start_date={{START_DATE}}&end_date={{END_DATE}}",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "webhook",
+                        "sync",
+                        "equipment-work-orders"
+                    ],
+                    "query": [
+                        {
+                            "key": "start_date",
+                            "value": "{{START_DATE}}"
+                        },
+                        {
+                            "key": "end_date",
+                            "value": "{{END_DATE}}"
+                        }
+                    ]
+                },
+                "description": "Dispatch a job to sync equipment work orders (work orders linked to equipment).\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Equipment work orders sync job dispatched to queue\",\n  \"date_range\": {...},\n  \"data\": {\n    \"types\": [\"equipment_work_orders\"],\n    \"job_dispatched\": true\n  }\n}\n```"
+            },
+            "response": []
+        },
+        {
+            "name": "Sync Equipment Materials",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{BASE_URL}}/api/webhook/sync/equipment-materials?start_date={{START_DATE}}&end_date={{END_DATE}}",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "webhook",
+                        "sync",
+                        "equipment-materials"
+                    ],
+                    "query": [
+                        {
+                            "key": "start_date",
+                            "value": "{{START_DATE}}"
+                        },
+                        {
+                            "key": "end_date",
+                            "value": "{{END_DATE}}"
+                        }
+                    ]
+                },
+                "description": "Dispatch a job to sync equipment materials (materials issued per equipment).\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Equipment materials sync job dispatched to queue\",\n  \"date_range\": {...},\n  \"data\": {\n    \"types\": [\"equipment_materials\"],\n    \"job_dispatched\": true\n  }\n}\n```"
+            },
+            "response": []
+        },
+        {
+            "name": "Sync Daily Plant Data",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{BASE_URL}}/api/webhook/sync/daily-plant-data?start_date={{START_DATE}}&end_date={{END_DATE}}",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "webhook",
+                        "sync",
+                        "daily-plant-data"
+                    ],
+                    "query": [
+                        {
+                            "key": "start_date",
+                            "value": "{{START_DATE}}"
+                        },
+                        {
+                            "key": "end_date",
+                            "value": "{{END_DATE}}"
+                        }
+                    ]
+                },
+                "description": "Dispatch a job to sync daily plant aggregated data.\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Daily plant data sync job dispatched to queue\",\n  \"date_range\": {...},\n  \"data\": {\n    \"types\": [\"daily_plant_data\"],\n    \"job_dispatched\": true\n  }\n}\n```"
+            },
+            "response": []
+        },
+        {
+            "name": "Sync All (Full Sync)",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{BASE_URL}}/api/webhook/sync/all?start_date={{START_DATE}}&end_date={{END_DATE}}",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "webhook",
+                        "sync",
+                        "all"
+                    ],
+                    "query": [
+                        {
+                            "key": "start_date",
+                            "value": "{{START_DATE}}",
+                            "description": "Start date for time-based syncs"
+                        },
+                        {
+                            "key": "end_date",
+                            "value": "{{END_DATE}}",
+                            "description": "End date for time-based syncs"
+                        },
+                        {
+                            "key": "plant_codes",
+                            "value": "3F04",
+                            "description": "Optional: specific plant codes",
+                            "disabled": true
+                        }
+                    ]
+                },
+                "description": "Dispatch a job to sync ALL data types in sequence:\n1. Equipment\n2. Work Orders\n3. Running Time\n4. Equipment Work Orders\n5. Equipment Materials\n6. Daily Plant Data\n\n**Parameters:**\n- `start_date` (optional): Start date in YYYY-MM-DD format (default: 3 days ago)\n- `end_date` (optional): End date in YYYY-MM-DD format (default: today)\n- `plant_codes` (optional): Specific plant codes to sync\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Full sync job dispatched to queue\",\n  \"date_range\": {\n    \"start\": \"2025-10-26\",\n    \"end\": \"2025-10-29\"\n  },\n  \"data\": {\n    \"plant_codes\": [\"3F04\"],\n    \"plant_count\": 1,\n    \"job_dispatched\": true\n  }\n}\n```"
+            },
+            "response": []
+        },
+        {
+            "name": "Test - Invalid API Key",
+            "request": {
+                "auth": {
+                    "type": "apikey",
+                    "apikey": [
+                        {
+                            "key": "value",
+                            "value": "invalid-key-123",
+                            "type": "string"
+                        },
+                        {
+                            "key": "key",
+                            "value": "X-Webhook-Key",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{BASE_URL}}/api/webhook/sync/equipment",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "webhook",
+                        "sync",
+                        "equipment"
+                    ]
+                },
+                "description": "Test endpoint with invalid API key to verify authentication.\n\n**Expected Response (401):**\n```json\n{\n  \"success\": false,\n  \"message\": \"Unauthorized - Invalid API key\"\n}\n```"
+            },
+            "response": []
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Auto-set date variables if not already set",
+                    "const today = new Date();",
+                    "const threeDaysAgo = new Date(today);",
+                    "threeDaysAgo.setDate(today.getDate() - 3);",
+                    "",
+                    "// Format dates as YYYY-MM-DD",
+                    "const formatDate = (date) => {",
+                    "    return date.toISOString().split('T')[0];",
+                    "};",
+                    "",
+                    "if (!pm.variables.get('START_DATE')) {",
+                    "    pm.variables.set('START_DATE', formatDate(threeDaysAgo));",
+                    "}",
+                    "",
+                    "if (!pm.variables.get('END_DATE')) {",
+                    "    pm.variables.set('END_DATE', formatDate(today));",
+                    "}"
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// Common tests for all webhook requests",
+                    "pm.test('Response time is acceptable', function () {",
+                    "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                    "});",
+                    "",
+                    "pm.test('Response has JSON content type', function () {",
+                    "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+                    "});",
+                    "",
+                    "pm.test('Response has success field', function () {",
+                    "    const jsonData = pm.response.json();",
+                    "    pm.expect(jsonData).to.have.property('success');",
+                    "});",
+                    "",
+                    "pm.test('Response has message field', function () {",
+                    "    const jsonData = pm.response.json();",
+                    "    pm.expect(jsonData).to.have.property('message');",
+                    "});",
+                    "",
+                    "// Test for successful requests",
+                    "if (pm.response.code === 200) {",
+                    "    pm.test('Success response includes job_dispatched flag', function () {",
+                    "        const jsonData = pm.response.json();",
+                    "        pm.expect(jsonData.data).to.have.property('job_dispatched');",
+                    "        pm.expect(jsonData.data.job_dispatched).to.be.true;",
+                    "    });",
+                    "}"
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "BASE_URL",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "WEBHOOK_API_KEY",
+            "value": "BMHqaDO5O1yF1FsPd1Ltjr7iOGW9Uyk8",
+            "type": "string"
+        },
+        {
+            "key": "START_DATE",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "END_DATE",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}

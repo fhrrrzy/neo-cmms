@@ -55,8 +55,8 @@ Route::get('/equipment-work-orders/{orderNumber}', [EquipmentWorkOrderApiControl
 
 Route::get('/stats/overview', [StatsApiController::class, 'overview']);
 
-// Webhook routes for API sync
-Route::prefix('webhook/sync')->group(function () {
+// Webhook routes for API sync (protected by API key)
+Route::prefix('webhook/sync')->middleware('webhook.key')->group(function () {
     Route::get('/equipment', [SyncWebhookController::class, 'syncEquipment']);
     Route::get('/running-time', [SyncWebhookController::class, 'syncRunningTime']);
     Route::get('/work-orders', [SyncWebhookController::class, 'syncWorkOrders']);

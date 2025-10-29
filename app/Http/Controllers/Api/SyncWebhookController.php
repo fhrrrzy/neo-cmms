@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Sync\ConcurrentApiSyncService;
+use App\Jobs\ConcurrentSyncJob;
 use App\Models\Plant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -33,15 +34,21 @@ class SyncWebhookController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            $result = $this->syncService->syncAllSequentially(
+            // Dispatch job to queue
+            $job = new ConcurrentSyncJob(
                 plantCodes: $plantCodes,
                 types: ['equipment']
             );
+            dispatch($job);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Equipment sync completed',
-                'data' => $result['equipment'] ?? [],
+                'message' => 'Equipment sync job dispatched to queue',
+                'data' => [
+                    'plant_codes' => $plantCodes,
+                    'types' => ['equipment'],
+                    'job_dispatched' => true,
+                ],
             ], 200);
         } catch (Exception $e) {
             Log::error('Equipment sync webhook failed', [
@@ -79,21 +86,27 @@ class SyncWebhookController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            $result = $this->syncService->syncAllSequentially(
+            // Dispatch job to queue
+            $job = new ConcurrentSyncJob(
                 plantCodes: $plantCodes,
                 runningTimeStartDate: $startDate,
                 runningTimeEndDate: $endDate,
                 types: ['running_time']
             );
+            dispatch($job);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Running time sync completed',
+                'message' => 'Running time sync job dispatched to queue',
                 'date_range' => [
                     'start' => $startDate,
                     'end' => $endDate,
                 ],
-                'data' => $result['running_time'] ?? [],
+                'data' => [
+                    'plant_codes' => $plantCodes,
+                    'types' => ['running_time'],
+                    'job_dispatched' => true,
+                ],
             ], 200);
         } catch (Exception $e) {
             Log::error('Running time sync webhook failed', [
@@ -131,21 +144,27 @@ class SyncWebhookController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            $result = $this->syncService->syncAllSequentially(
+            // Dispatch job to queue
+            $job = new ConcurrentSyncJob(
                 plantCodes: $plantCodes,
                 workOrderStartDate: $startDate,
                 workOrderEndDate: $endDate,
                 types: ['work_orders']
             );
+            dispatch($job);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Work orders sync completed',
+                'message' => 'Work orders sync job dispatched to queue',
                 'date_range' => [
                     'start' => $startDate,
                     'end' => $endDate,
                 ],
-                'data' => $result['work_orders'] ?? [],
+                'data' => [
+                    'plant_codes' => $plantCodes,
+                    'types' => ['work_orders'],
+                    'job_dispatched' => true,
+                ],
             ], 200);
         } catch (Exception $e) {
             Log::error('Work orders sync webhook failed', [
@@ -183,21 +202,27 @@ class SyncWebhookController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            $result = $this->syncService->syncAllSequentially(
+            // Dispatch job to queue
+            $job = new ConcurrentSyncJob(
                 plantCodes: $plantCodes,
                 workOrderStartDate: $startDate,
                 workOrderEndDate: $endDate,
                 types: ['equipment_work_orders']
             );
+            dispatch($job);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Equipment work orders sync completed',
+                'message' => 'Equipment work orders sync job dispatched to queue',
                 'date_range' => [
                     'start' => $startDate,
                     'end' => $endDate,
                 ],
-                'data' => $result['equipment_work_orders'] ?? [],
+                'data' => [
+                    'plant_codes' => $plantCodes,
+                    'types' => ['equipment_work_orders'],
+                    'job_dispatched' => true,
+                ],
             ], 200);
         } catch (Exception $e) {
             Log::error('Equipment work orders sync webhook failed', [
@@ -235,21 +260,27 @@ class SyncWebhookController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            $result = $this->syncService->syncAllSequentially(
+            // Dispatch job to queue
+            $job = new ConcurrentSyncJob(
                 plantCodes: $plantCodes,
                 workOrderStartDate: $startDate,
                 workOrderEndDate: $endDate,
                 types: ['equipment_materials']
             );
+            dispatch($job);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Equipment materials sync completed',
+                'message' => 'Equipment materials sync job dispatched to queue',
                 'date_range' => [
                     'start' => $startDate,
                     'end' => $endDate,
                 ],
-                'data' => $result['equipment_materials'] ?? [],
+                'data' => [
+                    'plant_codes' => $plantCodes,
+                    'types' => ['equipment_materials'],
+                    'job_dispatched' => true,
+                ],
             ], 200);
         } catch (Exception $e) {
             Log::error('Equipment materials sync webhook failed', [
@@ -287,21 +318,27 @@ class SyncWebhookController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            $result = $this->syncService->syncAllSequentially(
+            // Dispatch job to queue
+            $job = new ConcurrentSyncJob(
                 plantCodes: $plantCodes,
                 runningTimeStartDate: $startDate,
                 runningTimeEndDate: $endDate,
                 types: ['daily_plant_data']
             );
+            dispatch($job);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Daily plant data sync completed',
+                'message' => 'Daily plant data sync job dispatched to queue',
                 'date_range' => [
                     'start' => $startDate,
                     'end' => $endDate,
                 ],
-                'data' => $result['daily_plant_data'] ?? [],
+                'data' => [
+                    'plant_codes' => $plantCodes,
+                    'types' => ['daily_plant_data'],
+                    'job_dispatched' => true,
+                ],
             ], 200);
         } catch (Exception $e) {
             Log::error('Daily plant data sync webhook failed', [
@@ -339,22 +376,28 @@ class SyncWebhookController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            $result = $this->syncService->syncAllSequentially(
+            // Dispatch job to queue
+            $job = new ConcurrentSyncJob(
                 plantCodes: $plantCodes,
                 runningTimeStartDate: $startDate,
                 runningTimeEndDate: $endDate,
                 workOrderStartDate: $startDate,
                 workOrderEndDate: $endDate
             );
+            dispatch($job);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Full sync completed',
+                'message' => 'Full sync job dispatched to queue',
                 'date_range' => [
                     'start' => $startDate,
                     'end' => $endDate,
                 ],
-                'data' => $result,
+                'data' => [
+                    'plant_codes' => $plantCodes,
+                    'plant_count' => count($plantCodes),
+                    'job_dispatched' => true,
+                ],
             ], 200);
         } catch (Exception $e) {
             Log::error('Full sync webhook failed', [
