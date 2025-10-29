@@ -135,18 +135,20 @@ const sortIcon = (column) => {
 };
 
 onMounted(fetchData);
+
+// Only watch essential props that affect the query
 watch(
     () => [
-        props.equipmentUuid,
-        props.equipment?.uuid,
-        props.equipmentNumber,
-        props.equipment?.equipment_number,
+        props.equipment?.uuid || props.equipmentUuid,
         props.dateRange?.start,
         props.dateRange?.end,
     ],
-    () => {
-        page.value = 1;
-        fetchData();
+    ([newUuid, newStart, newEnd], [oldUuid, oldStart, oldEnd]) => {
+        // Only refetch if values actually changed
+        if (newUuid !== oldUuid || newStart !== oldStart || newEnd !== oldEnd) {
+            page.value = 1;
+            fetchData();
+        }
     },
 );
 </script>
@@ -156,9 +158,7 @@ watch(
         <!-- Improved Skeleton Loader with Dark Mode Support -->
         <div v-if="loading" class="space-y-4 rounded-lg border p-4">
             <!-- Table header skeleton -->
-            <div
-                class="grid grid-cols-8 gap-4 border-b pb-3 dark:border-gray-800"
-            >
+            <div class="grid grid-cols-8 gap-4 border-b pb-3 dark:border-gray-800">
                 <Skeleton class="h-5 w-12" />
                 <Skeleton class="h-5 w-24" />
                 <Skeleton class="h-5 w-28" />
@@ -181,24 +181,14 @@ watch(
             </div>
         </div>
 
-        <div
-            v-else-if="rows.length > 0"
-            :class="maxHeightClass"
-            class="overflow-x-auto"
-        >
+        <div v-else-if="rows.length > 0" :class="maxHeightClass" class="overflow-x-auto">
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead
-                            class="w-12 text-center text-xs"
-                            @click="handleSort('requirements_date')"
-                        >
+                        <TableHead class="w-12 text-center text-xs" @click="handleSort('requirements_date')">
                             #
                         </TableHead>
-                        <TableHead
-                            class="text-xs"
-                            @click="handleSort('requirements_date')"
-                        >
+                        <TableHead class="text-xs" @click="handleSort('requirements_date')">
                             <div class="leading-tight">
                                 Date
                                 <span v-if="sortIcon('requirements_date')">
@@ -206,10 +196,7 @@ watch(
                                 </span>
                             </div>
                         </TableHead>
-                        <TableHead
-                            class="text-xs"
-                            @click="handleSort('order_number')"
-                        >
+                        <TableHead class="text-xs" @click="handleSort('order_number')">
                             <div class="leading-tight">
                                 Order No
                                 <span v-if="sortIcon('order_number')">
@@ -217,10 +204,7 @@ watch(
                                 </span>
                             </div>
                         </TableHead>
-                        <TableHead
-                            class="text-xs"
-                            @click="handleSort('material')"
-                        >
+                        <TableHead class="text-xs" @click="handleSort('material')">
                             <div class="leading-tight">
                                 Material
                                 <span v-if="sortIcon('material')">
@@ -233,10 +217,7 @@ watch(
                                 Material<br />Description
                             </div>
                         </TableHead>
-                        <TableHead
-                            class="text-right text-xs"
-                            @click="handleSort('quantity_withdrawn')"
-                        >
+                        <TableHead class="text-right text-xs" @click="handleSort('quantity_withdrawn')">
                             <div class="leading-tight">
                                 Quantity
                                 <span v-if="sortIcon('quantity_withdrawn')">
@@ -244,10 +225,7 @@ watch(
                                 </span>
                             </div>
                         </TableHead>
-                        <TableHead
-                            class="text-right text-xs"
-                            @click="handleSort('value_withdrawn')"
-                        >
+                        <TableHead class="text-right text-xs" @click="handleSort('value_withdrawn')">
                             <div class="leading-tight">
                                 Value
                                 <br />(IDR)
@@ -266,7 +244,7 @@ watch(
                         <TableCell class="text-center">
                             {{
                                 (pagination.current_page - 1) *
-                                    pagination.per_page +
+                                pagination.per_page +
                                 idx +
                                 1
                             }}
@@ -285,10 +263,7 @@ watch(
                         </TableCell>
                         <TableCell class="text-right">
                             {{ formatNumber(item.quantity_withdrawn) }}
-                            <span
-                                v-if="item.base_unit_of_measure"
-                                class="text-xs text-muted-foreground"
-                            >
+                            <span v-if="item.base_unit_of_measure" class="text-xs text-muted-foreground">
                                 {{ item.base_unit_of_measure }}
                             </span>
                         </TableCell>
@@ -322,11 +297,7 @@ watch(
             </Empty>
         </div>
 
-        <WorkOrderPagination
-            v-if="rows.length > 0 && !loading"
-            :pagination="pagination"
-            @page-change="handlePageChange"
-            @page-size-change="handlePageSizeChange"
-        />
+        <WorkOrderPagination v-if="rows.length > 0 && !loading" :pagination="pagination" @page-change="handlePageChange"
+            @page-size-change="handlePageSizeChange" />
     </div>
 </template>
