@@ -88,25 +88,20 @@ onMounted(() => {
 </script>
 
 <template>
+
     <Head :title="region?.name || 'Regional Detail'" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-6 p-4">
             <!-- Loading State -->
             <div v-if="loading" class="space-y-6">
-                <div
-                    class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
-                >
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div class="w-full space-y-2">
                         <Skeleton class="h-8 w-2/3" />
                         <Skeleton class="h-4 w-40" />
                         <Skeleton class="h-3 w-56" />
                         <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                            <Skeleton
-                                v-for="i in 4"
-                                :key="i"
-                                class="h-10 w-full"
-                            />
+                            <Skeleton v-for="i in 4" :key="i" class="h-10 w-full" />
                         </div>
                     </div>
                     <div class="hidden w-72 md:block">
@@ -119,24 +114,15 @@ onMounted(() => {
                 <div>
                     <Skeleton class="h-10 w-64" />
                     <div class="mt-4 space-y-3">
-                        <Skeleton
-                            v-for="i in 5"
-                            :key="i"
-                            class="h-12 w-full"
-                        />
+                        <Skeleton v-for="i in 5" :key="i" class="h-12 w-full" />
                     </div>
                 </div>
             </div>
 
             <!-- Not Found State -->
-            <div
-                v-else-if="notFound"
-                class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6"
-            >
+            <div v-else-if="notFound" class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6">
                 <div class="space-y-4 text-center">
-                    <p
-                        class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl"
-                    >
+                    <p class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl">
                         Region not found
                     </p>
                     <Button variant="outline" @click="goBack">
@@ -147,11 +133,9 @@ onMounted(() => {
             </div>
 
             <!-- Main Content -->
-            <template v-else>
+            <template v-else-if="region && stats">
                 <!-- Header Section -->
-                <div
-                    class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
-                >
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                         <h1 class="text-3xl font-bold tracking-tight">
                             {{ region.name }}
@@ -166,9 +150,7 @@ onMounted(() => {
                         <!-- Regional Details Grid -->
                         <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
                             <div class="space-y-1">
-                                <p
-                                    class="text-xs font-medium text-muted-foreground"
-                                >
+                                <p class="text-xs font-medium text-muted-foreground">
                                     Category
                                 </p>
                                 <p class="text-sm font-semibold">
@@ -176,9 +158,7 @@ onMounted(() => {
                                 </p>
                             </div>
                             <div class="space-y-1">
-                                <p
-                                    class="text-xs font-medium text-muted-foreground"
-                                >
+                                <p class="text-xs font-medium text-muted-foreground">
                                     Regional Number
                                 </p>
                                 <p class="text-sm font-semibold">
@@ -186,9 +166,7 @@ onMounted(() => {
                                 </p>
                             </div>
                             <div class="space-y-1">
-                                <p
-                                    class="text-xs font-medium text-muted-foreground"
-                                >
+                                <p class="text-xs font-medium text-muted-foreground">
                                     Total Plants
                                 </p>
                                 <p class="text-sm font-semibold">
@@ -196,9 +174,7 @@ onMounted(() => {
                                 </p>
                             </div>
                             <div class="space-y-1">
-                                <p
-                                    class="text-xs font-medium text-muted-foreground"
-                                >
+                                <p class="text-xs font-medium text-muted-foreground">
                                     Active Plants
                                 </p>
                                 <p class="text-sm font-semibold">
@@ -208,11 +184,7 @@ onMounted(() => {
                         </div>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
-                        <Button
-                            variant="outline"
-                            class="w-full md:w-auto"
-                            @click="goBack"
-                        >
+                        <Button variant="outline" class="w-full md:w-auto" @click="goBack">
                             <ArrowLeft class="mr-2 h-4 w-4" />
                             Back to Regional
                         </Button>
@@ -241,9 +213,7 @@ onMounted(() => {
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <Wrench class="h-5 w-5" />
-                            <CardTitle class="text-sm"
-                                >Total Equipment</CardTitle
-                            >
+                            <CardTitle class="text-sm">Total Equipment</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
@@ -263,9 +233,7 @@ onMounted(() => {
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <FileText class="h-5 w-5" />
-                            <CardTitle class="text-sm"
-                                >Total Work Orders</CardTitle
-                            >
+                            <CardTitle class="text-sm">Total Work Orders</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
@@ -317,26 +285,19 @@ onMounted(() => {
                                         <Factory />
                                     </EmptyMedia>
                                     <EmptyTitle>No Plants</EmptyTitle>
-                                    <EmptyDescription
-                                        >No plants found in this
-                                        region</EmptyDescription
-                                    >
+                                    <EmptyDescription>No plants found in this
+                                        region</EmptyDescription>
                                 </EmptyHeader>
                             </Empty>
                         </div>
 
                         <!-- Mobile: Card Layout -->
                         <div v-else class="space-y-4 md:hidden">
-                            <Card
-                                v-for="plant in plants"
-                                :key="plant.id"
+                            <Card v-for="plant in plants" :key="plant.id"
                                 class="cursor-pointer transition-colors hover:bg-accent"
-                                @click="navigateToPlant(plant.id)"
-                            >
+                                @click="navigateToPlant(plant.id)">
                                 <CardContent class="p-4">
-                                    <div
-                                        class="flex items-start justify-between"
-                                    >
+                                    <div class="flex items-start justify-between">
                                         <div class="space-y-1">
                                             <p class="font-semibold">
                                                 {{ plant.name }}
@@ -345,13 +306,10 @@ onMounted(() => {
                                                 #{{ plant.plant_code }}
                                             </p>
                                             <div class="flex items-center gap-2">
-                                                <Badge
-                                                    :variant="
-                                                        plant.is_active
-                                                            ? 'default'
-                                                            : 'secondary'
-                                                    "
-                                                >
+                                                <Badge :variant="plant.is_active
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                    ">
                                                     {{
                                                         plant.is_active
                                                             ? 'Active'
@@ -364,9 +322,7 @@ onMounted(() => {
                                             <p class="text-2xl font-bold">
                                                 {{ plant.equipment_count }}
                                             </p>
-                                            <p
-                                                class="text-xs text-muted-foreground"
-                                            >
+                                            <p class="text-xs text-muted-foreground">
                                                 Equipment
                                             </p>
                                         </div>
@@ -376,60 +332,39 @@ onMounted(() => {
                         </div>
 
                         <!-- Desktop: Table Layout -->
-                        <div
-                            v-if="plants.length > 0"
-                            class="hidden overflow-x-auto md:block"
-                        >
+                        <div v-if="plants.length > 0" class="hidden overflow-x-auto md:block">
                             <table class="w-full">
                                 <thead>
-                                    <tr
-                                        class="border-b bg-muted text-muted-foreground"
-                                    >
-                                        <th
-                                            class="px-4 py-3 text-left text-sm font-medium"
-                                        >
+                                    <tr class="border-b bg-muted text-muted-foreground">
+                                        <th class="px-4 py-3 text-left text-sm font-medium">
                                             Plant Name
                                         </th>
-                                        <th
-                                            class="px-4 py-3 text-left text-sm font-medium"
-                                        >
+                                        <th class="px-4 py-3 text-left text-sm font-medium">
                                             Plant Code
                                         </th>
-                                        <th
-                                            class="px-4 py-3 text-left text-sm font-medium"
-                                        >
+                                        <th class="px-4 py-3 text-left text-sm font-medium">
                                             Status
                                         </th>
-                                        <th
-                                            class="px-4 py-3 text-right text-sm font-medium"
-                                        >
+                                        <th class="px-4 py-3 text-right text-sm font-medium">
                                             Equipment Count
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr
-                                        v-for="plant in plants"
-                                        :key="plant.id"
+                                    <tr v-for="plant in plants" :key="plant.id"
                                         class="cursor-pointer border-b transition-colors hover:bg-muted/50"
-                                        @click="navigateToPlant(plant.id)"
-                                    >
+                                        @click="navigateToPlant(plant.id)">
                                         <td class="px-4 py-3 font-medium">
                                             {{ plant.name }}
                                         </td>
-                                        <td
-                                            class="px-4 py-3 text-muted-foreground"
-                                        >
+                                        <td class="px-4 py-3 text-muted-foreground">
                                             {{ plant.plant_code }}
                                         </td>
                                         <td class="px-4 py-3">
-                                            <Badge
-                                                :variant="
-                                                    plant.is_active
-                                                        ? 'default'
-                                                        : 'secondary'
-                                                "
-                                            >
+                                            <Badge :variant="plant.is_active
+                                                    ? 'default'
+                                                    : 'secondary'
+                                                ">
                                                 {{
                                                     plant.is_active
                                                         ? 'Active'

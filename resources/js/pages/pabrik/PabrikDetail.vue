@@ -131,25 +131,20 @@ onMounted(() => {
 </script>
 
 <template>
+
     <Head :title="plant?.name || 'Plant Detail'" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-6 p-4">
             <!-- Loading State -->
             <div v-if="loading" class="space-y-6">
-                <div
-                    class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
-                >
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div class="w-full space-y-2">
                         <Skeleton class="h-8 w-2/3" />
                         <Skeleton class="h-4 w-40" />
                         <Skeleton class="h-3 w-56" />
                         <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                            <Skeleton
-                                v-for="i in 6"
-                                :key="i"
-                                class="h-10 w-full"
-                            />
+                            <Skeleton v-for="i in 6" :key="i" class="h-10 w-full" />
                         </div>
                     </div>
                     <div class="hidden w-72 md:block">
@@ -162,24 +157,15 @@ onMounted(() => {
                 <div>
                     <Skeleton class="h-10 w-64" />
                     <div class="mt-4 space-y-3">
-                        <Skeleton
-                            v-for="i in 8"
-                            :key="i"
-                            class="h-12 w-full"
-                        />
+                        <Skeleton v-for="i in 8" :key="i" class="h-12 w-full" />
                     </div>
                 </div>
             </div>
 
             <!-- Not Found State -->
-            <div
-                v-else-if="notFound"
-                class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6"
-            >
+            <div v-else-if="notFound" class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6">
                 <div class="space-y-4 text-center">
-                    <p
-                        class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl"
-                    >
+                    <p class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl">
                         Plant not found
                     </p>
                     <Button variant="outline" @click="goBack">
@@ -190,11 +176,9 @@ onMounted(() => {
             </div>
 
             <!-- Main Content -->
-            <template v-else>
+            <template v-else-if="plant && stats">
                 <!-- Header Section -->
-                <div
-                    class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
-                >
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                         <h1 class="text-3xl font-bold tracking-tight">
                             {{ plant.name }}
@@ -203,10 +187,7 @@ onMounted(() => {
                             #{{ plant.plant_code }}
                         </p>
                         <p class="text-xs text-muted-foreground">
-                            <button
-                                class="hover:underline"
-                                @click="navigateToRegional"
-                            >
+                            <button class="hover:underline" @click="navigateToRegional">
                                 {{ plant.regional_name }}
                             </button>
                         </p>
@@ -214,25 +195,21 @@ onMounted(() => {
                         <!-- Plant Details Grid -->
                         <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
                             <div class="space-y-1">
-                                <p
-                                    class="text-xs font-medium text-muted-foreground"
-                                >
+                                <p class="text-xs font-medium text-muted-foreground">
                                     Installed Capacity
                                 </p>
                                 <p class="text-sm font-semibold">
                                     {{
                                         plant.kaps_terpasang
                                             ? plant.kaps_terpasang.toLocaleString(
-                                                  'id-ID',
-                                              )
+                                                'id-ID',
+                                            )
                                             : 'N/A'
                                     }}
                                 </p>
                             </div>
                             <div class="space-y-1">
-                                <p
-                                    class="text-xs font-medium text-muted-foreground"
-                                >
+                                <p class="text-xs font-medium text-muted-foreground">
                                     Unit Count
                                 </p>
                                 <p class="text-sm font-semibold">
@@ -240,36 +217,26 @@ onMounted(() => {
                                 </p>
                             </div>
                             <div class="space-y-1">
-                                <p
-                                    class="text-xs font-medium text-muted-foreground"
-                                >
+                                <p class="text-xs font-medium text-muted-foreground">
                                     Status
                                 </p>
-                                <Badge
-                                    :variant="
-                                        plant.is_active
-                                            ? 'default'
-                                            : 'secondary'
-                                    "
-                                >
+                                <Badge :variant="plant.is_active
+                                        ? 'default'
+                                        : 'secondary'
+                                    ">
                                     {{
                                         plant.is_active ? 'Active' : 'Inactive'
                                     }}
                                 </Badge>
                             </div>
                             <div class="space-y-1">
-                                <p
-                                    class="text-xs font-medium text-muted-foreground"
-                                >
+                                <p class="text-xs font-medium text-muted-foreground">
                                     Bunch Press
                                 </p>
-                                <Badge
-                                    :variant="
-                                        plant.instalasi_bunch_press
-                                            ? 'default'
-                                            : 'secondary'
-                                    "
-                                >
+                                <Badge :variant="plant.instalasi_bunch_press
+                                        ? 'default'
+                                        : 'secondary'
+                                    ">
                                     {{
                                         plant.instalasi_bunch_press
                                             ? 'Installed'
@@ -278,29 +245,20 @@ onMounted(() => {
                                 </Badge>
                             </div>
                             <div class="space-y-1">
-                                <p
-                                    class="text-xs font-medium text-muted-foreground"
-                                >
+                                <p class="text-xs font-medium text-muted-foreground">
                                     Cofiring
                                 </p>
-                                <Badge
-                                    :variant="
-                                        plant.cofiring
-                                            ? 'default'
-                                            : 'secondary'
-                                    "
-                                >
+                                <Badge :variant="plant.cofiring
+                                        ? 'default'
+                                        : 'secondary'
+                                    ">
                                     {{ plant.cofiring ? 'Yes' : 'No' }}
                                 </Badge>
                             </div>
                         </div>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
-                        <Button
-                            variant="outline"
-                            class="w-full md:w-auto"
-                            @click="goBack"
-                        >
+                        <Button variant="outline" class="w-full md:w-auto" @click="goBack">
                             <ArrowLeft class="mr-2 h-4 w-4" />
                             Back to Pabrik
                         </Button>
@@ -313,9 +271,7 @@ onMounted(() => {
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <Wrench class="h-5 w-5" />
-                            <CardTitle class="text-sm"
-                                >Total Equipment</CardTitle
-                            >
+                            <CardTitle class="text-sm">Total Equipment</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
@@ -355,9 +311,7 @@ onMounted(() => {
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <FileText class="h-5 w-5" />
-                            <CardTitle class="text-sm"
-                                >Total Work Orders</CardTitle
-                            >
+                            <CardTitle class="text-sm">Total Work Orders</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
@@ -377,9 +331,7 @@ onMounted(() => {
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <ClipboardCheck class="h-5 w-5" />
-                            <CardTitle class="text-sm"
-                                >Active Work Orders</CardTitle
-                            >
+                            <CardTitle class="text-sm">Active Work Orders</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
@@ -406,8 +358,8 @@ onMounted(() => {
                                 {{
                                     plant.kaps_terpasang
                                         ? plant.kaps_terpasang.toLocaleString(
-                                              'id-ID',
-                                          )
+                                            'id-ID',
+                                        )
                                         : '—'
                                 }}
                             </div>
@@ -449,41 +401,30 @@ onMounted(() => {
                                         <Wrench />
                                     </EmptyMedia>
                                     <EmptyTitle>No Equipment</EmptyTitle>
-                                    <EmptyDescription
-                                        >No equipment found in this
-                                        plant</EmptyDescription
-                                    >
+                                    <EmptyDescription>No equipment found in this
+                                        plant</EmptyDescription>
                                 </EmptyHeader>
                             </Empty>
                         </div>
 
                         <!-- Mobile: Card Layout -->
                         <div v-else class="space-y-4 md:hidden">
-                            <Card
-                                v-for="item in equipment.data"
-                                :key="item.uuid"
+                            <Card v-for="item in equipment.data" :key="item.uuid"
                                 class="cursor-pointer transition-colors hover:bg-accent"
-                                @click="navigateToEquipment(item.uuid)"
-                            >
+                                @click="navigateToEquipment(item.uuid)">
                                 <CardContent class="p-4">
                                     <div class="space-y-2">
                                         <div>
                                             <p class="font-semibold">
                                                 {{ item.equipment_description }}
                                             </p>
-                                            <p
-                                                class="text-sm text-muted-foreground"
-                                            >
+                                            <p class="text-sm text-muted-foreground">
                                                 #{{ item.equipment_number }}
                                             </p>
                                         </div>
-                                        <div
-                                            class="grid grid-cols-2 gap-2 text-sm"
-                                        >
+                                        <div class="grid grid-cols-2 gap-2 text-sm">
                                             <div>
-                                                <p
-                                                    class="text-xs text-muted-foreground"
-                                                >
+                                                <p class="text-xs text-muted-foreground">
                                                     Station
                                                 </p>
                                                 <p class="font-medium">
@@ -491,9 +432,7 @@ onMounted(() => {
                                                 </p>
                                             </div>
                                             <div>
-                                                <p
-                                                    class="text-xs text-muted-foreground"
-                                                >
+                                                <p class="text-xs text-muted-foreground">
                                                     Type
                                                 </p>
                                                 <p class="font-medium">
@@ -501,13 +440,11 @@ onMounted(() => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div
-                                            class="border-t pt-2 text-sm text-muted-foreground"
-                                        >
+                                        <div class="border-t pt-2 text-sm text-muted-foreground">
                                             Running Hours:
                                             <span class="font-medium">{{
                                                 item.latest_running_hours
-                                            }}</span>
+                                                }}</span>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -515,65 +452,41 @@ onMounted(() => {
                         </div>
 
                         <!-- Desktop: Table Layout -->
-                        <div
-                            v-if="equipment.data.length > 0"
-                            class="hidden overflow-x-auto md:block"
-                        >
+                        <div v-if="equipment.data.length > 0" class="hidden overflow-x-auto md:block">
                             <table class="w-full">
                                 <thead>
-                                    <tr
-                                        class="border-b bg-muted text-muted-foreground"
-                                    >
-                                        <th
-                                            class="px-4 py-3 text-left text-sm font-medium"
-                                        >
+                                    <tr class="border-b bg-muted text-muted-foreground">
+                                        <th class="px-4 py-3 text-left text-sm font-medium">
                                             Equipment Number
                                         </th>
-                                        <th
-                                            class="px-4 py-3 text-left text-sm font-medium"
-                                        >
+                                        <th class="px-4 py-3 text-left text-sm font-medium">
                                             Description
                                         </th>
-                                        <th
-                                            class="px-4 py-3 text-left text-sm font-medium"
-                                        >
+                                        <th class="px-4 py-3 text-left text-sm font-medium">
                                             Station
                                         </th>
-                                        <th
-                                            class="px-4 py-3 text-left text-sm font-medium"
-                                        >
+                                        <th class="px-4 py-3 text-left text-sm font-medium">
                                             Type
                                         </th>
-                                        <th
-                                            class="px-4 py-3 text-right text-sm font-medium"
-                                        >
+                                        <th class="px-4 py-3 text-right text-sm font-medium">
                                             Running Hours
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr
-                                        v-for="item in equipment.data"
-                                        :key="item.uuid"
+                                    <tr v-for="item in equipment.data" :key="item.uuid"
                                         class="cursor-pointer border-b transition-colors hover:bg-muted/50"
-                                        @click="navigateToEquipment(item.uuid)"
-                                    >
+                                        @click="navigateToEquipment(item.uuid)">
                                         <td class="px-4 py-3 font-medium">
                                             {{ item.equipment_number }}
                                         </td>
-                                        <td
-                                            class="px-4 py-3 text-muted-foreground"
-                                        >
+                                        <td class="px-4 py-3 text-muted-foreground">
                                             {{ item.equipment_description }}
                                         </td>
-                                        <td
-                                            class="px-4 py-3 text-muted-foreground"
-                                        >
+                                        <td class="px-4 py-3 text-muted-foreground">
                                             {{ item.station_description }}
                                         </td>
-                                        <td
-                                            class="px-4 py-3 text-muted-foreground"
-                                        >
+                                        <td class="px-4 py-3 text-muted-foreground">
                                             {{ item.equipment_type }}
                                         </td>
                                         <td class="px-4 py-3 text-right">
@@ -585,10 +498,8 @@ onMounted(() => {
                         </div>
 
                         <!-- Pagination -->
-                        <div
-                            v-if="equipment.data.length > 0"
-                            class="mt-4 flex items-center justify-between border-t pt-4"
-                        >
+                        <div v-if="equipment.data.length > 0"
+                            class="mt-4 flex items-center justify-between border-t pt-4">
                             <div class="text-sm text-muted-foreground">
                                 Showing {{ (currentPage - 1) * perPage + 1 }} to
                                 {{
@@ -600,12 +511,7 @@ onMounted(() => {
                                 of {{ equipment.total }} equipment
                             </div>
                             <div class="flex items-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    :disabled="currentPage === 1"
-                                    @click="prevPage"
-                                >
+                                <Button variant="outline" size="sm" :disabled="currentPage === 1" @click="prevPage">
                                     <ChevronLeft class="h-4 w-4" />
                                     Previous
                                 </Button>
@@ -613,14 +519,8 @@ onMounted(() => {
                                     Page {{ currentPage }} of
                                     {{ equipment.last_page }}
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    :disabled="
-                                        currentPage === equipment.last_page
-                                    "
-                                    @click="nextPage"
-                                >
+                                <Button variant="outline" size="sm" :disabled="currentPage === equipment.last_page
+                                    " @click="nextPage">
                                     Next
                                     <ChevronRight class="h-4 w-4" />
                                 </Button>

@@ -80,8 +80,8 @@ class PabrikApiController extends Controller
         $equipmentQuery = $plant->equipment()
             ->with(['station'])
             ->leftJoin('running_times', function ($join) {
-                $join->on('equipment.uuid', '=', 'running_times.equipment_uuid')
-                    ->whereRaw('running_times.id IN (SELECT MAX(id) FROM running_times GROUP BY equipment_uuid)');
+                $join->on('equipment.equipment_number', '=', 'running_times.equipment_number')
+                    ->whereRaw('running_times.id IN (SELECT MAX(id) FROM running_times GROUP BY equipment_number)');
             })
             ->select(
                 'equipment.*',
@@ -128,7 +128,7 @@ class PabrikApiController extends Controller
         $totalStations = $plant->stations()->count();
         $totalWorkOrders = $plant->workOrders()->count();
         $activeWorkOrders = $plant->workOrders()
-            ->whereIn('status', ['TREL', 'REL'])
+            ->whereIn('order_status', ['10'])
             ->count();
 
         return response()->json([

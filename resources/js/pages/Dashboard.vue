@@ -103,16 +103,13 @@ const navigateToPabrik = () => {
 </script>
 
 <template>
+
     <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div
-            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-        >
+        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
             <!-- Stats cards -->
-            <div
-                class="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-4"
-            >
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-4">
                 <!-- Regions -->
                 <Card
                     class="cursor-pointer transition-colors hover:bg-accent"
@@ -132,8 +129,8 @@ const navigateToPabrik = () => {
                                 loading
                                     ? '—'
                                     : stats.total_regions.toLocaleString(
-                                          'id-ID',
-                                      )
+                                        'id-ID',
+                                    )
                             }}
                         </div>
                         <p class="text-xs text-muted-foreground">
@@ -171,12 +168,8 @@ const navigateToPabrik = () => {
 
                 <!-- Equipment -->
                 <Card>
-                    <CardHeader
-                        class="flex flex-row items-center justify-between space-y-0 pb-2"
-                    >
-                        <CardTitle class="text-sm font-medium"
-                            >Total Equipment</CardTitle
-                        >
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Total Equipment</CardTitle>
                         <Wrench class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -185,8 +178,8 @@ const navigateToPabrik = () => {
                                 loading
                                     ? '—'
                                     : stats.total_equipment.toLocaleString(
-                                          'id-ID',
-                                      )
+                                        'id-ID',
+                                    )
                             }}
                         </div>
                         <p class="text-xs text-muted-foreground">
@@ -197,12 +190,8 @@ const navigateToPabrik = () => {
 
                 <!-- Materials unique per plant -->
                 <Card>
-                    <CardHeader
-                        class="flex flex-row items-center justify-between space-y-0 pb-2"
-                    >
-                        <CardTitle class="text-sm font-medium"
-                            >Total Material (unique/plant)</CardTitle
-                        >
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Total Material (unique/plant)</CardTitle>
                         <Boxes class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -211,8 +200,8 @@ const navigateToPabrik = () => {
                                 loading
                                     ? '—'
                                     : stats.total_materials_unique_per_plant.toLocaleString(
-                                          'id-ID',
-                                      )
+                                        'id-ID',
+                                    )
                             }}
                         </div>
                         <p class="text-xs text-muted-foreground">
@@ -223,85 +212,7 @@ const navigateToPabrik = () => {
                 </Card>
             </div>
 
-            <div class="grid grid-cols-3">
-                <a href="#" class="group relative block h-64 sm:h-80 lg:h-96">
-                    <span
-                        class="absolute inset-0 border-2 border-dashed border-black dark:border-zinc-700"
-                    ></span>
 
-                    <div
-                        class="relative flex h-full transform items-end border-2 border-black bg-white transition-transform group-hover:-translate-x-2 group-hover:-translate-y-2 dark:bg-zinc-900"
-                    >
-                        <div
-                            class="p-4 pt-0! transition-opacity group-hover:absolute group-hover:opacity-0 sm:p-6 lg:p-8"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="size-10 sm:size-12"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                ></path>
-                            </svg>
-
-                            <h2 class="mt-4 text-xl font-medium sm:text-2xl">
-                                Go around the world
-                            </h2>
-                        </div>
-
-                        <div
-                            class="absolute p-4 opacity-0 transition-opacity group-hover:relative group-hover:opacity-100 sm:p-6 lg:p-8"
-                        >
-                            <h3 class="mt-4 text-xl font-medium sm:text-2xl">
-                                Go around the world
-                            </h3>
-
-                            <p class="mt-4 text-sm sm:text-base">
-                                Lorem ipsum dolor sit amet consectetur
-                                adipisicing elit. Cupiditate, praesentium
-                                voluptatem omnis atque culpa repellendus.
-                            </p>
-
-                            <p class="mt-8 font-bold">Read more</p>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <!-- Demo: Working Popover + Calendar -->
-            <div class="flex items-center justify-start">
-                <template>
-                    <Popover>
-                        <PopoverTrigger as-child>
-                            <Button
-                                variant="outline"
-                                :class="[
-                                    'w-[280px] justify-start text-left font-normal',
-                                    !value ? 'text-muted-foreground' : '',
-                                ]"
-                            >
-                                <CalendarIcon class="mr-2 h-4 w-4" />
-                                {{
-                                    value
-                                        ? df.format(
-                                              value.toDate(getLocalTimeZone()),
-                                          )
-                                        : 'Pick a date'
-                                }}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent class="w-auto p-0">
-                            <Calendar v-model="value" initial-focus />
-                        </PopoverContent>
-                    </Popover>
-                </template>
-            </div>
         </div>
     </AppLayout>
 </template>
