@@ -122,7 +122,7 @@ export const createColumns = (dates) => {
                 return h(
                     'div',
                     { 
-                        class: `rounded py-1 text-center pointer-events-none ${cellClass}`,
+                        class: `rounded py-1 text-center pointer-events-none ${cellClass} group`,
                     },
                     String(dateData.count ?? 0)
                 );

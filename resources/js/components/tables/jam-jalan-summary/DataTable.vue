@@ -129,30 +129,18 @@ defineExpose({
         <div class="rounded-md border">
             <!-- Table -->
             <div class="max-h-[80svh] overflow-auto">
-                <table
-                    class="w-full table-auto caption-bottom border-collapse text-sm"
-                >
+                <table class="w-full table-auto caption-bottom border-collapse text-sm">
                     <thead class="sticky top-0 z-20 bg-background">
-                        <TableRow
-                            v-for="headerGroup in table.getHeaderGroups()"
-                            :key="headerGroup.id"
-                        >
-                            <TableHead
-                                v-for="header in headerGroup.headers"
-                                :key="header.id"
-                                :class="[
-                                    'border-r border-border bg-background',
-                                    header.id === 'number' ||
+                        <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
+                            <TableHead v-for="header in headerGroup.headers" :key="header.id" :class="[
+                                'border-r border-border bg-background',
+                                header.id === 'number' ||
                                     header.id === 'plant_name'
-                                        ? 'sticky left-0 z-30 shadow-[2px_0_4px_rgba(0,0,0,0.1)]'
-                                        : '',
-                                ]"
-                            >
+                                    ? 'sticky left-0 z-30 shadow-[2px_0_4px_rgba(0,0,0,0.1)]'
+                                    : '',
+                            ]">
                                 <div v-if="!header.isPlaceholder">
-                                    <component
-                                        :is="header.column.columnDef.header"
-                                        v-bind="header.getContext()"
-                                    />
+                                    <component :is="header.column.columnDef.header" v-bind="header.getContext()" />
                                 </div>
                             </TableHead>
                         </TableRow>
@@ -167,18 +155,13 @@ defineExpose({
                         </template>
                         <template v-else-if="!hasData">
                             <TableRow>
-                                <TableCell
-                                    :colspan="table.getAllColumns().length"
-                                    class="p-8"
-                                >
+                                <TableCell :colspan="table.getAllColumns().length" class="p-8">
                                     <Empty>
                                         <EmptyHeader>
                                             <EmptyMedia variant="icon">
                                                 <Factory />
                                             </EmptyMedia>
-                                            <EmptyTitle
-                                                >No Plant Data</EmptyTitle
-                                            >
+                                            <EmptyTitle>No Plant Data</EmptyTitle>
                                             <EmptyDescription>
                                                 Tidak ada data plant
                                             </EmptyDescription>
@@ -188,40 +171,29 @@ defineExpose({
                             </TableRow>
                         </template>
                         <template v-else>
-                            <TableRow
-                                v-for="row in table.getRowModel().rows"
-                                :key="row.id"
-                            >
-                                <TableCell
-                                    v-for="cell in row.getVisibleCells()"
-                                    :key="cell.id"
-                                    :class="[
-                                        'border-r border-border',
-                                        cell.column.id.startsWith('date_')
-                                            ? 'cursor-pointer hover:bg-accent/50'
-                                            : '',
-                                        cell.column.id === 'number' ||
+                            <TableRow v-for="row in table.getRowModel().rows" :key="row.id">
+                                <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" :class="[
+                                    'border-r border-border',
+                                    cell.column.id.startsWith('date_')
+                                        ? 'cursor-pointer hover:bg-accent/50 group'
+                                        : '',
+                                    cell.column.id === 'number' ||
                                         cell.column.id === 'plant_name'
-                                            ? 'sticky left-0 z-10 bg-background shadow-[2px_0_4px_rgba(0,0,0,0.1)]'
-                                            : '',
-                                    ]"
-                                    @click="
+                                        ? 'sticky left-0 z-10 bg-background shadow-[2px_0_4px_rgba(0,0,0,0.1)]'
+                                        : '',
+                                ]" @click="
                                         cell.column.id.startsWith('date_')
                                             ? handleCellClick(
-                                                  row.original.id,
-                                                  row.original.name,
-                                                  cell.column.id.replace(
-                                                      'date_',
-                                                      '',
-                                                  ),
-                                              )
+                                                row.original.id,
+                                                row.original.name,
+                                                cell.column.id.replace(
+                                                    'date_',
+                                                    '',
+                                                ),
+                                            )
                                             : null
-                                    "
-                                >
-                                    <component
-                                        :is="cell.column.columnDef.cell"
-                                        v-bind="cell.getContext()"
-                                    />
+                                        ">
+                                    <component :is="cell.column.columnDef.cell" v-bind="cell.getContext()" />
                                 </TableCell>
                             </TableRow>
                         </template>
@@ -231,32 +203,21 @@ defineExpose({
         </div>
 
         <!-- Legend -->
-        <div
-            class="flex flex-wrap items-center gap-3 rounded-md border bg-card p-3 text-xs sm:text-sm"
-        >
+        <div class="flex flex-wrap items-center gap-3 rounded-md border bg-card p-3 text-xs sm:text-sm">
             <div class="flex items-center gap-2">
                 <span
-                    class="inline-block h-3 w-3 rounded-full bg-blue-500/80 sm:h-3.5 sm:w-3.5 dark:bg-blue-500/50"
-                ></span>
+                    class="inline-block h-3 w-3 rounded-full bg-blue-500/80 sm:h-3.5 sm:w-3.5 dark:bg-blue-500/50"></span>
                 <span class="text-muted-foreground">Tidak mengolah</span>
             </div>
             <div class="flex items-center gap-2">
                 <span
-                    class="inline-block h-3 w-3 rounded-full bg-red-500/80 sm:h-3.5 sm:w-3.5 dark:bg-red-500/50"
-                ></span>
-                <span class="text-muted-foreground"
-                    >Mengolah tapi tidak ada data</span
-                >
+                    class="inline-block h-3 w-3 rounded-full bg-red-500/80 sm:h-3.5 sm:w-3.5 dark:bg-red-500/50"></span>
+                <span class="text-muted-foreground">Mengolah tapi tidak ada data</span>
             </div>
         </div>
 
         <!-- Equipment Detail Modal -->
-        <EquipmentDetailModal
-            :is-open="isModalOpen"
-            :plant-id="selectedPlant?.id"
-            :plant-name="selectedPlant?.name || ''"
-            :date="selectedDate"
-            @close="isModalOpen = false"
-        />
+        <EquipmentDetailModal :is-open="isModalOpen" :plant-id="selectedPlant?.id"
+            :plant-name="selectedPlant?.name || ''" :date="selectedDate" @close="isModalOpen = false" />
     </div>
 </template>

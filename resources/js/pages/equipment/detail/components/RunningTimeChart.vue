@@ -1,6 +1,14 @@
 <script setup>
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import Highcharts from 'highcharts';
 import HighchartsBoost from 'highcharts/modules/boost';
+import { TrendingUp } from 'lucide-vue-next';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // Initialize Boost module
@@ -32,29 +40,29 @@ const getTheme = () => {
     const dark = isDarkMode();
     return dark
         ? {
-              background: 'transparent',
-              text: '#e5e7eb',
-              mutedText: '#9ca3af',
-              grid: '#374151',
-              series: Highcharts.getOptions().colors || [
-                  '#60a5fa',
-                  '#f59e0b',
-                  '#34d399',
-                  '#f472b6',
-              ],
-          }
+            background: 'transparent',
+            text: '#e5e7eb',
+            mutedText: '#9ca3af',
+            grid: '#374151',
+            series: Highcharts.getOptions().colors || [
+                '#60a5fa',
+                '#f59e0b',
+                '#34d399',
+                '#f472b6',
+            ],
+        }
         : {
-              background: 'transparent',
-              text: '#111827',
-              mutedText: '#6b7280',
-              grid: '#e5e7eb',
-              series: Highcharts.getOptions().colors || [
-                  '#2563eb',
-                  '#f59e0b',
-                  '#10b981',
-                  '#ec4899',
-              ],
-          };
+            background: 'transparent',
+            text: '#111827',
+            mutedText: '#6b7280',
+            grid: '#e5e7eb',
+            series: Highcharts.getOptions().colors || [
+                '#2563eb',
+                '#f59e0b',
+                '#10b981',
+                '#ec4899',
+            ],
+        };
 };
 
 const createChart = () => {
@@ -232,11 +240,18 @@ if (typeof window !== 'undefined' && window.matchMedia) {
 </script>
 
 <template>
-    <div ref="container" class="w-full"></div>
-    <div
-        v-if="!props.data?.length"
-        class="py-8 text-center text-muted-foreground"
-    >
-        <p>No data</p>
+    <div v-if="props.data?.length" ref="container" class="w-full"></div>
+    <div v-else class="py-8">
+        <Empty>
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <TrendingUp />
+                </EmptyMedia>
+                <EmptyTitle>No Chart Data</EmptyTitle>
+                <EmptyDescription>
+                    No running time data available to display
+                </EmptyDescription>
+            </EmptyHeader>
+        </Empty>
     </div>
 </template>

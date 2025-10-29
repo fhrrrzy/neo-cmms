@@ -131,66 +131,52 @@ watch(
 
 <template>
     <div class="w-full">
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead
-                        v-for="col in runningTimeColumns"
-                        :key="col.id || col.accessorKey || col.key"
-                    >
-                        <div>
-                            <component
-                                :is="col.header"
-                                v-bind="{ table: tableContext, column: col }"
-                            />
-                        </div>
-                    </TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                <TableRow v-if="rows.length === 0">
-                    <TableCell :colspan="runningTimeColumns.length" class="p-8">
-                        <Empty>
-                            <EmptyHeader>
-                                <EmptyMedia variant="icon">
-                                    <Clock />
-                                </EmptyMedia>
-                                <EmptyTitle>No Running Times</EmptyTitle>
-                                <EmptyDescription>
-                                    No running times data available
-                                </EmptyDescription>
-                            </EmptyHeader>
-                        </Empty>
-                    </TableCell>
-                </TableRow>
-                <TableRow v-else v-for="(time, index) in rows" :key="index">
-                    <TableCell
-                        v-for="col in runningTimeColumns"
-                        :key="col.id || col.accessorKey || col.key"
-                    >
-                        <component
-                            :is="col.cell"
-                            v-bind="{
+        <div v-if="rows.length > 0">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead v-for="col in runningTimeColumns" :key="col.id || col.accessorKey || col.key">
+                            <div>
+                                <component :is="col.header" v-bind="{ table: tableContext, column: col }" />
+                            </div>
+                        </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow v-for="(time, index) in rows" :key="index">
+                        <TableCell v-for="col in runningTimeColumns" :key="col.id || col.accessorKey || col.key">
+                            <component :is="col.cell" v-bind="{
                                 row: {
                                     getValue: (key) => time[key],
                                     index: index,
                                     original: time,
                                 },
                                 table: tableContext,
-                            }"
-                        />
-                    </TableCell>
-                </TableRow>
-            </TableBody>
-        </Table>
+                            }" />
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
 
-        <!-- Pagination -->
-        <div class="mt-4">
-            <RunningTimePagination
-                :pagination="pagination"
-                @page-change="handlePageChange"
-                @page-size-change="handlePageSizeChange"
-            />
+            <!-- Pagination -->
+            <div class="mt-4">
+                <RunningTimePagination :pagination="pagination" @page-change="handlePageChange"
+                    @page-size-change="handlePageSizeChange" />
+            </div>
+        </div>
+
+        <div v-else class="py-8">
+            <Empty>
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <Clock />
+                    </EmptyMedia>
+                    <EmptyTitle>No Running Times</EmptyTitle>
+                    <EmptyDescription>
+                        No running times data available
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         </div>
     </div>
 </template>
