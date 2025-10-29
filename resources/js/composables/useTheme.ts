@@ -1,6 +1,6 @@
 import { ref, onMounted } from 'vue';
 
-export type Theme = 'default' | 'amber-minimal' | 'solar-dusk' | 'supabase' | 'twitter' | 'vintage-paper';
+export type Theme = 'default' | 'amber-minimal' | 'modern-minimal' | 'nature' | 'nothern-lights' | 'ocean-breeze' | 'solar-dusk' | 'supabase' | 'twitter' | 'vintage-paper';
 
 const THEME_STORAGE_KEY = 'app-theme';
 const DEFAULT_THEME: Theme = 'default';
@@ -22,6 +22,18 @@ export function useTheme() {
                     break;
                 case 'amber-minimal':
                     themeModule = await import('../../css/theme/amber-minimal.css?url');
+                    break;
+                case 'modern-minimal':
+                    themeModule = await import('../../css/theme/modern-minimal.css?url');
+                    break;
+                case 'nature':
+                    themeModule = await import('../../css/theme/nature.css?url');
+                    break;
+                case 'nothern-lights':
+                    themeModule = await import('../../css/theme/nothern-lights.css?url');
+                    break;
+                case 'ocean-breeze':
+                    themeModule = await import('../../css/theme/ocean-breeze.css?url');
                     break;
                 case 'solar-dusk':
                     themeModule = await import('../../css/theme/solar-dusk.css?url');
