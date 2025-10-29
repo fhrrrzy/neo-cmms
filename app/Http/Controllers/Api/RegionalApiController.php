@@ -37,9 +37,7 @@ class RegionalApiController extends Controller
                 ];
             });
 
-        return response()->json([
-            'data' => $regions->values(),
-        ]);
+        return response()->json($regions->values());
     }
 
     /**

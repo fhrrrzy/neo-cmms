@@ -67,16 +67,23 @@ export function initializeTheme() {
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
 }
 
-const appearance = ref<Appearance>('system');
+// Initialize appearance ref with stored value immediately
+const getInitialAppearance = (): Appearance => {
+    if (typeof window === 'undefined') {
+        return 'system';
+    }
+    return (localStorage.getItem('appearance') as Appearance | null) || 'system';
+};
+
+const appearance = ref<Appearance>(getInitialAppearance());
+let isThemeInitialized = false;
 
 export function useAppearance() {
+    // Apply theme on first mount only
     onMounted(() => {
-        const savedAppearance = localStorage.getItem(
-            'appearance',
-        ) as Appearance | null;
-
-        if (savedAppearance) {
-            appearance.value = savedAppearance;
+        if (!isThemeInitialized) {
+            updateTheme(appearance.value);
+            isThemeInitialized = true;
         }
     });
 
