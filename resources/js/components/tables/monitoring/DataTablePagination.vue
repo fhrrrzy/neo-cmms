@@ -123,11 +123,11 @@ const pageNumbers = computed(() => {
                 <!-- Page Numbers - Desktop -->
                 <div class="hidden items-center space-x-1 md:flex">
                     <Button v-for="page in pageNumbers" :key="page" variant="outline" class="h-8 w-8 p-0" :class="{
-                        'border-primary bg-primary text-primary-foreground hover:bg-primary/90 dark:text-accent dark:bg-foreground dark:hover:bg-foreground/90':
+                        'border-primary bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90':
                             page === pagination.current_page,
                     }" @click="handlePageChange(page)">
                         {{ page }}
-                       </Button>
+                    </Button>
                 </div>
 
                 <!-- Mobile: Show current page -->
