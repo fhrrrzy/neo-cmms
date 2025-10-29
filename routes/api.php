@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\StatsApiController;
 use App\Http\Controllers\Api\EquipmentSearchApiController;
+use App\Http\Controllers\Api\SyncWebhookController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -43,3 +44,14 @@ Route::get('/equipment-work-orders', [EquipmentWorkOrderApiController::class, 'i
 Route::get('/equipment-work-orders/{orderNumber}', [EquipmentWorkOrderApiController::class, 'show']);
 
 Route::get('/stats/overview', [StatsApiController::class, 'overview']);
+
+// Webhook routes for API sync
+Route::prefix('webhook/sync')->group(function () {
+    Route::get('/equipment', [SyncWebhookController::class, 'syncEquipment']);
+    Route::get('/running-time', [SyncWebhookController::class, 'syncRunningTime']);
+    Route::get('/work-orders', [SyncWebhookController::class, 'syncWorkOrders']);
+    Route::get('/equipment-work-orders', [SyncWebhookController::class, 'syncEquipmentWorkOrders']);
+    Route::get('/equipment-materials', [SyncWebhookController::class, 'syncEquipmentMaterials']);
+    Route::get('/daily-plant-data', [SyncWebhookController::class, 'syncDailyPlantData']);
+    Route::get('/all', [SyncWebhookController::class, 'syncAll']);
+});

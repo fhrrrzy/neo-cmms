@@ -72,9 +72,7 @@ const pageNumbers = computed(() => {
 </script>
 
 <template>
-    <div
-        class="flex flex-col gap-4 px-2 sm:flex-row sm:items-center sm:justify-between"
-    >
+    <div class="flex flex-col gap-4 px-2 sm:flex-row sm:items-center sm:justify-between">
         <!-- Results info -->
         <div class="text-sm text-muted-foreground">
             <span class="hidden sm:inline">
@@ -88,27 +86,18 @@ const pageNumbers = computed(() => {
         </div>
 
         <!-- Pagination controls -->
-        <div
-            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:space-x-6 lg:space-x-8"
-        >
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:space-x-6 lg:space-x-8">
             <!-- Rows per page selector -->
             <div class="flex items-center space-x-2">
                 <p class="hidden text-sm font-medium sm:block">Rows per page</p>
                 <p class="text-sm font-medium sm:hidden">Per page</p>
-                <Select
-                    v-model:open="selectOpen"
-                    :model-value="`${pagination.per_page}`"
-                    @update:model-value="handlePageSizeChange"
-                >
+                <Select v-model:open="selectOpen" :model-value="`${pagination.per_page}`"
+                    @update:model-value="handlePageSizeChange">
                     <SelectTrigger class="h-8 w-[80px] sm:w-[100px]">
                         <SelectValue :placeholder="`${pagination.per_page}`" />
                     </SelectTrigger>
                     <SelectContent side="top">
-                        <SelectItem
-                            v-for="pageSize in [15, 25, 50, 100]"
-                            :key="pageSize"
-                            :value="`${pageSize}`"
-                        >
+                        <SelectItem v-for="pageSize in [15, 25, 50, 100]" :key="pageSize" :value="`${pageSize}`">
                             {{ pageSize }}
                         </SelectItem>
                     </SelectContent>
@@ -118,69 +107,44 @@ const pageNumbers = computed(() => {
             <!-- Navigation buttons -->
             <div class="flex items-center justify-center space-x-2">
                 <!-- First page button - hidden on mobile -->
-                <Button
-                    variant="outline"
-                    class="hidden h-8 w-8 p-0 lg:flex"
-                    :disabled="pagination.current_page <= 1"
-                    @click="handlePageChange(1)"
-                >
+                <Button variant="outline" class="hidden h-8 w-8 p-0 lg:flex" :disabled="pagination.current_page <= 1"
+                    @click="handlePageChange(1)">
                     <span class="sr-only">Go to first page</span>
                     <ChevronsLeft class="h-4 w-4" />
                 </Button>
 
                 <!-- Previous page button -->
-                <Button
-                    variant="outline"
-                    class="h-8 w-8 p-0"
-                    :disabled="pagination.current_page <= 1"
-                    @click="handlePageChange(pagination.current_page - 1)"
-                >
+                <Button variant="outline" class="h-8 w-8 p-0" :disabled="pagination.current_page <= 1"
+                    @click="handlePageChange(pagination.current_page - 1)">
                     <span class="sr-only">Go to previous page</span>
                     <ChevronLeft class="h-4 w-4" />
                 </Button>
 
                 <!-- Page Numbers - Desktop -->
                 <div class="hidden items-center space-x-1 md:flex">
-                    <Button
-                        v-for="page in pageNumbers"
-                        :key="page"
-                        variant="outline"
-                        class="h-8 w-8 p-0"
-                        :class="{
-                            'border-primary bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-slate-200':
-                                page === pagination.current_page,
-                        }"
-                        @click="handlePageChange(page)"
-                    >
+                    <Button v-for="page in pageNumbers" :key="page" variant="outline" class="h-8 w-8 p-0" :class="{
+                        'border-primary bg-primary text-primary-foreground hover:bg-primary/90 dark:text-accent dark:bg-foreground dark:hover:bg-foreground/90':
+                            page === pagination.current_page,
+                    }" @click="handlePageChange(page)">
                         {{ page }}
-                    </Button>
+                       </Button>
                 </div>
 
                 <!-- Mobile: Show current page -->
-                <div
-                    class="flex items-center justify-center px-3 text-sm font-medium md:hidden"
-                >
+                <div class="flex items-center justify-center px-3 text-sm font-medium md:hidden">
                     {{ pagination.current_page }} / {{ pagination.last_page }}
                 </div>
 
                 <!-- Next page button -->
-                <Button
-                    variant="outline"
-                    class="h-8 w-8 p-0"
-                    :disabled="!pagination.has_more_pages"
-                    @click="handlePageChange(pagination.current_page + 1)"
-                >
+                <Button variant="outline" class="h-8 w-8 p-0" :disabled="!pagination.has_more_pages"
+                    @click="handlePageChange(pagination.current_page + 1)">
                     <span class="sr-only">Go to next page</span>
                     <ChevronRight class="h-4 w-4" />
                 </Button>
 
                 <!-- Last page button - hidden on mobile -->
-                <Button
-                    variant="outline"
-                    class="hidden h-8 w-8 p-0 lg:flex"
-                    :disabled="!pagination.has_more_pages"
-                    @click="handlePageChange(pagination.last_page)"
-                >
+                <Button variant="outline" class="hidden h-8 w-8 p-0 lg:flex" :disabled="!pagination.has_more_pages"
+                    @click="handlePageChange(pagination.last_page)">
                     <span class="sr-only">Go to last page</span>
                     <ChevronsRight class="h-4 w-4" />
                 </Button>
