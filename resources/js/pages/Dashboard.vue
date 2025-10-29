@@ -20,6 +20,7 @@ import {
     Wrench,
 } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
+import { router } from '@inertiajs/vue3';
 
 const breadcrumbs = [
     {
@@ -91,6 +92,14 @@ const fetchStats = async () => {
 onMounted(() => {
     fetchStats();
 });
+
+const navigateToRegions = () => {
+    router.visit('/regions');
+};
+
+const navigateToPabrik = () => {
+    router.visit('/pabrik');
+};
 </script>
 
 <template>
@@ -105,7 +114,10 @@ onMounted(() => {
                 class="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-4"
             >
                 <!-- Regions -->
-                <Card>
+                <Card
+                    class="cursor-pointer transition-colors hover:bg-accent"
+                    @click="navigateToRegions"
+                >
                     <CardHeader
                         class="flex flex-row items-center justify-between space-y-0 pb-2"
                     >
@@ -131,7 +143,10 @@ onMounted(() => {
                 </Card>
 
                 <!-- Plants/Factories -->
-                <Card>
+                <Card
+                    class="cursor-pointer transition-colors hover:bg-accent"
+                    @click="navigateToPabrik"
+                >
                     <CardHeader
                         class="flex flex-row items-center justify-between space-y-0 pb-2"
                     >
