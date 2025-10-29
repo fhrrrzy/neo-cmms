@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\StatsApiController;
-
+use App\Http\Controllers\Api\EquipmentSearchApiController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +28,9 @@ Route::prefix('monitoring')->group(function () {
 Route::get('/regions', [MonitoringController::class, 'regions']);
 Route::get('/plants', [MonitoringController::class, 'plants']);
 Route::get('/stations', [MonitoringController::class, 'stations']);
+
+// Equipment search API (with caching)
+Route::get('/equipment/search', [EquipmentSearchApiController::class, 'search']);
 
 // Equipment detail CSR API
 Route::get('/equipment/{equipmentNumber}', [EquipmentApiController::class, 'show']);
