@@ -196,7 +196,7 @@ defineExpose({
 </script>
 
 <template>
-    <CommandDialog :open="open" @update:open="open = $event">
+    <CommandDialog :open="open" @update:open="open = $event" :force-z-index="9999">
         <CommandInput placeholder="Type to search..." v-model="searchQuery" @update:model-value="handleSearchInput" />
         <CommandList>
             <!-- Global Empty State - Show when nothing found anywhere -->
@@ -277,14 +277,3 @@ defineExpose({
         </CommandList>
     </CommandDialog>
 </template>
-
-<style>
-/* Ensure global search dialog is always on top of sheets */
-[data-slot='dialog-overlay'] {
-    z-index: 1000 !important;
-}
-
-[data-slot='dialog-content'] {
-    z-index: 1005 !important;
-}
-</style>
