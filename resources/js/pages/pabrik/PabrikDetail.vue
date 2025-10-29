@@ -1,15 +1,20 @@
 <script setup>
+import DataTable from '@/components/tables/monitoring/DataTable.vue';
+import DataTableViewOptions from '@/components/tables/monitoring/DataTableViewOptions.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Empty,
-    EmptyDescription,
-    EmptyHeader,
-    EmptyMedia,
-    EmptyTitle,
-} from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RangeCalendar } from '@/components/ui/range-calendar';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -17,14 +22,20 @@ import {
     Activity,
     ArrowLeft,
     Building2,
-    ChevronLeft,
-    ChevronRight,
     ClipboardCheck,
     FileText,
     Gauge,
     Wrench,
+    ChevronsUpDown,
+    MapPin,
+    Search,
+    Filter,
+    X,
+    Calendar as CalendarIcon,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch, nextTick } from 'vue';
+import { parseDate, getLocalTimeZone } from '@internationalized/date';
+import { useDateRangeStore } from '@/stores/useDateRangeStore';
 
 const props = defineProps({
     id: {
@@ -38,18 +49,56 @@ const loading = ref(false);
 const notFound = ref(false);
 const plant = ref(null);
 const stats = ref(null);
-const equipment = ref({
-    data: [],
+const error = ref(null);
+
+// Equipment data state for DataTable
+const equipment = ref([]);
+const dataTableRef = ref();
+
+// Pagination state
+const pagination = ref({
     total: 0,
     per_page: 25,
     current_page: 1,
     last_page: 1,
+    from: 0,
+    to: 0,
+    has_more_pages: false,
 });
-const error = ref(null);
 
-// Pagination state
-const currentPage = ref(1);
-const perPage = ref(25);
+// Sorting state
+const sorting = ref({
+    sort_by: 'equipment_number',
+    sort_direction: 'asc',
+});
+
+// Filter state
+const dateRangeStore = useDateRangeStore();
+const isFilterVisible = ref(true);
+const stations = ref([]);
+const equipmentTypes = ref([]);
+const stationOpen = ref(false);
+const typeOpen = ref(false);
+const stationSearch = ref('');
+const typeSearch = ref('');
+const datePopoverOpen = ref(false);
+
+const filters = ref({
+    date_range: {
+        start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0],
+        end: new Date().toISOString().split('T')[0],
+    },
+    station_codes: [],
+    equipment_types: [],
+    search: '',
+});
+
+const rangeValue = ref({
+    start: parseDate(filters.value.date_range.start),
+    end: parseDate(filters.value.date_range.end),
+});
 
 const breadcrumbs = computed(() => [
     {
@@ -66,21 +115,14 @@ const breadcrumbs = computed(() => [
     },
 ]);
 
-const fetchPlantDetail = async (page = 1) => {
+const fetchPlantDetail = async () => {
     loading.value = true;
     error.value = null;
     notFound.value = false;
     try {
-        const { data } = await axios.get(`/api/pabrik/${props.id}`, {
-            params: {
-                per_page: perPage.value,
-                page: page,
-            },
-        });
+        const { data } = await axios.get(`/api/pabrik/${props.id}`);
         plant.value = data.plant;
         stats.value = data.stats;
-        equipment.value = data.equipment;
-        currentPage.value = data.equipment.current_page;
     } catch (e) {
         if (e.response?.status === 404) {
             notFound.value = true;
@@ -93,12 +135,69 @@ const fetchPlantDetail = async (page = 1) => {
     }
 };
 
-const navigateToEquipment = (equipmentUuid) => {
-    router.visit(`/equipment/${equipmentUuid}`);
-};
+const fetchEquipment = async (page = 1, pageSize = 25) => {
+    loading.value = true;
+    error.value = null;
+    try {
+        const params = new URLSearchParams();
+        params.append('page', page);
+        params.append('per_page', pageSize);
+        params.append('plant_id', props.id);
 
-const goBack = () => {
-    router.visit('/pabrik');
+        // Add date range
+        if (filters.value.date_range?.start) {
+            params.append('date_start', filters.value.date_range.start);
+        }
+        if (filters.value.date_range?.end) {
+            params.append('date_end', filters.value.date_range.end);
+        }
+
+        // Add station filter
+        if (filters.value.station_codes?.length > 0) {
+            filters.value.station_codes.forEach(code => {
+                params.append('station_codes[]', code);
+            });
+        }
+
+        // Add equipment type filter
+        if (filters.value.equipment_types?.length > 0) {
+            filters.value.equipment_types.forEach(type => {
+                params.append('equipment_types[]', type);
+            });
+        }
+
+        // Add search
+        if (filters.value.search) {
+            params.append('search', filters.value.search);
+        }
+
+        // Add sorting
+        if (sorting.value.sort_by) {
+            params.append('sort_by', sorting.value.sort_by);
+        }
+        if (sorting.value.sort_direction) {
+            params.append('sort_direction', sorting.value.sort_direction);
+        }
+
+        const response = await axios.get(`/api/monitoring/equipment?${params}`);
+
+        equipment.value = response.data.data;
+        pagination.value = {
+            total: response.data.total,
+            per_page: response.data.per_page,
+            current_page: response.data.current_page,
+            last_page: response.data.last_page,
+            from: response.data.from,
+            to: response.data.to,
+            has_more_pages: response.data.has_more_pages,
+        };
+    } catch (err) {
+        error.value =
+            err.response?.data?.message || 'Failed to load equipment data';
+        console.error('Error fetching equipment:', err);
+    } finally {
+        loading.value = false;
+    }
 };
 
 const navigateToRegional = () => {
@@ -107,27 +206,184 @@ const navigateToRegional = () => {
     }
 };
 
-const goToPage = (page) => {
-    if (page >= 1 && page <= equipment.value.last_page) {
-        fetchPlantDetail(page);
+const handleFilterChange = (newFilters) => {
+    filters.value = { ...filters.value, ...newFilters };
+    fetchEquipment(1, pagination.value.per_page);
+};
+
+const handlePageChange = (page) => {
+    fetchEquipment(page, pagination.value.per_page);
+};
+
+const handlePageSizeChange = (pageSize) => {
+    fetchEquipment(1, pageSize);
+};
+
+const handleSortChange = (sortBy, sortDirection) => {
+    sorting.value = {
+        sort_by: sortBy,
+        sort_direction: sortDirection,
+    };
+    fetchEquipment(pagination.value.current_page, pagination.value.per_page);
+};
+
+const toggleFilterVisibility = () => {
+    isFilterVisible.value = !isFilterVisible.value;
+};
+
+const applyFilters = () => {
+    fetchEquipment(1, pagination.value.per_page);
+};
+
+// Station and Equipment Type data
+const stationTypes = [
+    { code: 'STAS01', description: 'Jembatan Timbang' },
+    { code: 'STAS02', description: 'Loading Ramp' },
+    { code: 'STAS03', description: 'Sterilizer' },
+    { code: 'STAS04', description: 'Rail Track' },
+    { code: 'STAS05', description: 'Thresser & Hoisting' },
+    { code: 'STAS06', description: 'Pressan' },
+    { code: 'STAS07', description: 'Klarifikasi' },
+    { code: 'STAS08', description: 'Pengolahan Inti Sawi' },
+    { code: 'STAS09', description: 'Boiler' },
+    { code: 'STAS10', description: 'Pengolahan Air' },
+    { code: 'STAS11', description: 'Kamar Mesin' },
+    { code: 'STAS12', description: 'Tangki Timbun dan Ke' },
+    { code: 'STAS13', description: 'Limbah' },
+    { code: 'STAS14', description: 'Empty Bunch Hopper' },
+    { code: 'STAS19', description: 'Laboratorium' },
+];
+
+const equipmentTypeOptions = [
+    'Mesin Produksi',
+    'Kendaraan',
+    'Alat dan Utilitas',
+    'IT & Telekomunikasi',
+    'Aset PMN',
+];
+
+const toggleStation = (stationCode) => {
+    const index = filters.value.station_codes.indexOf(stationCode);
+    if (index > -1) {
+        filters.value.station_codes.splice(index, 1);
+    } else {
+        filters.value.station_codes.push(stationCode);
     }
 };
 
-const nextPage = () => {
-    if (currentPage.value < equipment.value.last_page) {
-        goToPage(currentPage.value + 1);
+const toggleEquipmentType = (equipmentType) => {
+    const index = filters.value.equipment_types.indexOf(equipmentType);
+    if (index > -1) {
+        filters.value.equipment_types.splice(index, 1);
+    } else {
+        filters.value.equipment_types.push(equipmentType);
     }
 };
 
-const prevPage = () => {
-    if (currentPage.value > 1) {
-        goToPage(currentPage.value - 1);
-    }
+const isStationSelected = (stationCode) => {
+    return filters.value.station_codes.includes(stationCode);
 };
 
-onMounted(() => {
-    fetchPlantDetail();
+const isEquipmentTypeSelected = (equipmentType) => {
+    return filters.value.equipment_types.includes(equipmentType);
+};
+
+const stationLabel = computed(() => {
+    const count = filters.value.station_codes.length;
+    if (count === 0) return 'Stasiun';
+    if (count === 1) {
+        const station = stations.value.find(s => s.code === filters.value.station_codes[0]);
+        return station?.description || 'Stasiun';
+    }
+    return `${count} Stasiun dipilih`;
 });
+
+const equipmentTypeLabel = computed(() => {
+    const count = filters.value.equipment_types.length;
+    if (count === 0) return 'Tipe';
+    if (count === 1) return filters.value.equipment_types[0];
+    return `${count} Tipe dipilih`;
+});
+
+const filteredStations = computed(() => {
+    const search = stationSearch.value.toLowerCase();
+    return search
+        ? stations.value.filter(s => s.description.toLowerCase().includes(search))
+        : stations.value;
+});
+
+const filteredEquipmentTypes = computed(() => {
+    const search = typeSearch.value.toLowerCase();
+    return search
+        ? equipmentTypes.value.filter(t => t.toLowerCase().includes(search))
+        : equipmentTypes.value;
+});
+
+const selectAllStations = () => {
+    filters.value.station_codes = stations.value.map(s => s.code);
+};
+
+const deselectAllStations = () => {
+    filters.value.station_codes = [];
+};
+
+const selectAllEquipmentTypes = () => {
+    filters.value.equipment_types = [...equipmentTypes.value];
+};
+
+const deselectAllEquipmentTypes = () => {
+    filters.value.equipment_types = [];
+};
+
+const rangeDisplay = computed(() => {
+    if (!rangeValue.value.start && !rangeValue.value.end) return 'Pick a date';
+    if (rangeValue.value.start && rangeValue.value.end) {
+        return `${rangeValue.value.start.toString()} - ${rangeValue.value.end.toString()}`;
+    }
+    if (rangeValue.value.start) return rangeValue.value.start.toString();
+    return 'Pick a date';
+});
+
+watch(
+    rangeValue,
+    (val) => {
+        const startStr = val?.start?.toString?.();
+        const endStr = val?.end?.toString?.();
+        if (startStr && endStr) {
+            filters.value.date_range = { start: startStr, end: endStr };
+            dateRangeStore.setRange({ start: startStr, end: endStr });
+            datePopoverOpen.value = false;
+        }
+    },
+    { deep: true },
+);
+
+onMounted(async () => {
+    stations.value = stationTypes;
+    equipmentTypes.value = equipmentTypeOptions;
+
+    // Select all by default
+    selectAllStations();
+    selectAllEquipmentTypes();
+
+    // Load date range from store
+    if (dateRangeStore.start && dateRangeStore.end) {
+        filters.value.date_range = {
+            start: dateRangeStore.start,
+            end: dateRangeStore.end,
+        };
+        rangeValue.value = {
+            start: parseDate(dateRangeStore.start),
+            end: parseDate(dateRangeStore.end),
+        };
+    }
+
+    await fetchPlantDetail();
+    await fetchEquipment();
+});
+const goBack = () => {
+    router.visit('/pabrik');
+};
 </script>
 
 <template>
@@ -191,71 +447,6 @@ onMounted(() => {
                                 {{ plant.regional_name }}
                             </button>
                         </p>
-
-                        <!-- Plant Details Grid -->
-                        <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                            <div class="space-y-1">
-                                <p class="text-xs font-medium text-muted-foreground">
-                                    Installed Capacity
-                                </p>
-                                <p class="text-sm font-semibold">
-                                    {{
-                                        plant.kaps_terpasang
-                                            ? plant.kaps_terpasang.toLocaleString(
-                                                'id-ID',
-                                            )
-                                            : 'N/A'
-                                    }}
-                                </p>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-xs font-medium text-muted-foreground">
-                                    Unit Count
-                                </p>
-                                <p class="text-sm font-semibold">
-                                    {{ plant.unit || 'N/A' }}
-                                </p>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-xs font-medium text-muted-foreground">
-                                    Status
-                                </p>
-                                <Badge :variant="plant.is_active
-                                        ? 'default'
-                                        : 'secondary'
-                                    ">
-                                    {{
-                                        plant.is_active ? 'Active' : 'Inactive'
-                                    }}
-                                </Badge>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-xs font-medium text-muted-foreground">
-                                    Bunch Press
-                                </p>
-                                <Badge :variant="plant.instalasi_bunch_press
-                                        ? 'default'
-                                        : 'secondary'
-                                    ">
-                                    {{
-                                        plant.instalasi_bunch_press
-                                            ? 'Installed'
-                                            : 'Not Installed'
-                                    }}
-                                </Badge>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-xs font-medium text-muted-foreground">
-                                    Cofiring
-                                </p>
-                                <Badge :variant="plant.cofiring
-                                        ? 'default'
-                                        : 'secondary'
-                                    ">
-                                    {{ plant.cofiring ? 'Yes' : 'No' }}
-                                </Badge>
-                            </div>
-                        </div>
                     </div>
                     <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
                         <Button variant="outline" class="w-full md:w-auto" @click="goBack">
@@ -385,149 +576,187 @@ onMounted(() => {
                 </div>
 
                 <!-- Equipment List Section -->
-                <Card>
-                    <CardHeader>
-                        <CardTitle class="flex items-center gap-2">
-                            <Wrench class="h-5 w-5" />
-                            Equipment List
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <!-- Empty State -->
-                        <div v-if="equipment.data.length === 0" class="py-8">
-                            <Empty>
-                                <EmptyHeader>
-                                    <EmptyMedia variant="icon">
-                                        <Wrench />
-                                    </EmptyMedia>
-                                    <EmptyTitle>No Equipment</EmptyTitle>
-                                    <EmptyDescription>No equipment found in this
-                                        plant</EmptyDescription>
-                                </EmptyHeader>
-                            </Empty>
+                <div class="space-y-4">
+                    <!-- Filter Toggle and Controls -->
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <Button variant="outline" size="default" @click="toggleFilterVisibility">
+                                <Filter class="h-4 w-4" />
+                                <span class="ml-2">Filter</span>
+                            </Button>
                         </div>
 
-                        <!-- Mobile: Card Layout -->
-                        <div v-else class="space-y-4 md:hidden">
-                            <Card v-for="item in equipment.data" :key="item.uuid"
-                                class="cursor-pointer transition-colors hover:bg-accent"
-                                @click="navigateToEquipment(item.uuid)">
-                                <CardContent class="p-4">
-                                    <div class="space-y-2">
-                                        <div>
-                                            <p class="font-semibold">
-                                                {{ item.equipment_description }}
-                                            </p>
-                                            <p class="text-sm text-muted-foreground">
-                                                #{{ item.equipment_number }}
-                                            </p>
-                                        </div>
-                                        <div class="grid grid-cols-2 gap-2 text-sm">
-                                            <div>
-                                                <p class="text-xs text-muted-foreground">
-                                                    Station
-                                                </p>
-                                                <p class="font-medium">
-                                                    {{ item.station_description }}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs text-muted-foreground">
-                                                    Type
-                                                </p>
-                                                <p class="font-medium">
-                                                    {{ item.equipment_type }}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="border-t pt-2 text-sm text-muted-foreground">
-                                            Running Hours:
-                                            <span class="font-medium">{{
-                                                item.latest_running_hours
-                                                }}</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
+                        <!-- View Options -->
+                        <DataTableViewOptions :table="dataTableRef?.table" />
+                    </div>
 
-                        <!-- Desktop: Table Layout -->
-                        <div v-if="equipment.data.length > 0" class="hidden overflow-x-auto md:block">
-                            <table class="w-full">
-                                <thead>
-                                    <tr class="border-b bg-muted text-muted-foreground">
-                                        <th class="px-4 py-3 text-left text-sm font-medium">
-                                            Equipment Number
-                                        </th>
-                                        <th class="px-4 py-3 text-left text-sm font-medium">
-                                            Description
-                                        </th>
-                                        <th class="px-4 py-3 text-left text-sm font-medium">
-                                            Station
-                                        </th>
-                                        <th class="px-4 py-3 text-left text-sm font-medium">
-                                            Type
-                                        </th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">
-                                            Running Hours
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="item in equipment.data" :key="item.uuid"
-                                        class="cursor-pointer border-b transition-colors hover:bg-muted/50"
-                                        @click="navigateToEquipment(item.uuid)">
-                                        <td class="px-4 py-3 font-medium">
-                                            {{ item.equipment_number }}
-                                        </td>
-                                        <td class="px-4 py-3 text-muted-foreground">
-                                            {{ item.equipment_description }}
-                                        </td>
-                                        <td class="px-4 py-3 text-muted-foreground">
-                                            {{ item.station_description }}
-                                        </td>
-                                        <td class="px-4 py-3 text-muted-foreground">
-                                            {{ item.equipment_type }}
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
-                                            {{ item.latest_running_hours }}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Pagination -->
-                        <div v-if="equipment.data.length > 0"
-                            class="mt-4 flex items-center justify-between border-t pt-4">
-                            <div class="text-sm text-muted-foreground">
-                                Showing {{ (currentPage - 1) * perPage + 1 }} to
-                                {{
-                                    Math.min(
-                                        currentPage * perPage,
-                                        equipment.total,
-                                    )
-                                }}
-                                of {{ equipment.total }} equipment
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <Button variant="outline" size="sm" :disabled="currentPage === 1" @click="prevPage">
-                                    <ChevronLeft class="h-4 w-4" />
-                                    Previous
-                                </Button>
-                                <div class="text-sm">
-                                    Page {{ currentPage }} of
-                                    {{ equipment.last_page }}
+                    <!-- Toggleable Filter Container -->
+                    <transition enter-active-class="transition duration-200 ease-out"
+                        enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0"
+                        leave-active-class="transition duration-150 ease-in"
+                        leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-2">
+                        <div v-show="isFilterVisible" class="space-y-4">
+                            <!-- Filter Row -->
+                            <div class="flex flex-wrap items-end gap-4">
+                                <!-- Date Range Picker -->
+                                <div class="space-y-2">
+                                    <Label>Date Range</Label>
+                                    <Popover v-model:open="datePopoverOpen">
+                                        <PopoverTrigger as-child>
+                                            <Button variant="outline" class="w-full justify-between sm:w-[280px]">
+                                                <div class="flex items-center">
+                                                    <CalendarIcon class="mr-2 h-4 w-4 shrink-0" />
+                                                    <div class="mr-2 h-4 w-px bg-border"></div>
+                                                    <span class="text-sm">{{ rangeDisplay }}</span>
+                                                </div>
+                                                <ChevronsUpDown class="ml-2 h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent class="w-auto p-0" align="start">
+                                            <RangeCalendar v-model="rangeValue" :columns="2"
+                                                class="rounded-md border" />
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
-                                <Button variant="outline" size="sm" :disabled="currentPage === equipment.last_page
-                                    " @click="nextPage">
-                                    Next
-                                    <ChevronRight class="h-4 w-4" />
-                                </Button>
+
+                                <!-- Station Filter -->
+                                <div class="space-y-2">
+                                    <Label>Station</Label>
+                                    <Popover v-model:open="stationOpen">
+                                        <PopoverTrigger as-child>
+                                            <Button variant="outline" class="w-full justify-between sm:w-[200px]">
+                                                <div class="flex items-center">
+                                                    <MapPin class="mr-2 h-4 w-4 shrink-0" />
+                                                    <div class="mr-2 h-4 w-px bg-border"></div>
+                                                    {{ stationLabel }}
+                                                </div>
+                                                <ChevronsUpDown class="ml-2 h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent class="w-[280px] p-0" align="start">
+                                            <div class="space-y-2 p-2">
+                                                <div class="relative">
+                                                    <Search
+                                                        class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                    <Input v-model="stationSearch" placeholder="Search stations..."
+                                                        class="pl-8" />
+                                                </div>
+                                                <div class="flex items-center justify-between border-b pb-2">
+                                                    <span class="text-xs font-medium">Stations</span>
+                                                    <div class="flex gap-1">
+                                                        <Button variant="ghost" size="sm" class="h-6 px-2 text-xs"
+                                                            @click="selectAllStations">
+                                                            All
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" class="h-6 px-2 text-xs"
+                                                            @click="deselectAllStations">
+                                                            None
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <ScrollArea class="h-[200px]">
+                                                    <div class="space-y-1">
+                                                        <div v-for="station in filteredStations" :key="station.code"
+                                                            class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
+                                                            <Checkbox :id="`station-${station.code}`"
+                                                                :checked="isStationSelected(station.code)"
+                                                                @update:checked="toggleStation(station.code)" />
+                                                            <label :for="`station-${station.code}`"
+                                                                class="flex-1 cursor-pointer text-sm">
+                                                                {{ station.description }}
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </ScrollArea>
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+
+                                <!-- Equipment Type Filter -->
+                                <div class="space-y-2">
+                                    <Label>Equipment Type</Label>
+                                    <Popover v-model:open="typeOpen">
+                                        <PopoverTrigger as-child>
+                                            <Button variant="outline" class="w-full justify-between sm:w-[200px]">
+                                                <div class="flex items-center">
+                                                    <Wrench class="mr-2 h-4 w-4 shrink-0" />
+                                                    <div class="mr-2 h-4 w-px bg-border"></div>
+                                                    {{ equipmentTypeLabel }}
+                                                </div>
+                                                <ChevronsUpDown class="ml-2 h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent class="w-[280px] p-0" align="start">
+                                            <div class="space-y-2 p-2">
+                                                <div class="relative">
+                                                    <Search
+                                                        class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                    <Input v-model="typeSearch" placeholder="Search types..."
+                                                        class="pl-8" />
+                                                </div>
+                                                <div class="flex items-center justify-between border-b pb-2">
+                                                    <span class="text-xs font-medium">Types</span>
+                                                    <div class="flex gap-1">
+                                                        <Button variant="ghost" size="sm" class="h-6 px-2 text-xs"
+                                                            @click="selectAllEquipmentTypes">
+                                                            All
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" class="h-6 px-2 text-xs"
+                                                            @click="deselectAllEquipmentTypes">
+                                                            None
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <ScrollArea class="h-[200px]">
+                                                    <div class="space-y-1">
+                                                        <div v-for="type in filteredEquipmentTypes" :key="type"
+                                                            class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
+                                                            <Checkbox :id="`type-${type}`"
+                                                                :checked="isEquipmentTypeSelected(type)"
+                                                                @update:checked="toggleEquipmentType(type)" />
+                                                            <label :for="`type-${type}`"
+                                                                class="flex-1 cursor-pointer text-sm">
+                                                                {{ type }}
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </ScrollArea>
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+
+                                <!-- Search Input -->
+                                <div class="flex-1 space-y-2">
+                                    <Label>Search</Label>
+                                    <div class="relative">
+                                        <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input v-model="filters.search" placeholder="Search equipment..."
+                                            class="pl-8" />
+                                        <Button v-if="filters.search" variant="ghost" size="sm"
+                                            class="absolute right-1 top-1 h-7 w-7 p-0" @click="filters.search = ''">
+                                            <X class="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <!-- Apply Button -->
+                                <div class="flex items-end">
+                                    <Button @click="applyFilters" class="w-full sm:w-auto">
+                                        Apply Filters
+                                    </Button>
+                                </div>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
+                    </transition>
+
+                    <!-- Equipment Data Table -->
+                    <DataTable ref="dataTableRef" :data="equipment" :loading="loading" :error="error"
+                        :pagination="pagination" :sorting="sorting" :open-sheet-on-row-click="true"
+                        @page-change="handlePageChange" @page-size-change="handlePageSizeChange"
+                        @sort-change="handleSortChange" />
+                </div>
             </template>
         </div>
     </AppLayout>
