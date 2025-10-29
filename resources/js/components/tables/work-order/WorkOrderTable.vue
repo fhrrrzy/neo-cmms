@@ -184,6 +184,13 @@ watch(
     },
 );
 
+watch(
+    () => orderType.value,
+    () => {
+        page.value = 1;
+    },
+);
+
 const handlePageChange = (newPage) => {
     page.value = newPage;
     fetchData();
@@ -266,16 +273,11 @@ const showTable = computed(
                 <Input v-model="search" type="text" placeholder="Cari order, deskripsi, cause, item..." class="h-9" />
             </div>
             <div>
-                <Select :model-value="orderType" @update:model-value="
-                    (v) => {
-                        orderType = v;
-                        page = 1; /* FE filtered */
-                    }
-                ">
-                    <SelectTrigger class="h-9">
+                <Select v-model="orderType">
+                    <SelectTrigger class="h-9 w-[280px]">
                         <SelectValue :placeholder="selectionTypeToModelLabel(orderType)" />
                     </SelectTrigger>
-                    <SelectContent side="top">
+                    <SelectContent>
                         <SelectItem value="ALL">Semua Jenis</SelectItem>
                         <SelectItem value="1">PM01 - Preventive Maintenance</SelectItem>
                         <SelectItem value="2">PM02 - Corrective Maintenance</SelectItem>
@@ -305,7 +307,7 @@ const showTable = computed(
                 Jenis:
                 <span class="font-medium">{{
                     selectionTypeToModelLabel(orderType)
-                    }}</span>
+                }}</span>
                 <button class="rounded-full p-1 hover:bg-background" @click="
                     () => {
                         orderType = 'ALL';
@@ -395,10 +397,10 @@ const showTable = computed(
                         </TableCell>
                         <TableCell class="font-mono text-sm">{{
                             renderOrNA(wo.order)
-                            }}</TableCell>
+                        }}</TableCell>
                         <TableCell>{{
                             orderTypeToLabel(wo.order_type)
-                            }}</TableCell>
+                        }}</TableCell>
                         <TableCell class="max-w-[320px] truncate" :title="wo.description">
                             {{ renderOrNA(wo.description) }}
                         </TableCell>
