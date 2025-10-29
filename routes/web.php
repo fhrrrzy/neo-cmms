@@ -42,6 +42,28 @@ Route::get('/equipment/{uuid}', function (string $uuid) {
     ]);
 })->name('equipment.detail');
 
+// Regional routes
+Route::get('/regions', function () {
+    return Inertia::render('regions/RegionalList');
+})->name('regions.index')->middleware('auth');
+
+Route::get('/regions/{id}', function (int $id) {
+    return Inertia::render('regions/RegionalDetail', [
+        'id' => $id,
+    ]);
+})->name('regions.show')->middleware('auth');
+
+// Pabrik (Plant) routes
+Route::get('/pabrik', function () {
+    return Inertia::render('pabrik/PabrikList');
+})->name('pabrik.index')->middleware('auth');
+
+Route::get('/pabrik/{id}', function (int $id) {
+    return Inertia::render('pabrik/PabrikDetail', [
+        'id' => $id,
+    ]);
+})->name('pabrik.show')->middleware('auth');
+
 
 include __DIR__ . '/auth.php';
 include __DIR__ . '/settings.php';
