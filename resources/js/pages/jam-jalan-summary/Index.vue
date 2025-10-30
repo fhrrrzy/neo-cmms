@@ -142,63 +142,25 @@ onMounted(() => {
 </script>
 
 <template>
+
     <Head title="Jam Jalan Summary" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-4 md:space-y-6">
-            <!-- Controls Row -->
-            <div class="flex items-center gap-3">
-                <!-- Filter Toggle Button -->
-                <Button
-                    variant="outline"
-                    size="icon"
-                    @click="toggleFilterVisibility"
-                    :class="{ 'bg-accent': isFilterVisible }"
-                >
-                    <Filter class="h-4 w-4" />
-                    <span class="sr-only">Toggle filters</span>
-                </Button>
-
-                <!-- Search Input -->
-                <div class="flex-1">
-                    <input
-                        type="text"
-                        class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
-                        :value="searchQuery"
-                        @input="handleSearchInput"
-                        placeholder="Search plant name..."
-                        aria-label="Search plant name"
-                    />
-                </div>
-            </div>
 
             <!-- Toggleable Filter Container -->
-            <transition
-                enter-active-class="transition duration-200 ease-out"
-                enter-from-class="opacity-0 -translate-y-2"
-                enter-to-class="opacity-100 translate-y-0"
-                leave-active-class="transition duration-150 ease-in"
-                leave-from-class="opacity-100 translate-y-0"
-                leave-to-class="opacity-0 -translate-y-2"
-            >
+            <transition enter-active-class="transition duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-2">
                 <div v-show="isFilterVisible" class="">
-                    <MonitoringFilter
-                        :filters="filters"
-                        :disable-store="true"
-                        @filter-change="handleFilterChange"
-                    />
+                    <MonitoringFilter :filters="filters" :disable-store="true" @filter-change="handleFilterChange" />
                 </div>
             </transition>
 
             <!-- Summary Table -->
-            <SummaryTable
-                ref="tableRef"
-                :data="filteredSummaryData"
-                :dates="dates"
-                :loading="loading"
-                :error="error"
-                :pagination="pagination"
-            />
+            <SummaryTable ref="tableRef" :data="filteredSummaryData" :dates="dates" :loading="loading" :error="error"
+                :pagination="pagination" />
         </div>
     </AppLayout>
 </template>

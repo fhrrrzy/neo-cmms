@@ -78,14 +78,14 @@ const createChart = () => {
             useGPUTranslations: true,
             enabled: dataLength > 250,
         },
-        title: {
-            text: 'Running Time Analysis',
-            style: { color: theme.text, fontSize: '16px', fontWeight: '600' },
-        },
-        subtitle: {
-            text: props.subtitle,
-            style: { color: theme.mutedText, fontSize: '14px' },
-        },
+        // title: {
+        //     text: 'Running Time Analysis',
+        //     style: { color: theme.text, fontSize: '16px', fontWeight: '600' },
+        // },
+        // subtitle: {
+        //     text: props.subtitle,
+        //     style: { color: theme.mutedText, fontSize: '14px' },
+        // },
         xAxis: {
             type: 'datetime',
             title: { text: 'Date', style: { color: theme.text } },

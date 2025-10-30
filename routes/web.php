@@ -64,6 +64,11 @@ Route::get('/pabrik/{id}', function (int $id) {
     ]);
 })->name('pabrik.show')->middleware('auth');
 
+// Sync Log route
+Route::get('/sync-log', [\App\Http\Controllers\SyncLogController::class, 'index'])
+    ->name('sync-log.index')
+    ->middleware('auth');
+
 
 include __DIR__ . '/auth.php';
 include __DIR__ . '/settings.php';

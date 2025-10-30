@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\EquipmentSearchApiController;
 use App\Http\Controllers\Api\SyncWebhookController;
 use App\Http\Controllers\Api\RegionalApiController;
 use App\Http\Controllers\Api\PabrikApiController;
+use App\Http\Controllers\Api\SyncLogController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -64,4 +65,11 @@ Route::prefix('webhook/sync')->middleware('webhook.key')->group(function () {
     Route::get('/equipment-materials', [SyncWebhookController::class, 'syncEquipmentMaterials']);
     Route::get('/daily-plant-data', [SyncWebhookController::class, 'syncDailyPlantData']);
     Route::get('/all', [SyncWebhookController::class, 'syncAll']);
+});
+
+// Sync Log API routes (protected by auth)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/sync-logs', [SyncLogController::class, 'index']);
+    Route::get('/sync-logs/stats', [SyncLogController::class, 'stats']);
+    Route::get('/sync-logs/by-type', [SyncLogController::class, 'byType']);
 });
