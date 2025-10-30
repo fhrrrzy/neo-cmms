@@ -10,6 +10,14 @@ import {
     EmptyTitle,
 } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -256,92 +264,98 @@ onMounted(() => {
                         </div>
 
                         <!-- Mobile: Card Layout -->
-                        <div v-else class="space-y-4 md:hidden">
+                        <div v-else class="space-y-3 md:hidden">
                             <Card v-for="plant in plants" :key="plant.id"
-                                class="cursor-pointer transition-colors hover:bg-accent"
+                                class="cursor-pointer transition-all hover:shadow-md"
                                 @click="navigateToPlant(plant.id)">
                                 <CardContent class="p-4">
-                                    <div class="flex items-start justify-between">
-                                        <div class="space-y-1">
-                                            <p class="font-semibold">
-                                                {{ plant.name }}
-                                            </p>
-                                            <p class="text-sm text-muted-foreground">
-                                                #{{ plant.plant_code }}
-                                            </p>
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1 space-y-2">
                                             <div class="flex items-center gap-2">
-                                                <Badge :variant="plant.is_active
-                                                    ? 'default'
-                                                    : 'secondary'
-                                                    ">
-                                                    {{
-                                                        plant.is_active
-                                                            ? 'Active'
-                                                            : 'Inactive'
-                                                    }}
+                                                <p class="font-semibold leading-none">
+                                                    {{ plant.name }}
+                                                </p>
+                                                <Badge :variant="plant.is_active ? 'default' : 'secondary'"
+                                                    class="text-xs">
+                                                    {{ plant.is_active ? 'Active' : 'Inactive' }}
                                                 </Badge>
                                             </div>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-2xl font-bold">
-                                                {{ plant.equipment_count }}
-                                            </p>
                                             <p class="text-xs text-muted-foreground">
-                                                Equipment
+                                                {{ plant.plant_code }}
                                             </p>
+                                            <div class="flex items-center gap-4 text-xs">
+                                                <div class="flex items-center gap-1">
+                                                    <Wrench class="h-3 w-3 text-muted-foreground" />
+                                                    <span class="font-medium">{{ plant.equipment_count }}</span>
+                                                    <span class="text-muted-foreground">Equipment</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </CardContent>
                             </Card>
                         </div>
 
-                        <!-- Desktop: Table Layout -->
-                        <div v-if="plants.length > 0" class="hidden overflow-x-auto md:block">
-                            <table class="w-full">
-                                <thead>
-                                    <tr class="border-b bg-muted text-muted-foreground">
-                                        <th class="px-4 py-3 text-left text-sm font-medium">
-                                            Plant Name
-                                        </th>
-                                        <th class="px-4 py-3 text-left text-sm font-medium">
-                                            Plant Code
-                                        </th>
-                                        <th class="px-4 py-3 text-left text-sm font-medium">
-                                            Status
-                                        </th>
-                                        <th class="px-4 py-3 text-right text-sm font-medium">
-                                            Equipment Count
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="plant in plants" :key="plant.id"
-                                        class="cursor-pointer border-b transition-colors hover:bg-muted/50"
-                                        @click="navigateToPlant(plant.id)">
-                                        <td class="px-4 py-3 font-medium">
-                                            {{ plant.name }}
-                                        </td>
-                                        <td class="px-4 py-3 text-muted-foreground">
-                                            {{ plant.plant_code }}
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <Badge :variant="plant.is_active
-                                                ? 'default'
-                                                : 'secondary'
-                                                ">
-                                                {{
-                                                    plant.is_active
-                                                        ? 'Active'
-                                                        : 'Inactive'
-                                                }}
-                                            </Badge>
-                                        </td>
-                                        <td class="px-4 py-3 text-right">
-                                            {{ plant.equipment_count }}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <!-- Desktop: Compact Table Layout using shadcn Table -->
+                        <div v-if="plants.length > 0" class="hidden md:block">
+                            <div class="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead class="w-[40%]">
+                                                Plant
+                                            </TableHead>
+                                            <TableHead class="text-center">
+                                                Status
+                                            </TableHead>
+                                            <TableHead class="text-right">
+                                                Equipment
+                                            </TableHead>
+                                            <TableHead class="text-right">
+                                                Capacity
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow v-for="plant in plants" :key="plant.id" class="cursor-pointer"
+                                            @click="navigateToPlant(plant.id)">
+                                            <TableCell>
+                                                <div class="flex flex-col gap-0.5">
+                                                    <span class="font-medium leading-none">
+                                                        {{ plant.name }}
+                                                    </span>
+                                                    <span class="text-xs text-muted-foreground">
+                                                        {{ plant.plant_code }}
+                                                    </span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell class="text-center">
+                                                <Badge :variant="plant.is_active ? 'default' : 'secondary'"
+                                                    class="text-xs">
+                                                    {{ plant.is_active ? 'Active' : 'Inactive' }}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell class="text-right">
+                                                <div class="flex flex-col items-end gap-0.5">
+                                                    <span class="font-semibold tabular-nums">
+                                                        {{ plant.equipment_count.toLocaleString('id-ID') }}
+                                                    </span>
+                                                    <span class="text-xs text-muted-foreground">units</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell class="text-right">
+                                                <div class="flex flex-col items-end gap-0.5">
+                                                    <span class="font-semibold tabular-nums">
+                                                        {{ plant.kaps_terpasang ?
+                                                            plant.kaps_terpasang.toLocaleString('id-ID') : '—' }}
+                                                    </span>
+                                                    <span class="text-xs text-muted-foreground">ton/hr</span>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

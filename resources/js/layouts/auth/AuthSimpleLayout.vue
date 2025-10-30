@@ -3,10 +3,80 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Plasma from '@/components/blocks/Backgrounds/Plasma/Plasma.vue';
 import { home } from '@/routes';
 import { Link } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
 
 defineProps({
     title: String,
     description: String,
+});
+
+// Get primary color from CSS variables
+const primaryColor = ref('#ff6b35');
+
+const getPrimaryColor = () => {
+    if (typeof window === 'undefined') return '#ff6b35';
+    
+    // Get the computed style of the root element
+    const rootStyles = getComputedStyle(document.documentElement);
+    
+    // Get the --primary CSS variable value
+    const primaryHsl = rootStyles.getPropertyValue('--primary').trim();
+    
+    if (primaryHsl) {
+        // Convert HSL to hex for the Plasma component
+        // HSL format is typically "hue saturation% lightness%"
+        const hslMatch = primaryHsl.match(/([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/);
+        
+        if (hslMatch) {
+            const h = parseFloat(hslMatch[1]);
+            const s = parseFloat(hslMatch[2]) / 100;
+            const l = parseFloat(hslMatch[3]) / 100;
+            
+            // Convert HSL to RGB
+            const c = (1 - Math.abs(2 * l - 1)) * s;
+            const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+            const m = l - c / 2;
+            
+            let r, g, b;
+            if (h < 60) {
+                [r, g, b] = [c, x, 0];
+            } else if (h < 120) {
+                [r, g, b] = [x, c, 0];
+            } else if (h < 180) {
+                [r, g, b] = [0, c, x];
+            } else if (h < 240) {
+                [r, g, b] = [0, x, c];
+            } else if (h < 300) {
+                [r, g, b] = [x, 0, c];
+            } else {
+                [r, g, b] = [c, 0, x];
+            }
+            
+            // Convert to hex
+            const toHex = (value) => {
+                const hex = Math.round((value + m) * 255).toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            };
+            
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+    }
+    
+    return '#ff6b35'; // Fallback color
+};
+
+onMounted(() => {
+    primaryColor.value = getPrimaryColor();
+    
+    // Watch for theme changes
+    const observer = new MutationObserver(() => {
+        primaryColor.value = getPrimaryColor();
+    });
+    
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+    });
 });
 </script>
 
@@ -16,7 +86,7 @@ defineProps({
     >
         <Plasma
             class="hidden md:block"
-            color="#ff6b35"
+            :color="primaryColor"
             :speed="1.2"
             direction="reverse"
             :scale="0.9"

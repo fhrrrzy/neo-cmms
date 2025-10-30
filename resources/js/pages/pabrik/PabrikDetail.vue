@@ -383,48 +383,13 @@ onMounted(async () => {
     await fetchEquipment();
 });
 const goBack = () => {
-    // Check if there's a previous page in browser history
-    const referrer = document.referrer;
-    const currentOrigin = window.location.origin;
-
-    // If referrer is from our site, check the path
-    if (referrer.startsWith(currentOrigin)) {
-        const referrerPath = new URL(referrer).pathname;
-
-        // If coming from regional detail page
-        if (referrerPath.startsWith('/regions/')) {
-            router.visit(`/regions/${plant.value.regional_id}`);
-            return;
-        }
-
-        // If coming from pabrik list page
-        if (referrerPath === '/pabrik') {
-            router.visit('/pabrik');
-            return;
-        }
-    }
-
-    // Default: go to dashboard (e.g., from global search or direct link)
-    router.visit('/dashboard');
+    // Use browser's native back navigation
+    // This properly works with Inertia.js history
+    window.history.back();
 };
 
 const backButtonLabel = computed(() => {
-    const referrer = document.referrer;
-    const currentOrigin = window.location.origin;
-
-    if (referrer.startsWith(currentOrigin)) {
-        const referrerPath = new URL(referrer).pathname;
-
-        if (referrerPath.startsWith('/regions/')) {
-            return 'Back to Regional';
-        }
-
-        if (referrerPath === '/pabrik') {
-            return 'Back to Pabrik';
-        }
-    }
-
-    return 'Back to Dashboard';
+    return 'Back';
 });
 </script>
 

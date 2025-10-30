@@ -311,13 +311,13 @@ const stationTypes = ref([
     { code: 'STAS19', description: 'Laboratorium' },
 ]);
 
-// Define equipment types
+// Define equipment types with ID mapping
 const equipmentTypeOptions = ref([
-    'Mesin Produksi',
-    'Kendaraan',
-    'Alat dan Utilitas',
-    'IT & Telekomunikasi',
-    'Aset PMN',
+    { id: 1, label: 'Mesin Produksi' },
+    { id: 2, label: 'Kendaraan' },
+    { id: 3, label: 'Alat dan Utilitas' },
+    { id: 4, label: 'IT & Telekomunikasi' },
+    { id: 5, label: 'Aset PMN' },
 ]);
 
 // No need to fetch stations from API - use predefined station types
@@ -338,8 +338,8 @@ const fetchStations = async () => {
 const fetchEquipmentTypes = async () => {
     loadingTypes.value = true;
     try {
-        // Use predefined equipment types instead of API call
-        equipmentTypes.value = equipmentTypeOptions.value;
+        // Use predefined equipment types (just the IDs)
+        equipmentTypes.value = equipmentTypeOptions.value.map(t => t.id);
     } catch (error) {
         console.error('Error setting equipment types:', error);
         equipmentTypes.value = [];
@@ -683,7 +683,9 @@ const equipmentTypeLabel = computed(() => {
     } else if (count === totalTypes) {
         return 'Tipe';
     } else if (count === 1) {
-        return localFilters.value.equipment_types[0] || 'Tipe';
+        const typeId = localFilters.value.equipment_types[0];
+        const typeObj = equipmentTypeOptions.value.find(t => t.id === typeId);
+        return typeObj?.label || 'Tipe';
     } else {
         return `${count} Tipe dipilih`;
     }
@@ -730,11 +732,11 @@ const filteredStations = computed(() => {
 
 const filteredEquipmentTypes = computed(() => {
     const search = typeSearch.value.toLowerCase();
-    let filtered = equipmentTypes.value;
+    let filtered = equipmentTypeOptions.value;
 
-    // Filter by search
+    // Filter by search on label
     return search
-        ? filtered.filter((t) => t.toLowerCase().includes(search))
+        ? filtered.filter((t) => t.label.toLowerCase().includes(search))
         : filtered;
 });
 
@@ -886,10 +888,10 @@ const deselectAllStations = () => {
 };
 
 const selectAllEquipmentTypes = () => {
-    const allTypes = equipmentTypes.value;
+    const allTypeIds = equipmentTypeOptions.value.map(t => t.id);
     localFilters.value = {
         ...localFilters.value,
-        equipment_types: allTypes,
+        equipment_types: allTypeIds,
     };
 };
 
@@ -1248,26 +1250,26 @@ onMounted(async () => {
                                     " class="py-6 text-center text-sm text-muted-foreground">
                                         No tipe found.
                                     </div>
-                                    <div v-for="equipmentType in filteredEquipmentTypes" :key="equipmentType"
+                                    <div v-for="typeObj in filteredEquipmentTypes" :key="typeObj.id"
                                         class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
-                                        <Checkbox :id="`type-${equipmentType}`" :model-value="isEquipmentTypeSelected(
-                                            equipmentType,
+                                        <Checkbox :id="`type-${typeObj.id}`" :model-value="isEquipmentTypeSelected(
+                                            typeObj.id,
                                         )
                                             " @update:model-value="
                                                 (val) =>
                                                     onEquipmentTypeChecked(
-                                                        equipmentType,
+                                                        typeObj.id,
                                                         val,
                                                     )
                                             " />
-                                        <label :for="`type-${equipmentType}`" class="flex-1 cursor-pointer text-sm">
-                                            {{ equipmentType }}
+                                        <label :for="`type-${typeObj.id}`" class="flex-1 cursor-pointer text-sm">
+                                            {{ typeObj.label }}
                                         </label>
                                         <button
                                             class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
                                             @click="
                                                 selectOnlyEquipmentType(
-                                                    equipmentType,
+                                                    typeObj.id,
                                                 )
                                                 ">
                                             Only

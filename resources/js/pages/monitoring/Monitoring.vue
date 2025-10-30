@@ -73,6 +73,7 @@ const filters = ref({
     regional_ids: monitoringFilterStore.regional_ids || [],
     plant_ids: monitoringFilterStore.plant_ids || [],
     station_codes: monitoringFilterStore.station_codes || [],
+    equipment_types: monitoringFilterStore.equipment_types || [],
     search: monitoringFilterStore.search,
 });
 
@@ -107,10 +108,20 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
         }
         if (
             filters.value.station_codes &&
-            filters.value.station_codes.length > 0
+            filters.value.station_codes.length > 0 &&
+            filters.value.station_codes.length < 15  // Only send if not all stations (15 total)
         ) {
             filters.value.station_codes.forEach((code) => {
                 params.append('station_codes[]', code);
+            });
+        }
+        if (
+            filters.value.equipment_types &&
+            filters.value.equipment_types.length > 0 &&
+            filters.value.equipment_types.length < 5  // Only send if not all types (5 total)
+        ) {
+            filters.value.equipment_types.forEach((type) => {
+                params.append('equipment_types[]', type);
             });
         }
         if (filters.value.date_range.start) {
@@ -151,6 +162,7 @@ const handleFilterChange = (newFilters) => {
         regional_ids: filters.value.regional_ids || [],
         plant_ids: filters.value.plant_ids || [],
         station_codes: filters.value.station_codes || [],
+        equipment_types: filters.value.equipment_types || [],
         search: filters.value.search,
     });
     if (newFilters?.date_range?.start && newFilters?.date_range?.end) {
@@ -212,6 +224,7 @@ onMounted(() => {
 </script>
 
 <template>
+
     <Head title="Monitoring Equipment" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -219,26 +232,18 @@ onMounted(() => {
             <!-- Controls Row -->
             <div class="flex items-center gap-3">
                 <!-- Filter Toggle Button -->
-                <Button
-                    variant="outline"
-                    size="icon"
-                    @click="toggleFilterVisibility"
-                    :class="{ 'bg-accent': isFilterVisible }"
-                >
+                <Button variant="outline" size="icon" @click="toggleFilterVisibility"
+                    :class="{ 'bg-accent': isFilterVisible }">
                     <Filter class="h-4 w-4" />
                     <span class="sr-only">Toggle filters</span>
                 </Button>
 
                 <!-- Search Input -->
                 <div class="flex-1">
-                    <input
-                        type="text"
+                    <input type="text"
                         class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
-                        :value="filters.search"
-                        @input="handleSearchInput"
-                        placeholder="Search equipment..."
-                        aria-label="Search equipment"
-                    />
+                        :value="filters.search" @input="handleSearchInput" placeholder="Search equipment..."
+                        aria-label="Search equipment" />
                 </div>
 
                 <!-- View Options -->
@@ -246,44 +251,26 @@ onMounted(() => {
             </div>
 
             <!-- Toggleable Filter Container -->
-            <transition
-                enter-active-class="transition duration-200 ease-out"
-                enter-from-class="opacity-0 -translate-y-2"
-                enter-to-class="opacity-100 translate-y-0"
-                leave-active-class="transition duration-150 ease-in"
-                leave-from-class="opacity-100 translate-y-0"
-                leave-to-class="opacity-0 -translate-y-2"
-            >
+            <transition enter-active-class="transition duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 -translate-y-2">
                 <div v-show="isFilterVisible" class="">
-                    <MonitoringFilter
-                        :filters="filters"
-                        @filter-change="handleFilterChange"
-                    />
+                    <MonitoringFilter :filters="filters" @filter-change="handleFilterChange" />
                 </div>
             </transition>
 
             <!-- Equipment Data Table -->
             <div class="space-y-4">
-                <DataTable
-                    ref="dataTableRef"
-                    :data="equipment"
-                    :loading="loading"
-                    :error="error"
-                    :pagination="pagination"
-                    :sorting="sorting"
-                    @page-change="handlePageChange"
-                    @page-size-change="handlePageSizeChange"
-                    @sort-change="handleSortChange"
-                    @row-click="handleRowClick"
-                />
+                <DataTable ref="dataTableRef" :data="equipment" :loading="loading" :error="error"
+                    :pagination="pagination" :sorting="sorting" @page-change="handlePageChange"
+                    @page-size-change="handlePageSizeChange" @sort-change="handleSortChange"
+                    @row-click="handleRowClick" />
             </div>
         </div>
 
         <!-- Equipment Detail Sheet -->
-        <EquipmentDetailSheet
-            :is-open="isSheetOpen"
-            :equipment-number="selectedEquipmentNumber"
-            @close="handleSheetClose"
-        />
+        <EquipmentDetailSheet :is-open="isSheetOpen" :equipment-number="selectedEquipmentNumber"
+            @close="handleSheetClose" />
     </AppLayout>
 </template>

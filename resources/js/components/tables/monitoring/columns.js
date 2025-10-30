@@ -227,16 +227,18 @@ export const columns = [
         },
         cell: ({ row }) => {
             const type = row.getValue('equipment_type');
+            
+            // Use theme semantic colors from CSS variables
             const colorMap = {
-                'Mesin Produksi': 'bg-emerald-100 text-emerald-800',
-                'Kendaraan': 'bg-sky-100 text-sky-800',
-                'Alat dan Utilitas': 'bg-amber-100 text-amber-800',
-                'IT & Telekomunikasi': 'bg-violet-100 text-violet-800',
-                'Aset PMN': 'bg-rose-100 text-rose-800',
+                'Mesin Produksi': 'bg-chart-1/20 text-chart-1 border border-chart-1/30',
+                'Kendaraan': 'bg-chart-2/20 text-chart-2 border border-chart-2/30',
+                'Alat dan Utilitas': 'bg-chart-3/20 text-chart-3 border border-chart-3/30',
+                'IT & Telekomunikasi': 'bg-chart-4/20 text-chart-4 border border-chart-4/30',
+                'Aset PMN': 'bg-destructive/20 text-destructive border border-destructive/30',
             };
-            const cls = colorMap[type] || 'bg-muted text-foreground';
+            const cls = colorMap[type] || 'bg-muted text-muted-foreground border border-border';
             if (!type) return renderValueOrNA(type);
-            return h('span', { class: `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}` }, type);
+            return h('span', { class: `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}` }, type);
         },
     },
 

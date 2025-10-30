@@ -100,6 +100,10 @@ const navigateToRegions = () => {
 const navigateToPabrik = () => {
     router.visit('/pabrik');
 };
+
+const navigateToMonitoring = () => {
+    router.visit('/monitoring');
+};
 </script>
 
 <template>
@@ -111,16 +115,9 @@ const navigateToPabrik = () => {
             <!-- Stats cards -->
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4 md:gap-4">
                 <!-- Regions -->
-                <Card
-                    class="cursor-pointer transition-colors hover:bg-accent"
-                    @click="navigateToRegions"
-                >
-                    <CardHeader
-                        class="flex flex-row items-center justify-between space-y-0 pb-2"
-                    >
-                        <CardTitle class="text-sm font-medium"
-                            >Total Region</CardTitle
-                        >
+                <Card class="cursor-pointer transition-colors hover:bg-accent" @click="navigateToRegions">
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Total Region</CardTitle>
                         <Globe2 class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -140,16 +137,9 @@ const navigateToPabrik = () => {
                 </Card>
 
                 <!-- Plants/Factories -->
-                <Card
-                    class="cursor-pointer transition-colors hover:bg-accent"
-                    @click="navigateToPabrik"
-                >
-                    <CardHeader
-                        class="flex flex-row items-center justify-between space-y-0 pb-2"
-                    >
-                        <CardTitle class="text-sm font-medium"
-                            >Total Factory</CardTitle
-                        >
+                <Card class="cursor-pointer transition-colors hover:bg-accent" @click="navigateToPabrik">
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Total Factory</CardTitle>
                         <Factory class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -167,7 +157,7 @@ const navigateToPabrik = () => {
                 </Card>
 
                 <!-- Equipment -->
-                <Card>
+                <Card class="cursor-pointer transition-colors hover:bg-accent" @click="navigateToMonitoring">
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle class="text-sm font-medium">Total Equipment</CardTitle>
                         <Wrench class="h-4 w-4 text-muted-foreground" />

@@ -78,28 +78,9 @@ class MonitoringController extends Controller
         if ($request->filled('equipment_types')) {
             $equipmentTypes = is_array($request->equipment_types) ? $request->equipment_types : [$request->equipment_types];
 
-            $query->where(function (Builder $q) use ($equipmentTypes) {
-                foreach ($equipmentTypes as $type) {
-                    // Map equipment types to eqtyp values
-                    switch ($type) {
-                        case 'Mesin Produksi':
-                            $q->orWhere('equipment.eqtyp', 'M');
-                            break;
-                        case 'Kendaraan':
-                            $q->orWhere('equipment.eqtyp', 'V');
-                            break;
-                        case 'Alat dan Utilitas':
-                            $q->orWhere('equipment.eqtyp', 'R');
-                            break;
-                        case 'IT & Telekomunikasi':
-                            $q->orWhere('equipment.eqtyp', 'I');
-                            break;
-                        case 'Aset PMN':
-                            $q->orWhere('equipment.eqtyp', 'P');
-                            break;
-                    }
-                }
-            });
+            // Cast to strings since eqtyp is VARCHAR in database
+            $stringTypes = array_map('strval', $equipmentTypes);
+            $query->whereIn('equipment.eqtyp', $stringTypes);
         }
 
         // Apply search across key fields
