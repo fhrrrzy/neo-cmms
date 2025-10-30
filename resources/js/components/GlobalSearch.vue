@@ -310,11 +310,7 @@ defineExpose({
 
                 <!-- Regional Section -->
                 <template v-if="searchQuery.length >= 2 && (isLoadingRegional || regionalResults.length > 0)">
-                    <div class="overflow-hidden p-1 text-foreground">
-                        <div class="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                            Regional
-                        </div>
-
+                    <CommandGroup heading="Regional">
                         <!-- Loading Skeleton -->
                         <div v-if="isLoadingRegional" class="space-y-2 px-2 py-3">
                             <div v-for="i in 3" :key="i" class="flex items-center gap-3">
@@ -327,31 +323,26 @@ defineExpose({
                         </div>
 
                         <!-- Results -->
-                        <div v-else v-for="regional in regionalResults" :key="regional.id"
-                            @click="navigateToRegional(regional.id)"
-                            class="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                            role="option">
-                            <MapPin class="h-4 w-4 shrink-0" />
+                        <CommandItem v-else v-for="regional in regionalResults" :key="regional.id"
+                            :value="`regional-${regional.id}-${regional.name}`"
+                            @select="navigateToRegional(regional.id)">
+                            <MapPin class="mr-2 h-4 w-4 shrink-0" />
                             <div class="flex flex-col gap-1 flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-medium">{{ regional.name }}</span>
+                                    <span class="font-normal">{{ regional.name }}</span>
                                     <span class="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                                         Regional #{{ regional.no }}
                                     </span>
                                 </div>
                                 <span class="text-xs text-muted-foreground">{{ regional.category }}</span>
                             </div>
-                        </div>
-                    </div>
+                        </CommandItem>
+                    </CommandGroup>
                 </template>
 
                 <!-- Pabrik Section -->
                 <template v-if="searchQuery.length >= 2 && (isLoadingPabrik || pabrikResults.length > 0)">
-                    <div class="overflow-hidden p-1 text-foreground">
-                        <div class="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                            Pabrik
-                        </div>
-
+                    <CommandGroup heading="Pabrik">
                         <!-- Loading Skeleton -->
                         <div v-if="isLoadingPabrik" class="space-y-2 px-2 py-3">
                             <div v-for="i in 3" :key="i" class="flex items-center gap-3">
@@ -364,14 +355,12 @@ defineExpose({
                         </div>
 
                         <!-- Results -->
-                        <div v-else v-for="pabrik in pabrikResults" :key="pabrik.id"
-                            @click="navigateToPabrik(pabrik.id)"
-                            class="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                            role="option">
-                            <Factory class="h-4 w-4 shrink-0" />
+                        <CommandItem v-else v-for="pabrik in pabrikResults" :key="pabrik.id"
+                            :value="`pabrik-${pabrik.id}-${pabrik.name}`" @select="navigateToPabrik(pabrik.id)">
+                            <Factory class="mr-2 h-4 w-4 shrink-0" />
                             <div class="flex flex-col gap-1 flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-medium">{{ pabrik.name }}</span>
+                                    <span class="font-normal">{{ pabrik.name }}</span>
                                     <span v-if="pabrik.regional_name"
                                         class="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                                         {{ pabrik.regional_name }}
@@ -379,17 +368,13 @@ defineExpose({
                                 </div>
                                 <span class="text-xs text-muted-foreground">#{{ pabrik.plant_code }}</span>
                             </div>
-                        </div>
-                    </div>
+                        </CommandItem>
+                    </CommandGroup>
                 </template>
 
                 <!-- Equipment Section -->
                 <template v-if="searchQuery.length >= 2 && (isLoadingEquipment || equipmentResults.length > 0)">
-                    <div class="overflow-hidden p-1 text-foreground">
-                        <div class="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                            Equipment
-                        </div>
-
+                    <CommandGroup heading="Equipment">
                         <!-- Loading Skeleton -->
                         <div v-if="isLoadingEquipment" class="space-y-2 px-2 py-3">
                             <div v-for="i in 3" :key="i" class="flex items-center gap-3">
@@ -402,14 +387,13 @@ defineExpose({
                         </div>
 
                         <!-- Results -->
-                        <div v-else v-for="equipment in equipmentResults" :key="equipment.uuid"
-                            @click="navigateToEquipment(equipment.uuid)"
-                            class="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                            role="option">
-                            <Cpu class="h-4 w-4 shrink-0" />
+                        <CommandItem v-else v-for="equipment in equipmentResults" :key="equipment.uuid"
+                            :value="`equipment-${equipment.uuid}-${equipment.equipment_number}`"
+                            @select="navigateToEquipment(equipment.uuid)">
+                            <Cpu class="mr-2 h-4 w-4 shrink-0" />
                             <div class="flex flex-col gap-1 flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-medium">{{ equipment.equipment_number }}</span>
+                                    <span class="font-normal">{{ equipment.equipment_number }}</span>
                                     <span v-if="equipment.plant"
                                         class="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                                         {{ equipment.plant.name }}
@@ -417,10 +401,10 @@ defineExpose({
                                 </div>
                                 <span class="text-xs text-muted-foreground line-clamp-1">{{
                                     equipment.equipment_description
-                                    }}</span>
+                                }}</span>
                             </div>
-                        </div>
-                    </div>
+                        </CommandItem>
+                    </CommandGroup>
                 </template>
             </template>
         </CommandList>
