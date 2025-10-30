@@ -15,10 +15,8 @@ import {
     FileText,
     Gauge,
     Wrench,
-    ChevronDown,
-    ChevronUp,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref, nextTick, watch } from 'vue';
+import { computed, onMounted, ref, nextTick } from 'vue';
 import { useDateRangeStore } from '@/stores/useDateRangeStore';
 
 const props = defineProps({
@@ -58,21 +56,6 @@ const sorting = ref({
 
 // Filter state
 const dateRangeStore = useDateRangeStore();
-
-// Filter visibility state for mobile (always visible on desktop)
-const FILTER_VISIBILITY_KEY = 'pabrik_detail_filter_visible_mobile';
-const isFilterVisible = ref(
-    localStorage.getItem(FILTER_VISIBILITY_KEY) !== 'false', // Default to true
-);
-
-// Watch for changes and save to localStorage
-watch(isFilterVisible, (newValue) => {
-    localStorage.setItem(FILTER_VISIBILITY_KEY, String(newValue));
-});
-
-const toggleFilterVisibility = () => {
-    isFilterVisible.value = !isFilterVisible.value;
-};
 
 // Initialize filters with plant_id pre-set
 const filters = ref({
@@ -241,9 +224,7 @@ const goBack = () => {
     window.history.back();
 };
 
-const backButtonLabel = computed(() => {
-    return 'Back';
-});
+const backButtonLabel = computed(() => 'Back');
 </script>
 
 <template>
@@ -448,26 +429,9 @@ const backButtonLabel = computed(() => {
                         </p>
                     </div>
 
-                    <!-- Mobile Filter Toggle Button -->
-                    <div class="md:hidden">
-                        <Button variant="outline" size="sm" class="w-full justify-between"
-                            @click="toggleFilterVisibility">
-                            <span>{{ isFilterVisible ? 'Hide Filters' : 'Show Filters' }}</span>
-                            <ChevronUp v-if="isFilterVisible" class="h-4 w-4" />
-                            <ChevronDown v-else class="h-4 w-4" />
-                        </Button>
-                    </div>
-
                     <!-- MonitoringFilter with integrated search and column toggle -->
-                    <transition enter-active-class="transition duration-200 ease-out"
-                        enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0"
-                        leave-active-class="transition duration-150 ease-in"
-                        leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-2">
-                        <div v-show="isFilterVisible" class="md:block">
-                            <MonitoringFilter :filters="filters" :table="dataTableRef?.table" :hide-regional="true"
-                                :hide-plant="true" @filter-change="handleFilterChange" />
-                        </div>
-                    </transition>
+                    <MonitoringFilter :filters="filters" :table="dataTableRef?.table" :hide-regional="true"
+                        :hide-plant="true" @filter-change="handleFilterChange" />
 
                     <!-- Equipment Data Table -->
                     <DataTable ref="dataTableRef" :data="equipment" :loading="loading" :error="error"

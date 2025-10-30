@@ -1,10 +1,8 @@
 <script setup lang="js">
 import SummaryTable from '@/components/tables/jam-jalan-summary/DataTable.vue';
-import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
-import { Filter } from 'lucide-vue-next';
 import { onMounted, ref } from 'vue';
 import MonitoringFilter from '../monitoring/components/MonitoringFilter.vue';
 
@@ -13,16 +11,7 @@ const tableRef = ref(null);
 const loading = ref(false);
 const error = ref(null);
 const summaryData = ref([]);
-const filteredSummaryData = ref([]);
 const dates = ref([]);
-const searchQuery = ref('');
-
-// Filter visibility state (not persisted)
-const isFilterVisible = ref(true);
-
-const toggleFilterVisibility = () => {
-    isFilterVisible.value = !isFilterVisible.value;
-};
 
 const breadcrumbs = [
     {
@@ -94,7 +83,7 @@ const fetchSummary = async () => {
 
         summaryData.value = response.data.data;
         dates.value = response.data.dates;
-        applySearchFilter();
+        updatePagination();
     } catch (err) {
         error.value =
             err.response?.data?.message || 'Terjadi kesalahan saat memuat data';
@@ -104,31 +93,16 @@ const fetchSummary = async () => {
     }
 };
 
-const applySearchFilter = () => {
-    if (!searchQuery.value) {
-        filteredSummaryData.value = summaryData.value;
-    } else {
-        const query = searchQuery.value.toLowerCase();
-        filteredSummaryData.value = summaryData.value.filter((plant) =>
-            plant.name.toLowerCase().includes(query),
-        );
-    }
-
-    // Update pagination based on filtered results
+const updatePagination = () => {
     pagination.value = {
-        total: filteredSummaryData.value.length,
-        per_page: filteredSummaryData.value.length || 15,
+        total: summaryData.value.length,
+        per_page: summaryData.value.length || 15,
         current_page: 1,
         last_page: 1,
-        from: filteredSummaryData.value.length > 0 ? 1 : 0,
-        to: filteredSummaryData.value.length,
+        from: summaryData.value.length > 0 ? 1 : 0,
+        to: summaryData.value.length,
         has_more_pages: false,
     };
-};
-
-const handleSearchInput = (event) => {
-    searchQuery.value = event.target.value;
-    applySearchFilter();
 };
 
 const handleFilterChange = (newFilters) => {
@@ -147,19 +121,12 @@ onMounted(() => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-4 md:space-y-6">
-
-            <!-- Toggleable Filter Container -->
-            <transition enter-active-class="transition duration-200 ease-out"
-                enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0"
-                leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
-                leave-to-class="opacity-0 -translate-y-2">
-                <div v-show="isFilterVisible" class="">
-                    <MonitoringFilter :filters="filters" :disable-store="true" @filter-change="handleFilterChange" />
-                </div>
-            </transition>
+            <!-- Filter Component -->
+            <MonitoringFilter :filters="filters" :disable-store="true" :hide-search="true"
+                @filter-change="handleFilterChange" />
 
             <!-- Summary Table -->
-            <SummaryTable ref="tableRef" :data="filteredSummaryData" :dates="dates" :loading="loading" :error="error"
+            <SummaryTable ref="tableRef" :data="summaryData" :dates="dates" :loading="loading" :error="error"
                 :pagination="pagination" />
         </div>
     </AppLayout>
