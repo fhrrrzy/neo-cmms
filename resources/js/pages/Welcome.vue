@@ -1,8 +1,8 @@
 <template>
     <div class="min-h-screen overflow-hidden bg-background text-foreground">
-        <div class="absolute inset-0">
-            <DarkVeil :hue-shift="0" :noise-intensity="0" :scanline-intensity="0" :speed="0.5" :scanline-frequency="0"
-                :warp-amount="0" :resolution-scale="1" />
+        <div class="absolute inset-0 brightness-[0.3]">
+            <DarkVeil :hue-shift="themeHue" :noise-intensity="0" :scanline-intensity="0" :speed="0.5"
+                :scanline-frequency="0" :warp-amount="0" :resolution-scale="1" />
         </div>
         <!-- Navigation -->
         <nav class="fixed top-0 z-50 w-full border-b border-border bg-background/50 backdrop-blur-md">
@@ -283,11 +283,45 @@ import { login } from '@/routes';
 import { Link } from '@inertiajs/vue3';
 import { motion } from 'motion-v';
 import DarkVeil from '@/components/blocks/Backgrounds/DarkVeil/DarkVeil.vue';
+import { ref, onMounted } from 'vue';
+
 const features = [
     'Real-time Monitoring',
     'Predictive Maintenance',
     'Team Collaboration',
 ];
+
+const themeHue = ref(0);
+
+// Extract hue from CSS variable
+const extractHueFromTheme = () => {
+    const root = document.documentElement;
+    const primaryColor = getComputedStyle(root).getPropertyValue('--primary').trim();
+
+    // Parse HSL value - handles both "hue sat% light%" and "hsl(hue sat% light%)" formats
+    const hslMatch = primaryColor.match(/(?:hsl\()?([\d.]+)/);
+
+    if (hslMatch && hslMatch[1]) {
+        const hue = parseFloat(hslMatch[1]);
+        // The base DarkVeil pattern has warm tones (~30-40°)
+        // Calculate the shift needed to reach the target hue
+        themeHue.value = hue - 30;
+    }
+};
+
+onMounted(() => {
+    extractHueFromTheme();
+
+    // Re-extract hue when theme changes (listen for theme changes)
+    const observer = new MutationObserver(() => {
+        extractHueFromTheme();
+    });
+
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+    });
+});
 </script>
 
 <style scoped>
