@@ -1,8 +1,25 @@
 <script setup lang="ts">
 import { useTheme, type Theme } from '@/composables/useTheme';
-import { Check } from 'lucide-vue-next';
+import { useAppearance } from '@/composables/useAppearance';
+import { Check, Moon, Sun, Monitor } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 const { currentTheme, updateTheme } = useTheme();
+const { appearance } = useAppearance();
+
+// Compute the current appearance icon and label
+const appearanceInfo = computed(() => {
+    switch (appearance.value) {
+        case 'light':
+            return { icon: Sun, label: 'Light mode' };
+        case 'dark':
+            return { icon: Moon, label: 'Dark mode' };
+        case 'system':
+            return { icon: Monitor, label: 'System preference' };
+        default:
+            return { icon: Monitor, label: 'System preference' };
+    }
+});
 
 const themes: { value: Theme; label: string; description: string; colors: string[] }[] = [
     {
@@ -70,6 +87,16 @@ const themes: { value: Theme; label: string; description: string; colors: string
 
 <template>
     <div class="space-y-4">
+        <!-- Current appearance mode indicator -->
+        <div class="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-4 py-2.5">
+            <component :is="appearanceInfo.icon" class="h-4 w-4 text-muted-foreground" />
+            <div class="flex flex-col">
+                <span class="text-sm font-medium">Current display mode</span>
+                <span class="text-xs text-muted-foreground">{{ appearanceInfo.label }}</span>
+            </div>
+        </div>
+
+        <!-- Theme grid -->
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <button v-for="theme in themes" :key="theme.value" @click="updateTheme(theme.value)" :class="[
                 'group relative flex flex-col overflow-hidden rounded-lg border-2 p-4 text-left transition-all',
@@ -102,9 +129,12 @@ const themes: { value: Theme; label: string; description: string; colors: string
         </div>
 
         <!-- Info text -->
-        <p class="text-sm text-muted-foreground">
-            Select a theme to customize the appearance of your application. The theme will be saved and applied across
-            all your sessions.
-        </p>
+        <div class="space-y-2 rounded-lg border border-border bg-card p-4">
+            <p class="text-sm font-medium">About themes</p>
+            <p class="text-sm text-muted-foreground">
+                Select a color theme to customize your interface. Each theme automatically adapts to your selected
+                appearance mode (light/dark). The theme will be saved and applied across all your sessions.
+            </p>
+        </div>
     </div>
 </template>

@@ -1,14 +1,30 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useAppearance } from './useAppearance';
 
 export type Theme = 'default' | 'amber-minimal' | 'modern-minimal' | 'nature' | 'nothern-lights' | 'ocean-breeze' | 'solar-dusk' | 'supabase' | 'twitter' | 'vintage-paper';
 
 const THEME_STORAGE_KEY = 'app-theme';
 const DEFAULT_THEME: Theme = 'default';
 
-const currentTheme = ref<Theme>(DEFAULT_THEME);
+// Get initial theme from storage immediately
+const getInitialTheme = (): Theme => {
+    if (typeof window === 'undefined') {
+        return DEFAULT_THEME;
+    }
+    return (localStorage.getItem(THEME_STORAGE_KEY) as Theme | null) || DEFAULT_THEME;
+};
+
+const currentTheme = ref<Theme>(getInitialTheme());
+let isThemeInitialized = false;
 
 export function useTheme() {
+    const { appearance } = useAppearance();
+
     const loadTheme = async (theme: Theme) => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
         // Remove all theme stylesheets
         const existingThemes = document.querySelectorAll('link[data-theme]');
         existingThemes.forEach(link => link.remove());
@@ -67,14 +83,28 @@ export function useTheme() {
     };
 
     const initializeTheme = () => {
+        if (typeof window === 'undefined') {
+            return;
+        }
         const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
         const theme = storedTheme || DEFAULT_THEME;
         currentTheme.value = theme;
         loadTheme(theme);
     };
 
+    // Initialize theme on first mount only
     onMounted(() => {
-        initializeTheme();
+        if (!isThemeInitialized) {
+            initializeTheme();
+            isThemeInitialized = true;
+        }
+    });
+
+    // Watch for appearance changes to ensure theme CSS is reapplied
+    // This ensures the .dark class changes work with the current theme
+    watch(appearance, () => {
+        // Theme CSS files contain both :root and .dark selectors
+        // So we don't need to reload, just let the appearance handle the .dark class
     });
 
     return {

@@ -5,7 +5,8 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createPinia } from 'pinia';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
-import { initializeTheme } from './composables/useAppearance';
+import { initializeTheme as initializeAppearance } from './composables/useAppearance';
+import { useTheme } from './composables/useTheme';
 import { configureEcho } from '@laravel/echo-vue';
 
 configureEcho({
@@ -34,5 +35,9 @@ createInertiaApp({
     },
 });
 
-// This will set light / dark mode on page load...
+// Initialize appearance (light/dark mode) on page load
+initializeAppearance();
+
+// Initialize theme (color scheme) on page load
+const { initializeTheme } = useTheme();
 initializeTheme();
