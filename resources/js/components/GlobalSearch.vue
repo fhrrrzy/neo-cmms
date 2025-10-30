@@ -1,7 +1,6 @@
 <script setup>
 import {
     CommandDialog,
-    CommandEmpty,
     CommandGroup,
     CommandInput,
     CommandItem,
@@ -19,24 +18,26 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { dashboard, jamJalanSummary, monitoring } from '@/routes';
 import syncLog from '@/routes/sync-log';
 import { router } from '@inertiajs/vue3';
-import { useMagicKeys, useDebounceFn } from '@vueuse/core';
+import { useDebounceFn, useMagicKeys } from '@vueuse/core';
+import axios from 'axios';
 import {
     Activity,
+    Cpu,
+    Factory,
     LayoutGrid,
+    Logs,
+    MapPin,
     Monitor,
     Palette,
+    SearchX,
     Settings,
     User,
-    Cpu,
-    SearchX,
-    MapPin,
-    Factory,
-    Logs,
 } from 'lucide-vue-next';
-import { onUnmounted, ref, watch, computed } from 'vue';
-import axios from 'axios';
+import { computed, ref, watch } from 'vue';
 
-const open = ref(false);
+const props = defineProps({ open: { type: Boolean, required: true } });
+const emit = defineEmits(['update:open', 'close']);
+
 const searchQuery = ref('');
 const equipmentResults = ref([]);
 const regionalResults = ref([]);
@@ -45,41 +46,15 @@ const isLoadingEquipment = ref(false);
 const isLoadingRegional = ref(false);
 const isLoadingPabrik = ref(false);
 
-// Global routes for search
 const pages = [
-    {
-        name: 'Dashboard',
-        route: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        name: 'Monitoring',
-        route: monitoring(),
-        icon: Monitor,
-    },
-    {
-        name: 'Jam Jalan Summary',
-        route: jamJalanSummary(),
-        icon: Activity,
-    },
-    {
-        name: 'Sync Log',
-        route: syncLog.index(),
-        icon: Logs,
-    },
+    { name: 'Dashboard', route: dashboard(), icon: LayoutGrid },
+    { name: 'Monitoring', route: monitoring(), icon: Monitor },
+    { name: 'Jam Jalan Summary', route: jamJalanSummary(), icon: Activity },
+    { name: 'Sync Log', route: syncLog.index(), icon: Logs },
 ];
-
 const settingsPages = [
-    {
-        name: 'Profile Settings',
-        route: '/settings/profile',
-        icon: User,
-    },
-    {
-        name: 'Password Settings',
-        route: '/settings/password',
-        icon: Settings,
-    },
+    { name: 'Profile Settings', route: '/settings/profile', icon: User },
+    { name: 'Password Settings', route: '/settings/password', icon: Settings },
     {
         name: 'Appearance Settings',
         route: '/settings/appearance',
@@ -88,197 +63,150 @@ const settingsPages = [
 ];
 
 const handleNavigate = (route) => {
-    open.value = false;
+    emit('update:open', false);
+    emit('close');
     router.visit(route);
 };
 
-// Search equipment via API with debounce
 const searchEquipment = async (query) => {
     if (!query || query.length < 2) {
         equipmentResults.value = [];
         return;
     }
-
     isLoadingEquipment.value = true;
     try {
         const response = await axios.get('/api/equipment/search', {
-            params: {
-                query: query,
-                limit: 5,
-            },
+            params: { query, limit: 5 },
         });
-        // Force Vue to re-render by creating new array
         equipmentResults.value = [...(response.data.data || [])];
     } catch (error) {
-        console.error('Equipment search error:', error);
         equipmentResults.value = [];
     } finally {
         isLoadingEquipment.value = false;
     }
 };
-
-// Search regional via API
 const searchRegional = async (query) => {
     if (!query || query.length < 2) {
         regionalResults.value = [];
         return;
     }
-
     isLoadingRegional.value = true;
     try {
         const response = await axios.get('/api/regions', {
-            params: {
-                search: query,
-            },
+            params: { search: query },
         });
-        // Limit to 5 results
         regionalResults.value = (response.data || []).slice(0, 5);
     } catch (error) {
-        console.error('Regional search error:', error);
         regionalResults.value = [];
     } finally {
         isLoadingRegional.value = false;
     }
 };
-
-// Search pabrik via API
 const searchPabrik = async (query) => {
     if (!query || query.length < 2) {
         pabrikResults.value = [];
         return;
     }
-
     isLoadingPabrik.value = true;
     try {
         const response = await axios.get('/api/pabrik', {
-            params: {
-                search: query,
-            },
+            params: { search: query },
         });
-        // Limit to 5 results
         pabrikResults.value = (response.data.data || []).slice(0, 5);
     } catch (error) {
-        console.error('Pabrik search error:', error);
         pabrikResults.value = [];
     } finally {
         isLoadingPabrik.value = false;
     }
 };
-
-// Debounced search to avoid excessive API calls
 const debouncedSearch = useDebounceFn((query) => {
     searchEquipment(query);
     searchRegional(query);
     searchPabrik(query);
 }, 300);
-
-// Handle search input (works for both typing and pasting)
 const handleSearchInput = (value) => {
     searchQuery.value = value;
     debouncedSearch(value);
 };
-
-// Watch search query changes as fallback
 watch(searchQuery, (newQuery) => {
     debouncedSearch(newQuery);
 });
-
-// Navigate to equipment detail page
 const navigateToEquipment = (uuid) => {
-    open.value = false;
+    emit('update:open', false);
+    emit('close');
     router.visit(`/equipment/${uuid}`);
 };
-
-// Navigate to regional detail page
 const navigateToRegional = (id) => {
-    open.value = false;
+    emit('update:open', false);
+    emit('close');
     router.visit(`/regions/${id}`);
 };
-
-// Navigate to pabrik detail page
 const navigateToPabrik = (id) => {
-    open.value = false;
+    emit('update:open', false);
+    emit('close');
     router.visit(`/pabrik/${id}`);
 };
-
-// Compute filtered static results based on search query
 const filteredPages = computed(() => {
     if (!searchQuery.value) return pages;
     const query = searchQuery.value.toLowerCase();
-    return pages.filter(page => page.name.toLowerCase().includes(query));
+    return pages.filter((page) => page.name.toLowerCase().includes(query));
 });
-
 const filteredSettings = computed(() => {
     if (!searchQuery.value) return settingsPages;
     const query = searchQuery.value.toLowerCase();
-    return settingsPages.filter(page => page.name.toLowerCase().includes(query));
+    return settingsPages.filter((page) =>
+        page.name.toLowerCase().includes(query),
+    );
 });
-
-// Check if there are any results at all
 const hasAnyResults = computed(() => {
-    if (!searchQuery.value) return true; // Don't show empty when no search query
-    if (isLoadingEquipment.value || isLoadingRegional.value || isLoadingPabrik.value) return true; // Don't show empty while loading
-    return filteredPages.value.length > 0 ||
+    if (!searchQuery.value) return true;
+    if (
+        isLoadingEquipment.value ||
+        isLoadingRegional.value ||
+        isLoadingPabrik.value
+    )
+        return true;
+    return (
+        filteredPages.value.length > 0 ||
         filteredSettings.value.length > 0 ||
-        (searchQuery.value.length >= 2 && (
-            equipmentResults.value.length > 0 ||
-            regionalResults.value.length > 0 ||
-            pabrikResults.value.length > 0
-        ));
+        (searchQuery.value.length >= 2 &&
+            (equipmentResults.value.length > 0 ||
+                regionalResults.value.length > 0 ||
+                pabrikResults.value.length > 0))
+    );
 });
-
-// Use VueUse's useMagicKeys for ESC key only
-// (Ctrl+K / Cmd+K is handled manually to prevent browser default)
+// Always close modal with Escape key
 const keys = useMagicKeys();
-
-// Watch for ESC key to close
 watch(keys.Escape, (pressed) => {
-    if (pressed) {
-        open.value = false;
+    if (pressed && props.open) {
+        emit('update:open', false);
+        emit('close');
     }
 });
-
-// Reset search when dialog closes
-watch(open, (isOpen) => {
-    if (!isOpen) {
-        searchQuery.value = '';
-        equipmentResults.value = [];
-        regionalResults.value = [];
-        pabrikResults.value = [];
-    }
-});
-
-// Manual event listener to prevent browser default search and open dialog
-const handleKeyDown = (e) => {
-    // Prevent browser's default Ctrl+K or Cmd+K search
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        e.stopPropagation();
-        // Open the search dialog
-        open.value = !open.value;
-    }
-};
-
-// Add event listener on mount
-if (typeof window !== 'undefined') {
-    window.addEventListener('keydown', handleKeyDown, true);
-}
-
-// Cleanup on unmount
-onUnmounted(() => {
-    if (typeof window !== 'undefined') {
-        window.removeEventListener('keydown', handleKeyDown, true);
-    }
-});
-
-defineExpose({
-    open: () => (open.value = true),
-});
+watch(
+    () => props.open,
+    (isOpen) => {
+        if (!isOpen) {
+            searchQuery.value = '';
+            equipmentResults.value = [];
+            regionalResults.value = [];
+            pabrikResults.value = [];
+        }
+    },
+);
 </script>
 
 <template>
-    <CommandDialog :open="open" @update:open="open = $event" :force-z-index="9999">
-        <CommandInput placeholder="Type to search..." v-model="searchQuery" @update:model-value="handleSearchInput" />
+    <CommandDialog
+        :open="props.open"
+        @update:open="emit('update:open', $event)"
+        :force-z-index="9999"
+    >
+        <CommandInput
+            placeholder="Type to search..."
+            v-model="searchQuery"
+            @update:model-value="handleSearchInput"
+        />
         <CommandList>
             <!-- Global Empty State - Show when nothing found anywhere -->
             <div v-if="!hasAnyResults" class="py-8">
@@ -289,7 +217,9 @@ defineExpose({
                         </EmptyMedia>
                         <EmptyTitle>No Results Found</EmptyTitle>
                         <EmptyDescription>
-                            No pages, settings, or equipment match "{{ searchQuery }}"
+                            No pages, settings, or equipment match "{{
+                                searchQuery
+                            }}"
                         </EmptyDescription>
                     </EmptyHeader>
                 </Empty>
@@ -297,30 +227,58 @@ defineExpose({
 
             <template v-else>
                 <CommandGroup v-if="filteredPages.length > 0" heading="Pages">
-                    <CommandItem v-for="page in filteredPages" :key="page.route" :value="page.name"
-                        @select="handleNavigate(page.route)">
+                    <CommandItem
+                        v-for="page in filteredPages"
+                        :key="page.route"
+                        :value="page.name"
+                        @select="handleNavigate(page.route)"
+                    >
                         <component :is="page.icon" class="mr-2 h-4 w-4" />
                         <span>{{ page.name }}</span>
                     </CommandItem>
                 </CommandGroup>
 
-                <CommandGroup v-if="filteredSettings.length > 0" heading="Settings">
-                    <CommandItem v-for="page in filteredSettings" :key="page.route" :value="page.name"
-                        @select="handleNavigate(page.route)">
+                <CommandGroup
+                    v-if="filteredSettings.length > 0"
+                    heading="Settings"
+                >
+                    <CommandItem
+                        v-for="page in filteredSettings"
+                        :key="page.route"
+                        :value="page.name"
+                        @select="handleNavigate(page.route)"
+                    >
                         <component :is="page.icon" class="mr-2 h-4 w-4" />
                         <span>{{ page.name }}</span>
                     </CommandItem>
                 </CommandGroup>
 
                 <CommandSeparator
-                    v-if="searchQuery.length >= 2 && (filteredPages.length > 0 || filteredSettings.length > 0)" />
+                    v-if="
+                        searchQuery.length >= 2 &&
+                        (filteredPages.length > 0 ||
+                            filteredSettings.length > 0)
+                    "
+                />
 
                 <!-- Regional Section -->
-                <template v-if="searchQuery.length >= 2 && (isLoadingRegional || regionalResults.length > 0)">
+                <template
+                    v-if="
+                        searchQuery.length >= 2 &&
+                        (isLoadingRegional || regionalResults.length > 0)
+                    "
+                >
                     <CommandGroup heading="Regional">
                         <!-- Loading Skeleton -->
-                        <div v-if="isLoadingRegional" class="space-y-2 px-2 py-3">
-                            <div v-for="i in 3" :key="i" class="flex items-center gap-3">
+                        <div
+                            v-if="isLoadingRegional"
+                            class="space-y-2 px-2 py-3"
+                        >
+                            <div
+                                v-for="i in 3"
+                                :key="i"
+                                class="flex items-center gap-3"
+                            >
                                 <Skeleton class="h-4 w-4 rounded" />
                                 <div class="flex-1 space-y-1.5">
                                     <Skeleton class="h-4 w-24" />
@@ -330,29 +288,48 @@ defineExpose({
                         </div>
 
                         <!-- Results -->
-                        <CommandItem v-else v-for="regional in regionalResults" :key="regional.id"
+                        <CommandItem
+                            v-else
+                            v-for="regional in regionalResults"
+                            :key="regional.id"
                             :value="`regional-${regional.id}-${regional.name}`"
-                            @select="navigateToRegional(regional.id)">
+                            @select="navigateToRegional(regional.id)"
+                        >
                             <MapPin class="mr-2 h-4 w-4 shrink-0" />
-                            <div class="flex flex-col gap-1 flex-1 min-w-0">
+                            <div class="flex min-w-0 flex-1 flex-col gap-1">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-normal">{{ regional.name }}</span>
-                                    <span class="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                    <span class="font-normal">{{
+                                        regional.name
+                                    }}</span>
+                                    <span
+                                        class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                                    >
                                         Regional #{{ regional.no }}
                                     </span>
                                 </div>
-                                <span class="text-xs text-muted-foreground">{{ regional.category }}</span>
+                                <span class="text-xs text-muted-foreground">{{
+                                    regional.category
+                                }}</span>
                             </div>
                         </CommandItem>
                     </CommandGroup>
                 </template>
 
                 <!-- Pabrik Section -->
-                <template v-if="searchQuery.length >= 2 && (isLoadingPabrik || pabrikResults.length > 0)">
+                <template
+                    v-if="
+                        searchQuery.length >= 2 &&
+                        (isLoadingPabrik || pabrikResults.length > 0)
+                    "
+                >
                     <CommandGroup heading="Pabrik">
                         <!-- Loading Skeleton -->
                         <div v-if="isLoadingPabrik" class="space-y-2 px-2 py-3">
-                            <div v-for="i in 3" :key="i" class="flex items-center gap-3">
+                            <div
+                                v-for="i in 3"
+                                :key="i"
+                                class="flex items-center gap-3"
+                            >
                                 <Skeleton class="h-4 w-4 rounded" />
                                 <div class="flex-1 space-y-1.5">
                                     <Skeleton class="h-4 w-24" />
@@ -362,29 +339,52 @@ defineExpose({
                         </div>
 
                         <!-- Results -->
-                        <CommandItem v-else v-for="pabrik in pabrikResults" :key="pabrik.id"
-                            :value="`pabrik-${pabrik.id}-${pabrik.name}`" @select="navigateToPabrik(pabrik.id)">
+                        <CommandItem
+                            v-else
+                            v-for="pabrik in pabrikResults"
+                            :key="pabrik.id"
+                            :value="`pabrik-${pabrik.id}-${pabrik.name}`"
+                            @select="navigateToPabrik(pabrik.id)"
+                        >
                             <Factory class="mr-2 h-4 w-4 shrink-0" />
-                            <div class="flex flex-col gap-1 flex-1 min-w-0">
+                            <div class="flex min-w-0 flex-1 flex-col gap-1">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-normal">{{ pabrik.name }}</span>
-                                    <span v-if="pabrik.regional_name"
-                                        class="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                    <span class="font-normal">{{
+                                        pabrik.name
+                                    }}</span>
+                                    <span
+                                        v-if="pabrik.regional_name"
+                                        class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                                    >
                                         {{ pabrik.regional_name }}
                                     </span>
                                 </div>
-                                <span class="text-xs text-muted-foreground">#{{ pabrik.plant_code }}</span>
+                                <span class="text-xs text-muted-foreground"
+                                    >#{{ pabrik.plant_code }}</span
+                                >
                             </div>
                         </CommandItem>
                     </CommandGroup>
                 </template>
 
                 <!-- Equipment Section -->
-                <template v-if="searchQuery.length >= 2 && (isLoadingEquipment || equipmentResults.length > 0)">
+                <template
+                    v-if="
+                        searchQuery.length >= 2 &&
+                        (isLoadingEquipment || equipmentResults.length > 0)
+                    "
+                >
                     <CommandGroup heading="Equipment">
                         <!-- Loading Skeleton -->
-                        <div v-if="isLoadingEquipment" class="space-y-2 px-2 py-3">
-                            <div v-for="i in 3" :key="i" class="flex items-center gap-3">
+                        <div
+                            v-if="isLoadingEquipment"
+                            class="space-y-2 px-2 py-3"
+                        >
+                            <div
+                                v-for="i in 3"
+                                :key="i"
+                                class="flex items-center gap-3"
+                            >
                                 <Skeleton class="h-4 w-4 rounded" />
                                 <div class="flex-1 space-y-1.5">
                                     <Skeleton class="h-4 w-24" />
@@ -394,21 +394,30 @@ defineExpose({
                         </div>
 
                         <!-- Results -->
-                        <CommandItem v-else v-for="equipment in equipmentResults" :key="equipment.uuid"
+                        <CommandItem
+                            v-else
+                            v-for="equipment in equipmentResults"
+                            :key="equipment.uuid"
                             :value="`equipment-${equipment.uuid}-${equipment.equipment_number}`"
-                            @select="navigateToEquipment(equipment.uuid)">
+                            @select="navigateToEquipment(equipment.uuid)"
+                        >
                             <Cpu class="mr-2 h-4 w-4 shrink-0" />
-                            <div class="flex flex-col gap-1 flex-1 min-w-0">
+                            <div class="flex min-w-0 flex-1 flex-col gap-1">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-normal">{{ equipment.equipment_number }}</span>
-                                    <span v-if="equipment.plant"
-                                        class="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                    <span class="font-normal">{{
+                                        equipment.equipment_number
+                                    }}</span>
+                                    <span
+                                        v-if="equipment.plant"
+                                        class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                                    >
                                         {{ equipment.plant.name }}
                                     </span>
                                 </div>
-                                <span class="text-xs text-muted-foreground line-clamp-1">{{
-                                    equipment.equipment_description
-                                    }}</span>
+                                <span
+                                    class="line-clamp-1 text-xs text-muted-foreground"
+                                    >{{ equipment.equipment_description }}</span
+                                >
                             </div>
                         </CommandItem>
                     </CommandGroup>

@@ -1,4 +1,5 @@
 <script setup>
+import GlobalSearch from '@/components/GlobalSearch.vue';
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -10,9 +11,7 @@ import { toUrl } from '@/lib/utils';
 import syncLog from '@/routes/sync-log';
 import { Link } from '@inertiajs/vue3';
 import { Logs, Search } from 'lucide-vue-next';
-import { ref } from 'vue';
-// Import GlobalSearch dialog singleton (if it exposes open via $globalSearch or similar)
-import GlobalSearch from '@/components/GlobalSearch.vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 
 const globalSearchOpen = ref(false);
 const openGlobalSearch = () => {
@@ -22,7 +21,21 @@ const closeGlobalSearch = () => {
     globalSearchOpen.value = false;
 };
 
-// All footer nav items are declared here
+// Handle ctrl+k globally
+const handleGlobalSearchShortcut = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        e.stopPropagation();
+        globalSearchOpen.value = !globalSearchOpen.value;
+    }
+};
+onMounted(() => {
+    window.addEventListener('keydown', handleGlobalSearchShortcut, true);
+});
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleGlobalSearchShortcut, true);
+});
+
 const footerNavItems = [
     {
         title: 'Sync Log',
@@ -69,10 +82,9 @@ const footerNavItems = [
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarGroupContent>
-        <!-- Global Search Modal -->
         <GlobalSearch
-            v-if="globalSearchOpen"
             :open="globalSearchOpen"
+            @update:open="globalSearchOpen = $event"
             @close="closeGlobalSearch"
         />
     </SidebarGroup>
