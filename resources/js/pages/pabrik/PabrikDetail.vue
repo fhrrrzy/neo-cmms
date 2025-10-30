@@ -36,6 +36,7 @@ import {
 import { computed, onMounted, ref, watch, nextTick } from 'vue';
 import { parseDate, getLocalTimeZone } from '@internationalized/date';
 import { useDateRangeStore } from '@/stores/useDateRangeStore';
+import { usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
     id: {
@@ -58,7 +59,7 @@ const dataTableRef = ref();
 // Pagination state
 const pagination = ref({
     total: 0,
-    per_page: 25,
+    per_page: 15,
     current_page: 1,
     last_page: 1,
     from: 0,
@@ -135,7 +136,7 @@ const fetchPlantDetail = async () => {
     }
 };
 
-const fetchEquipment = async (page = 1, pageSize = 25) => {
+const fetchEquipment = async (page = 1, pageSize = 15) => {
     loading.value = true;
     error.value = null;
     try {
@@ -152,15 +153,15 @@ const fetchEquipment = async (page = 1, pageSize = 25) => {
             params.append('date_end', filters.value.date_range.end);
         }
 
-        // Add station filter
-        if (filters.value.station_codes?.length > 0) {
+        // Add station filter (only if not all stations are selected)
+        if (filters.value.station_codes?.length > 0 && filters.value.station_codes.length < stations.value.length) {
             filters.value.station_codes.forEach(code => {
                 params.append('station_codes[]', code);
             });
         }
 
-        // Add equipment type filter
-        if (filters.value.equipment_types?.length > 0) {
+        // Add equipment type filter (only if not all types are selected)
+        if (filters.value.equipment_types?.length > 0 && filters.value.equipment_types.length < equipmentTypes.value.length) {
             filters.value.equipment_types.forEach(type => {
                 params.append('equipment_types[]', type);
             });
@@ -382,8 +383,49 @@ onMounted(async () => {
     await fetchEquipment();
 });
 const goBack = () => {
-    router.visit('/pabrik');
+    // Check if there's a previous page in browser history
+    const referrer = document.referrer;
+    const currentOrigin = window.location.origin;
+
+    // If referrer is from our site, check the path
+    if (referrer.startsWith(currentOrigin)) {
+        const referrerPath = new URL(referrer).pathname;
+
+        // If coming from regional detail page
+        if (referrerPath.startsWith('/regions/')) {
+            router.visit(`/regions/${plant.value.regional_id}`);
+            return;
+        }
+
+        // If coming from pabrik list page
+        if (referrerPath === '/pabrik') {
+            router.visit('/pabrik');
+            return;
+        }
+    }
+
+    // Default: go to dashboard (e.g., from global search or direct link)
+    router.visit('/dashboard');
 };
+
+const backButtonLabel = computed(() => {
+    const referrer = document.referrer;
+    const currentOrigin = window.location.origin;
+
+    if (referrer.startsWith(currentOrigin)) {
+        const referrerPath = new URL(referrer).pathname;
+
+        if (referrerPath.startsWith('/regions/')) {
+            return 'Back to Regional';
+        }
+
+        if (referrerPath === '/pabrik') {
+            return 'Back to Pabrik';
+        }
+    }
+
+    return 'Back to Dashboard';
+});
 </script>
 
 <template>
@@ -426,7 +468,7 @@ const goBack = () => {
                     </p>
                     <Button variant="outline" @click="goBack">
                         <ArrowLeft class="mr-2 h-4 w-4" />
-                        Back to Pabrik List
+                        {{ backButtonLabel }}
                     </Button>
                 </div>
             </div>
@@ -451,7 +493,7 @@ const goBack = () => {
                     <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
                         <Button variant="outline" class="w-full md:w-auto" @click="goBack">
                             <ArrowLeft class="mr-2 h-4 w-4" />
-                            Back to Pabrik
+                            {{ backButtonLabel }}
                         </Button>
                     </div>
                 </div>
@@ -577,6 +619,17 @@ const goBack = () => {
 
                 <!-- Equipment List Section -->
                 <div class="space-y-4">
+                    <!-- Section Header -->
+                    <div class="space-y-1">
+                        <h2 class="text-2xl font-semibold tracking-tight">
+                            Equipment List
+                        </h2>
+                        <p class="text-sm text-muted-foreground">
+                            Browse and filter all equipment in {{ plant.name }}. Use the filters below to narrow down
+                            your search by date range, station, equipment type, or search terms.
+                        </p>
+                    </div>
+
                     <!-- Filter Toggle and Controls -->
                     <div class="flex flex-wrap items-center justify-between gap-4">
                         <div class="flex flex-wrap items-center gap-2">

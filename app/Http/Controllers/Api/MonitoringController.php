@@ -26,15 +26,22 @@ class MonitoringController extends Controller
             ->leftJoin('stations', 'equipment.station_id', '=', 'stations.id');
 
         // Apply filters (support both single and multiple selections)
+        // First, determine which plant IDs we're filtering by
+        $plantIds = [];
+        if ($request->filled('plant_id')) {
+            $plantIds = [$request->plant_id];
+            $query->where('equipment.plant_id', $request->plant_id);
+        } elseif ($request->filled('plant_ids')) {
+            $plantIds = is_array($request->plant_ids) ? $request->plant_ids : [$request->plant_ids];
+            $query->whereIn('equipment.plant_id', $plantIds);
+        }
+
+        // Apply station filter (works with or without plant filter)
         if ($request->filled('station_codes')) {
             $stationCodes = is_array($request->station_codes) ? $request->station_codes : [$request->station_codes];
 
-            // If we have station codes, we need to filter by plant + station code combination
-            if ($request->filled('plant_ids')) {
-                $plantIds = is_array($request->plant_ids) ? $request->plant_ids : [$request->plant_ids];
-                $query->whereIn('equipment.plant_id', $plantIds);
-
-                // Filter stations by cost_center (plant_code + station_code)
+            if (!empty($plantIds)) {
+                // If plant filter exists, filter stations by cost_center (plant_code + station_code)
                 $query->whereHas('station', function (Builder $q) use ($stationCodes, $plantIds) {
                     $q->where(function (Builder $subQ) use ($stationCodes, $plantIds) {
                         foreach ($plantIds as $plantId) {
@@ -57,13 +64,41 @@ class MonitoringController extends Controller
                     });
                 });
             }
-        } elseif ($request->filled('plant_ids')) {
-            $plantIds = is_array($request->plant_ids) ? $request->plant_ids : [$request->plant_ids];
-            $query->whereIn('equipment.plant_id', $plantIds);
-        } elseif ($request->filled('regional_ids')) {
+        }
+
+        // Apply regional filter (only if no plant filter exists)
+        if (empty($plantIds) && $request->filled('regional_ids')) {
             $regionalIds = is_array($request->regional_ids) ? $request->regional_ids : [$request->regional_ids];
             $query->whereHas('plant', function (Builder $q) use ($regionalIds) {
                 $q->whereIn('regional_id', $regionalIds);
+            });
+        }
+
+        // Apply equipment type filter
+        if ($request->filled('equipment_types')) {
+            $equipmentTypes = is_array($request->equipment_types) ? $request->equipment_types : [$request->equipment_types];
+
+            $query->where(function (Builder $q) use ($equipmentTypes) {
+                foreach ($equipmentTypes as $type) {
+                    // Map equipment types to eqtyp values
+                    switch ($type) {
+                        case 'Mesin Produksi':
+                            $q->orWhere('equipment.eqtyp', 'M');
+                            break;
+                        case 'Kendaraan':
+                            $q->orWhere('equipment.eqtyp', 'V');
+                            break;
+                        case 'Alat dan Utilitas':
+                            $q->orWhere('equipment.eqtyp', 'R');
+                            break;
+                        case 'IT & Telekomunikasi':
+                            $q->orWhere('equipment.eqtyp', 'I');
+                            break;
+                        case 'Aset PMN':
+                            $q->orWhere('equipment.eqtyp', 'P');
+                            break;
+                    }
+                }
             });
         }
 
@@ -205,8 +240,10 @@ class MonitoringController extends Controller
             'has_more_pages' => $paginatedEquipment->hasMorePages(),
             'filters' => [
                 'regional_ids' => $request->get('regional_ids'),
+                'plant_id' => $request->get('plant_id'),
                 'plant_ids' => $request->get('plant_ids'),
                 'station_codes' => $request->get('station_codes'),
+                'equipment_types' => $request->get('equipment_types'),
                 'date_start' => $dateStart,
                 'date_end' => $dateEnd,
                 'search' => $request->get('search'),
