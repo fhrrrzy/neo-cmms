@@ -1,6 +1,6 @@
 <script setup>
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import BoringAvatar from 'vue-boring-avatars';
 
 const props = defineProps({
@@ -18,6 +18,17 @@ const props = defineProps({
 const showAvatar = computed(
     () => props.user.avatar && props.user.avatar !== '',
 );
+
+const colors = ref(['#92A1C6', '#146A7C', '#F0AB3D']);
+
+onMounted(() => {
+    const rootStyles = getComputedStyle(document.documentElement);
+    colors.value = [
+        rootStyles.getPropertyValue('--secondary').trim() || '#146A7C',
+        rootStyles.getPropertyValue('--accent').trim() || '#F0AB3D',
+        rootStyles.getPropertyValue('--primary').trim() || '#92A1C6',
+    ];
+});
 </script>
 
 <template>
@@ -28,13 +39,7 @@ const showAvatar = computed(
                 :name="user.name"
                 variant="beam"
                 square
-                :colors="[
-                    '#92A1C6',
-                    '#146A7C',
-                    '#F0AB3D',
-                    '#C271B4',
-                    '#C20D90',
-                ]"
+                :colors="colors"
             />
         </AvatarFallback>
     </Avatar>

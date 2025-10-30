@@ -1,5 +1,7 @@
-<script setup lang="ts">
+<script setup>
 import UserInfo from '@/components/UserInfo.vue';
+import Dialog from '@/components/ui/dialog/Dialog.vue';
+import DialogContent from '@/components/ui/dialog/DialogContent.vue';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -8,19 +10,24 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
-import type { User } from '@/types';
 import { Link, router } from '@inertiajs/vue3';
 import { LogOut, Settings } from 'lucide-vue-next';
+import { ref } from 'vue';
 
-interface Props {
-    user: User;
-}
+defineProps({ user: Object });
 
-const handleLogout = () => {
+const showLogoutConfirm = ref(false);
+const handleLogout = (e) => {
+    e.preventDefault();
+    showLogoutConfirm.value = true;
+};
+const confirmLogout = () => {
+    showLogoutConfirm.value = false;
     router.flushAll();
 };
-
-defineProps<Props>();
+const cancelLogout = () => {
+    showLogoutConfirm.value = false;
+};
 </script>
 
 <template>
@@ -51,4 +58,27 @@ defineProps<Props>();
             Log out
         </Link>
     </DropdownMenuItem>
+
+    <Dialog v-model="showLogoutConfirm">
+        <DialogContent>
+            <div class="flex flex-col items-center gap-4 text-center">
+                <div class="text-lg font-medium">Confirm Logout</div>
+                <div>Are you sure you want to log out?</div>
+                <div class="mt-4 flex gap-4">
+                    <button
+                        class="btn btn-sm btn-primary"
+                        @click="confirmLogout"
+                    >
+                        Yes, Log Out
+                    </button>
+                    <button
+                        class="btn btn-sm btn-outline"
+                        @click="cancelLogout"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </DialogContent>
+    </Dialog>
 </template>
