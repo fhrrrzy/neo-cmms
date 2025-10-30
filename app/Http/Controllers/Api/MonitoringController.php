@@ -28,11 +28,16 @@ class MonitoringController extends Controller
         // Apply filters (support both single and multiple selections)
         // First, determine which plant IDs we're filtering by
         $plantIds = [];
-        if ($request->filled('plant_id')) {
-            $plantIds = [$request->plant_id];
-            $query->where('equipment.plant_id', $request->plant_id);
-        } elseif ($request->filled('plant_ids')) {
-            $plantIds = is_array($request->plant_ids) ? $request->plant_ids : [$request->plant_ids];
+        if ($request->filled('plant_uuid')) {
+            $plant = Plant::where('uuid', $request->plant_uuid)->first();
+            if ($plant) {
+                $plantIds = [$plant->id];
+                $query->where('equipment.plant_id', $plant->id);
+            }
+        } elseif ($request->filled('plant_uuids')) {
+            $plantUuids = is_array($request->plant_uuids) ? $request->plant_uuids : [$request->plant_uuids];
+            $plants = Plant::whereIn('uuid', $plantUuids)->get();
+            $plantIds = $plants->pluck('id')->toArray();
             $query->whereIn('equipment.plant_id', $plantIds);
         }
 
@@ -67,11 +72,13 @@ class MonitoringController extends Controller
         }
 
         // Apply regional filter (only if no plant filter exists)
-        if (empty($plantIds) && $request->filled('regional_ids')) {
-            $regionalIds = is_array($request->regional_ids) ? $request->regional_ids : [$request->regional_ids];
-            $query->whereHas('plant', function (Builder $q) use ($regionalIds) {
-                $q->whereIn('regional_id', $regionalIds);
-            });
+        if (empty($plantIds) && $request->filled('regional_uuid')) {
+            $region = Region::where('uuid', $request->regional_uuid)->first();
+            if ($region) {
+                $query->whereHas('plant', function (Builder $q) use ($region) {
+                    $q->where('regional_id', $region->id);
+                });
+            }
         }
 
         // Apply equipment type filter
@@ -196,7 +203,7 @@ class MonitoringController extends Controller
                 'point' => $item->point,
                 'equipment_type' => $item->equipment_type,
                 'plant' => $item->plant ? [
-                    'id' => $item->plant->id,
+                    'uuid' => $item->plant->uuid,
                     'name' => $item->plant->name,
                 ] : null,
                 'station' => $item->station ? [
@@ -220,9 +227,9 @@ class MonitoringController extends Controller
             'to' => $paginatedEquipment->lastItem(),
             'has_more_pages' => $paginatedEquipment->hasMorePages(),
             'filters' => [
-                'regional_ids' => $request->get('regional_ids'),
-                'plant_id' => $request->get('plant_id'),
-                'plant_ids' => $request->get('plant_ids'),
+                'regional_uuid' => $request->get('regional_uuid'),
+                'plant_uuid' => $request->get('plant_uuid'),
+                'plant_uuids' => $request->get('plant_uuids'),
                 'station_codes' => $request->get('station_codes'),
                 'equipment_types' => $request->get('equipment_types'),
                 'date_start' => $dateStart,
@@ -236,21 +243,20 @@ class MonitoringController extends Controller
 
     public function regions()
     {
-        $regions = Region::orderBy('name')->get(['id', 'name']);
-
+        $regions = Region::orderBy('name')->get(['uuid', 'name']);
         return response()->json($regions);
     }
 
     public function plants(Request $request)
     {
         $query = Plant::orderBy('name');
-
-        if ($request->filled('regional_id')) {
-            $query->where('regional_id', $request->regional_id);
+        if ($request->filled('regional_uuid')) {
+            $region = Region::where('uuid', $request->regional_uuid)->first();
+            if ($region) {
+                $query->where('regional_id', $region->id);
+            }
         }
-
-        $plants = $query->get(['id', 'name', 'regional_id']);
-
+        $plants = $query->get(['uuid', 'name']);
         return response()->json($plants);
     }
 
@@ -258,8 +264,11 @@ class MonitoringController extends Controller
     {
         $query = Station::orderBy('description');
 
-        if ($request->filled('plant_id')) {
-            $query->where('plant_id', $request->plant_id);
+        if ($request->filled('plant_uuid')) {
+            $plant = Plant::where('uuid', $request->plant_uuid)->first();
+            if ($plant) {
+                $query->where('plant_id', $plant->id);
+            }
         }
 
         $stations = $query->get(['id', 'description', 'plant_id']);
@@ -279,15 +288,17 @@ class MonitoringController extends Controller
         $plantQuery = Plant::query();
 
         // Apply regional filter
-        if ($request->filled('regional_ids')) {
-            $regionalIds = is_array($request->regional_ids) ? $request->regional_ids : [$request->regional_ids];
-            $plantQuery->whereIn('regional_id', $regionalIds);
+        if ($request->filled('regional_uuid')) {
+            $region = Region::where('uuid', $request->regional_uuid)->first();
+            if ($region) {
+                $plantQuery->where('regional_id', $region->id);
+            }
         }
 
         // Apply plant filter
-        if ($request->filled('plant_ids')) {
-            $plantIds = is_array($request->plant_ids) ? $request->plant_ids : [$request->plant_ids];
-            $plantQuery->whereIn('id', $plantIds);
+        if ($request->filled('plant_uuids')) {
+            $plantUuids = is_array($request->plant_uuids) ? $request->plant_uuids : [$request->plant_uuids];
+            $plantQuery->whereIn('uuid', $plantUuids);
         }
 
         $plants = $plantQuery->orderBy('name')->get();
@@ -309,19 +320,19 @@ class MonitoringController extends Controller
             ->get();
 
         foreach ($dailyPlantDataRecords as $record) {
-            $key = $record->plant_id . '_' . $record->date;
+            $key = $record->plant_uuid . '_' . $record->date;
             $dailyPlantDataMap[$key] = $record;
         }
 
         // Get equipment counts for each plant-date combination
         $equipmentCounts = DB::table('running_times')
-            ->select('running_times.plant_id', 'running_times.date', DB::raw('COUNT(DISTINCT running_times.equipment_number) as equipment_count'))
+            ->select('running_times.plant_uuid', 'running_times.date', DB::raw('COUNT(DISTINCT running_times.equipment_number) as equipment_count'))
             ->whereBetween('running_times.date', [$dateStart, $dateEnd])
             ->whereRaw('COALESCE(running_times.running_hours, 0) > 0')
-            ->groupBy('running_times.plant_id', 'running_times.date')
+            ->groupBy('running_times.plant_uuid', 'running_times.date')
             ->get()
             ->keyBy(function ($item) {
-                return $item->plant_id . '_' . $item->date;
+                return $item->plant_uuid . '_' . $item->date;
             });
 
         // Build summary data
@@ -329,13 +340,13 @@ class MonitoringController extends Controller
 
         foreach ($plants as $plant) {
             $plantData = [
-                'id' => $plant->id,
+                'uuid' => $plant->uuid,
                 'name' => $plant->name,
                 'dates' => [],
             ];
 
             foreach ($dates as $date) {
-                $key = $plant->id . '_' . $date;
+                $key = $plant->uuid . '_' . $date;
                 $equipmentCount = isset($equipmentCounts[$key]) ? $equipmentCounts[$key]->equipment_count : 0;
 
                 // Get is_mengolah status
@@ -360,27 +371,27 @@ class MonitoringController extends Controller
             'filters' => [
                 'date_start' => $dateStart,
                 'date_end' => $dateEnd,
-                'regional_ids' => $request->get('regional_ids'),
-                'plant_ids' => $request->get('plant_ids'),
+                'regional_uuid' => $request->get('regional_uuid'),
+                'plant_uuids' => $request->get('plant_uuids'),
             ],
         ]);
     }
 
     public function jamJalanDetail(Request $request)
     {
-        $plantId = $request->get('plant_id');
+        $plantUuid = $request->get('plant_uuid');
         $date = $request->get('date');
 
-        if (!$plantId || !$date) {
+        if (!$plantUuid || !$date) {
             return response()->json([
-                'message' => 'Plant ID and date are required',
+                'message' => 'Plant UUID and date are required',
                 'error' => 'Missing required parameters'
             ], 400);
         }
 
         // Get is_mengolah status from daily_plant_data
         $dailyPlantData = DB::table('daily_plant_data')
-            ->where('plant_id', $plantId)
+            ->where('plant_uuid', $plantUuid)
             ->where('date', $date)
             ->select('is_mengolah')
             ->first();
@@ -390,7 +401,7 @@ class MonitoringController extends Controller
         // Get equipment with running times for that date
         $equipmentWithRunningTime = DB::table('running_times')
             ->join('equipment', 'running_times.equipment_number', '=', 'equipment.equipment_number')
-            ->where('running_times.plant_id', $plantId)
+            ->where('running_times.plant_uuid', $plantUuid)
             ->where('running_times.date', $date)
             ->whereRaw('COALESCE(running_times.running_hours, 0) > 0')
             ->select([
@@ -405,12 +416,12 @@ class MonitoringController extends Controller
 
         // Get equipment without running times (0 or null)
         $equipmentWithoutRunningTime = DB::table('equipment')
-            ->where('plant_id', $plantId)
-            ->whereNotExists(function ($query) use ($plantId, $date) {
+            ->where('plant_uuid', $plantUuid)
+            ->whereNotExists(function ($query) use ($plantUuid, $date) {
                 $query->select(DB::raw(1))
                     ->from('running_times')
                     ->whereRaw('running_times.equipment_number = equipment.equipment_number')
-                    ->where('running_times.plant_id', $plantId)
+                    ->where('running_times.plant_uuid', $plantUuid)
                     ->where('running_times.date', $date)
                     ->whereRaw('COALESCE(running_times.running_hours, 0) > 0');
             })
@@ -469,7 +480,7 @@ class MonitoringController extends Controller
                 'plants.name as plant_name',
             ])
             ->leftJoin('work_orders', 'equipment_work_orders.order_number', '=', 'work_orders.order')
-            ->leftJoin('plants', 'equipment_work_orders.plant_id', '=', 'plants.id')
+            ->leftJoin('plants', 'equipment_work_orders.plant_uuid', '=', 'plants.uuid')
             ->where('equipment_work_orders.equipment_number', $equipmentNumber)
             ->whereBetween('equipment_work_orders.requirements_date', [$dateStart, $dateEnd])
             ->where('equipment_work_orders.value_withdrawn', '>', 0) // Only show records with actual value

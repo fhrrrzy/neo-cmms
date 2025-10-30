@@ -52,8 +52,8 @@ const filters = ref({
         start: dateRangeStore.start,
         end: dateRangeStore.end,
     },
-    regional_ids: monitoringFilterStore.regional_ids || [],
-    plant_ids: monitoringFilterStore.plant_ids || [],
+    regional_uuids: monitoringFilterStore.regional_uuids || [],
+    plant_uuids: monitoringFilterStore.plant_uuids || [],
     station_codes: monitoringFilterStore.station_codes || [],
     equipment_types: monitoringFilterStore.equipment_types || [],
     search: monitoringFilterStore.search,
@@ -70,20 +70,36 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
         params.append('sort_by', sorting.value.sort_by);
         params.append('sort_direction', sorting.value.sort_direction);
 
-        if (filters.value.regional_ids?.length) {
-            filters.value.regional_ids.forEach((id) => params.append('regional_ids[]', id.toString()));
+        if (filters.value.regional_uuids?.length) {
+            filters.value.regional_uuids.forEach((uuid) =>
+                params.append('regional_uuids[]', uuid),
+            );
         }
-        if (filters.value.plant_ids?.length) {
-            filters.value.plant_ids.forEach((id) => params.append('plant_ids[]', id.toString()));
+        if (filters.value.plant_uuids?.length) {
+            filters.value.plant_uuids.forEach((uuid) =>
+                params.append('plant_uuids[]', uuid),
+            );
         }
-        if (filters.value.station_codes?.length && filters.value.station_codes.length < 15) {
-            filters.value.station_codes.forEach((code) => params.append('station_codes[]', code));
+        if (
+            filters.value.station_codes?.length &&
+            filters.value.station_codes.length < 15
+        ) {
+            filters.value.station_codes.forEach((code) =>
+                params.append('station_codes[]', code),
+            );
         }
-        if (filters.value.equipment_types?.length && filters.value.equipment_types.length < 5) {
-            filters.value.equipment_types.forEach((type) => params.append('equipment_types[]', type));
+        if (
+            filters.value.equipment_types?.length &&
+            filters.value.equipment_types.length < 5
+        ) {
+            filters.value.equipment_types.forEach((type) =>
+                params.append('equipment_types[]', type),
+            );
         }
-        if (filters.value.date_range.start) params.append('date_start', filters.value.date_range.start);
-        if (filters.value.date_range.end) params.append('date_end', filters.value.date_range.end);
+        if (filters.value.date_range.start)
+            params.append('date_start', filters.value.date_range.start);
+        if (filters.value.date_range.end)
+            params.append('date_end', filters.value.date_range.end);
         if (filters.value.search) params.append('search', filters.value.search);
 
         const response = await axios.get(`/api/monitoring/equipment?${params}`);
@@ -99,7 +115,8 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
             has_more_pages: response.data.has_more_pages,
         };
     } catch (err) {
-        error.value = err.response?.data?.message || 'Terjadi kesalahan saat memuat data';
+        error.value =
+            err.response?.data?.message || 'Terjadi kesalahan saat memuat data';
         console.error('Error fetching equipment:', err);
     } finally {
         loading.value = false;
@@ -109,8 +126,8 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
 const handleFilterChange = (newFilters) => {
     filters.value = { ...filters.value, ...newFilters };
     monitoringFilterStore.setFilters({
-        regional_ids: filters.value.regional_ids || [],
-        plant_ids: filters.value.plant_ids || [],
+        regional_uuids: filters.value.regional_uuids || [],
+        plant_uuids: filters.value.plant_uuids || [],
         station_codes: filters.value.station_codes || [],
         equipment_types: filters.value.equipment_types || [],
         search: filters.value.search,
@@ -121,7 +138,8 @@ const handleFilterChange = (newFilters) => {
     fetchEquipment(1, pagination.value.per_page);
 };
 
-const handlePageChange = (page) => fetchEquipment(page, pagination.value.per_page);
+const handlePageChange = (page) =>
+    fetchEquipment(page, pagination.value.per_page);
 
 const handlePageSizeChange = (perPage) => {
     pagination.value.per_page = perPage;
@@ -153,25 +171,39 @@ onMounted(() => fetchEquipment());
 </script>
 
 <template>
-
     <Head title="Monitoring Equipment" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-4 md:space-y-6">
             <!-- MonitoringFilter with integrated search and column toggle -->
-            <MonitoringFilter :filters="filters" :table="dataTableRef?.table" @filter-change="handleFilterChange" />
+            <MonitoringFilter
+                :filters="filters"
+                :table="dataTableRef?.table"
+                @filter-change="handleFilterChange"
+            />
 
             <!-- Equipment Data Table -->
             <div class="space-y-4">
-                <DataTable ref="dataTableRef" :data="equipment" :loading="loading" :error="error"
-                    :pagination="pagination" :sorting="sorting" @page-change="handlePageChange"
-                    @page-size-change="handlePageSizeChange" @sort-change="handleSortChange"
-                    @row-click="handleRowClick" />
+                <DataTable
+                    ref="dataTableRef"
+                    :data="equipment"
+                    :loading="loading"
+                    :error="error"
+                    :pagination="pagination"
+                    :sorting="sorting"
+                    @page-change="handlePageChange"
+                    @page-size-change="handlePageSizeChange"
+                    @sort-change="handleSortChange"
+                    @row-click="handleRowClick"
+                />
             </div>
         </div>
 
         <!-- Equipment Detail Sheet -->
-        <EquipmentDetailSheet :is-open="isSheetOpen" :equipment-number="selectedEquipmentNumber"
-            @close="handleSheetClose" />
+        <EquipmentDetailSheet
+            :is-open="isSheetOpen"
+            :equipment-number="selectedEquipmentNumber"
+            @close="handleSheetClose"
+        />
     </AppLayout>
 </template>

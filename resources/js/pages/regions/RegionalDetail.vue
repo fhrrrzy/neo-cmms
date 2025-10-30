@@ -23,7 +23,6 @@ import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import {
     ArrowLeft,
-    Building2,
     CheckCircle2,
     Factory,
     FileText,
@@ -32,8 +31,8 @@ import {
 import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps({
-    id: {
-        type: Number,
+    uuid: {
+        type: String,
         required: true,
     },
 });
@@ -66,7 +65,7 @@ const fetchRegionDetail = async () => {
     error.value = null;
     notFound.value = false;
     try {
-        const { data } = await axios.get(`/api/regions/${props.id}`);
+        const { data } = await axios.get(`/api/regions/${props.uuid}`);
         region.value = data.region;
         stats.value = data.stats;
         plants.value = data.plants || [];
@@ -82,8 +81,8 @@ const fetchRegionDetail = async () => {
     }
 };
 
-const navigateToPlant = (plantId) => {
-    router.visit(`/pabrik/${plantId}`);
+const navigateToPlant = (plantUuid) => {
+    router.visit(`/pabrik/${plantUuid}`);
 };
 
 const goBack = () => {
@@ -96,20 +95,25 @@ onMounted(() => {
 </script>
 
 <template>
-
     <Head :title="region?.name || 'Regional Detail'" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-6 p-4">
             <!-- Loading State -->
             <div v-if="loading" class="space-y-6">
-                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div
+                    class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+                >
                     <div class="w-full space-y-2">
                         <Skeleton class="h-8 w-2/3" />
                         <Skeleton class="h-4 w-40" />
                         <Skeleton class="h-3 w-56" />
                         <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                            <Skeleton v-for="i in 4" :key="i" class="h-10 w-full" />
+                            <Skeleton
+                                v-for="i in 4"
+                                :key="i"
+                                class="h-10 w-full"
+                            />
                         </div>
                     </div>
                     <div class="hidden w-72 md:block">
@@ -128,9 +132,14 @@ onMounted(() => {
             </div>
 
             <!-- Not Found State -->
-            <div v-else-if="notFound" class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6">
+            <div
+                v-else-if="notFound"
+                class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6"
+            >
                 <div class="space-y-4 text-center">
-                    <p class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl">
+                    <p
+                        class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl"
+                    >
                         Region not found
                     </p>
                     <Button variant="outline" @click="goBack">
@@ -143,7 +152,9 @@ onMounted(() => {
             <!-- Main Content -->
             <template v-else-if="region && stats">
                 <!-- Header Section -->
-                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div
+                    class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+                >
                     <div>
                         <h1 class="text-3xl font-bold tracking-tight">
                             {{ region.name }}
@@ -155,8 +166,14 @@ onMounted(() => {
                             Category: {{ region.category }}
                         </p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
-                        <Button variant="outline" class="w-full md:w-auto" @click="goBack">
+                    <div
+                        class="flex flex-wrap items-center gap-3 md:flex-nowrap"
+                    >
+                        <Button
+                            variant="outline"
+                            class="w-full md:w-auto"
+                            @click="goBack"
+                        >
                             <ArrowLeft class="mr-2 h-4 w-4" />
                             Back to Regional
                         </Button>
@@ -185,7 +202,9 @@ onMounted(() => {
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <Wrench class="h-5 w-5" />
-                            <CardTitle class="text-sm">Total Equipment</CardTitle>
+                            <CardTitle class="text-sm"
+                                >Total Equipment</CardTitle
+                            >
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
@@ -205,7 +224,9 @@ onMounted(() => {
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <FileText class="h-5 w-5" />
-                            <CardTitle class="text-sm">Total Work Orders</CardTitle>
+                            <CardTitle class="text-sm"
+                                >Total Work Orders</CardTitle
+                            >
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
@@ -257,37 +278,71 @@ onMounted(() => {
                                         <Factory />
                                     </EmptyMedia>
                                     <EmptyTitle>No Plants</EmptyTitle>
-                                    <EmptyDescription>No plants found in this
-                                        region</EmptyDescription>
+                                    <EmptyDescription
+                                        >No plants found in this
+                                        region</EmptyDescription
+                                    >
                                 </EmptyHeader>
                             </Empty>
                         </div>
 
                         <!-- Mobile: Card Layout -->
                         <div v-else class="space-y-3 md:hidden">
-                            <Card v-for="plant in plants" :key="plant.id"
+                            <Card
+                                v-for="plant in plants"
+                                :key="plant.uuid"
                                 class="cursor-pointer transition-all hover:shadow-md"
-                                @click="navigateToPlant(plant.id)">
+                                @click="navigateToPlant(plant.uuid)"
+                            >
                                 <CardContent class="p-4">
-                                    <div class="flex items-center justify-between">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
                                         <div class="flex-1 space-y-2">
-                                            <div class="flex items-center gap-2">
-                                                <p class="font-semibold leading-none">
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <p
+                                                    class="leading-none font-semibold"
+                                                >
                                                     {{ plant.name }}
                                                 </p>
-                                                <Badge :variant="plant.is_active ? 'default' : 'secondary'"
-                                                    class="text-xs">
-                                                    {{ plant.is_active ? 'Active' : 'Inactive' }}
+                                                <Badge
+                                                    :variant="
+                                                        plant.is_active
+                                                            ? 'default'
+                                                            : 'secondary'
+                                                    "
+                                                    class="text-xs"
+                                                >
+                                                    {{
+                                                        plant.is_active
+                                                            ? 'Active'
+                                                            : 'Inactive'
+                                                    }}
                                                 </Badge>
                                             </div>
-                                            <p class="text-xs text-muted-foreground">
+                                            <p
+                                                class="text-xs text-muted-foreground"
+                                            >
                                                 {{ plant.plant_code }}
                                             </p>
-                                            <div class="flex items-center gap-4 text-xs">
-                                                <div class="flex items-center gap-1">
-                                                    <Wrench class="h-3 w-3 text-muted-foreground" />
-                                                    <span class="font-medium">{{ plant.equipment_count }}</span>
-                                                    <span class="text-muted-foreground">Equipment</span>
+                                            <div
+                                                class="flex items-center gap-4 text-xs"
+                                            >
+                                                <div
+                                                    class="flex items-center gap-1"
+                                                >
+                                                    <Wrench
+                                                        class="h-3 w-3 text-muted-foreground"
+                                                    />
+                                                    <span class="font-medium">{{
+                                                        plant.equipment_count
+                                                    }}</span>
+                                                    <span
+                                                        class="text-muted-foreground"
+                                                        >Equipment</span
+                                                    >
                                                 </div>
                                             </div>
                                         </div>
@@ -317,39 +372,82 @@ onMounted(() => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        <TableRow v-for="plant in plants" :key="plant.id" class="cursor-pointer"
-                                            @click="navigateToPlant(plant.id)">
+                                        <TableRow
+                                            v-for="plant in plants"
+                                            :key="plant.uuid"
+                                            class="cursor-pointer"
+                                            @click="navigateToPlant(plant.uuid)"
+                                        >
                                             <TableCell>
-                                                <div class="flex flex-col gap-0.5">
-                                                    <span class="font-medium leading-none">
+                                                <div
+                                                    class="flex flex-col gap-0.5"
+                                                >
+                                                    <span
+                                                        class="leading-none font-medium"
+                                                    >
                                                         {{ plant.name }}
                                                     </span>
-                                                    <span class="text-xs text-muted-foreground">
+                                                    <span
+                                                        class="text-xs text-muted-foreground"
+                                                    >
                                                         {{ plant.plant_code }}
                                                     </span>
                                                 </div>
                                             </TableCell>
                                             <TableCell class="text-center">
-                                                <Badge :variant="plant.is_active ? 'default' : 'secondary'"
-                                                    class="text-xs">
-                                                    {{ plant.is_active ? 'Active' : 'Inactive' }}
+                                                <Badge
+                                                    :variant="
+                                                        plant.is_active
+                                                            ? 'default'
+                                                            : 'secondary'
+                                                    "
+                                                    class="text-xs"
+                                                >
+                                                    {{
+                                                        plant.is_active
+                                                            ? 'Active'
+                                                            : 'Inactive'
+                                                    }}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell class="text-right">
-                                                <div class="flex flex-col items-end gap-0.5">
-                                                    <span class="font-semibold tabular-nums">
-                                                        {{ plant.equipment_count.toLocaleString('id-ID') }}
+                                                <div
+                                                    class="flex flex-col items-end gap-0.5"
+                                                >
+                                                    <span
+                                                        class="font-semibold tabular-nums"
+                                                    >
+                                                        {{
+                                                            plant.equipment_count.toLocaleString(
+                                                                'id-ID',
+                                                            )
+                                                        }}
                                                     </span>
-                                                    <span class="text-xs text-muted-foreground">units</span>
+                                                    <span
+                                                        class="text-xs text-muted-foreground"
+                                                        >units</span
+                                                    >
                                                 </div>
                                             </TableCell>
                                             <TableCell class="text-right">
-                                                <div class="flex flex-col items-end gap-0.5">
-                                                    <span class="font-semibold tabular-nums">
-                                                        {{ plant.kaps_terpasang ?
-                                                            plant.kaps_terpasang.toLocaleString('id-ID') : '—' }}
+                                                <div
+                                                    class="flex flex-col items-end gap-0.5"
+                                                >
+                                                    <span
+                                                        class="font-semibold tabular-nums"
+                                                    >
+                                                        {{
+                                                            plant.kaps_terpasang
+                                                                ? plant.kaps_terpasang.toLocaleString(
+                                                                      'id-ID',
+                                                                  )
+                                                                : '—'
+                                                        }}
                                                     </span>
-                                                    <span class="text-xs text-muted-foreground">ton/hr</span>
+                                                    <span
+                                                        class="text-xs text-muted-foreground"
+                                                        >ton/hr</span
+                                                    >
                                                 </div>
                                             </TableCell>
                                         </TableRow>

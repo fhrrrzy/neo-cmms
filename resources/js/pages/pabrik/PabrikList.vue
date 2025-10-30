@@ -46,8 +46,8 @@ const fetchPlants = async () => {
     }
 };
 
-const navigateToPlantDetail = (plantId) => {
-    router.visit(`/pabrik/${plantId}`);
+const navigateToPlantDetail = (plantUuid) => {
+    router.visit(`/pabrik/${plantUuid}`);
 };
 
 const goBack = () => {
@@ -133,9 +133,9 @@ onMounted(() => {
             >
                 <Card
                     v-for="plant in plants"
-                    :key="plant.id"
+                    :key="plant.uuid"
                     class="cursor-pointer transition-colors hover:bg-accent"
-                    @click="navigateToPlantDetail(plant.id)"
+                    @click="navigateToPlantDetail(plant.uuid)"
                 >
                     <CardHeader
                         class="flex flex-row items-center justify-between space-y-0 pb-2"
@@ -210,9 +210,7 @@ onMounted(() => {
                             >
                                 <span>Capacity</span>
                                 <span>{{
-                                    plant.kaps_terpasang.toLocaleString(
-                                        'id-ID',
-                                    )
+                                    plant.kaps_terpasang.toLocaleString('id-ID')
                                 }}</span>
                             </div>
                         </div>

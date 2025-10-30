@@ -30,11 +30,11 @@ Route::prefix('monitoring')->group(function () {
 
 // Regional API routes
 Route::get('/regions', [RegionalApiController::class, 'index']);
-Route::get('/regions/{id}', [RegionalApiController::class, 'show']);
+Route::get('/regions/{identifier}', [RegionalApiController::class, 'show']);
 
 // Pabrik (Plant) API routes
 Route::get('/pabrik', [PabrikApiController::class, 'index']);
-Route::get('/pabrik/{id}', [PabrikApiController::class, 'show']);
+Route::get('/pabrik/{identifier}', [PabrikApiController::class, 'show']);
 
 // Reference data for filters (legacy - kept for backward compatibility)
 Route::get('/regions-filter', [MonitoringController::class, 'regions']);

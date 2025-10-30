@@ -324,50 +324,58 @@ class EquipmentResource extends Resource
             ->filters([
                 Tables\Filters\Filter::make('by_location')
                     ->form([
-                        Forms\Components\Select::make('regional_id')
+                        Forms\Components\Select::make('regional_uuid')
                             ->label('Regional')
-                            ->options(fn() => \App\Models\Region::query()->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn() => \App\Models\Region::query()->orderBy('name')->pluck('name', 'uuid'))
                             ->searchable()
                             ->preload()
                             ->reactive()
                             ->afterStateUpdated(function (callable $set) {
-                                $set('plant_id', null);
+                                $set('plant_uuid', null);
                                 $set('station_id', null);
                             }),
-                        Forms\Components\Select::make('plant_id')
+                        Forms\Components\Select::make('plant_uuid')
                             ->label('Pabrik')
                             ->options(function (callable $get) {
-                                $regionalId = $get('regional_id');
-                                if (!$regionalId) {
+                                $regionalUuid = $get('regional_uuid');
+                                if (!$regionalUuid) {
+                                    return [];
+                                }
+                                $region = \App\Models\Region::where('uuid', $regionalUuid)->first();
+                                if (!$region) {
                                     return [];
                                 }
                                 return \App\Models\Plant::query()
-                                    ->where('regional_id', $regionalId)
+                                    ->where('regional_id', $region->id)
                                     ->orderBy('name')
-                                    ->pluck('name', 'id');
+                                    ->pluck('name', 'uuid');
                             })
                             ->searchable()
                             ->preload()
                             ->reactive()
-                            ->disabled(fn(callable $get): bool => empty($get('regional_id')))
+                            ->disabled(fn(callable $get): bool => empty($get('regional_uuid')))
                             ->afterStateUpdated(function (callable $set) {
                                 $set('station_id', null);
                             }),
                         Forms\Components\Select::make('station_id')
                             ->label('Stasiun')
                             ->options(function (callable $get) {
-                                $plantId = $get('plant_id');
-                                if (!$plantId) {
+                                $plantUuid = $get('plant_uuid');
+                                if (!$plantUuid) {
+                                    return [];
+                                }
+                                $plant = \App\Models\Plant::where('uuid', $plantUuid)->first();
+                                if (!$plant) {
                                     return [];
                                 }
                                 return \App\Models\Station::query()
-                                    ->where('plant_id', $plantId)
+                                    ->where('plant_id', $plant->id)
                                     ->orderBy('description')
                                     ->pluck('description', 'id');
                             })
                             ->searchable()
                             ->preload()
-                            ->disabled(fn(callable $get): bool => empty($get('plant_id'))),
+                            ->disabled(fn(callable $get): bool => empty($get('plant_uuid'))),
                         DateRangePicker::make('date_range')
                             ->label('Periode Jam Jalan')
                             ->default([
@@ -385,12 +393,16 @@ class EquipmentResource extends Resource
                         if (!empty($data['station_id'])) {
                             return $query->where('station_id', $data['station_id']);
                         }
-                        if (!empty($data['plant_id'])) {
-                            return $query->where('plant_id', $data['plant_id']);
-                        }
-                        if (!empty($data['regional_id'])) {
+                        if (!empty($data['plant_uuid'])) {
                             return $query->whereHas('plant', function (Builder $q) use ($data) {
-                                $q->where('regional_id', $data['regional_id']);
+                                $q->where('uuid', $data['plant_uuid']);
+                            });
+                        }
+                        if (!empty($data['regional_uuid'])) {
+                            return $query->whereHas('plant', function (Builder $q) use ($data) {
+                                $q->whereHas('region', function (Builder $r) use ($data) {
+                                    $r->where('uuid', $data['regional_uuid']);
+                                });
                             });
                         }
                         return $query;

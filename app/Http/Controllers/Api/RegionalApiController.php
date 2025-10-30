@@ -29,7 +29,7 @@ class RegionalApiController extends Controller
             ->get()
             ->map(function ($region) {
                 return [
-                    'id' => $region->id,
+                    'uuid' => $region->uuid,
                     'name' => $region->name,
                     'category' => $region->category,
                     'no' => $region->no,
@@ -42,11 +42,12 @@ class RegionalApiController extends Controller
 
     /**
      * Get detailed regional data with plants and statistics
+     * Supports both ID (integer) and UUID (string) lookup
      */
-    public function show(int $id): JsonResponse
+    public function show(string $uuid): JsonResponse
     {
-        $region = Region::find($id);
-
+        // Only support UUID lookup
+        $region = Region::where('uuid', $uuid)->first();
         if (!$region) {
             return response()->json([
                 'message' => 'Region not found',
@@ -60,7 +61,7 @@ class RegionalApiController extends Controller
             ->get()
             ->map(function ($plant) {
                 return [
-                    'id' => $plant->id,
+                    'uuid' => $plant->uuid,
                     'name' => $plant->name,
                     'plant_code' => $plant->plant_code,
                     'is_active' => $plant->is_active,
@@ -71,22 +72,12 @@ class RegionalApiController extends Controller
         // Calculate regional statistics
         $totalPlants = $region->plants()->count();
         $activePlants = $region->plants()->where('is_active', true)->count();
-
-        // Total equipment across all plants in this region
-        $totalEquipment = $region->plants()
-            ->withCount('equipment')
-            ->get()
-            ->sum('equipment_count');
-
-        // Total work orders across all plants
-        $totalWorkOrders = $region->plants()
-            ->withCount('workOrders')
-            ->get()
-            ->sum('work_orders_count');
+        $totalEquipment = $region->plants()->withCount('equipment')->get()->sum('equipment_count');
+        $totalWorkOrders = $region->plants()->withCount('workOrders')->get()->sum('work_orders_count');
 
         return response()->json([
             'region' => [
-                'id' => $region->id,
+                'uuid' => $region->uuid,
                 'name' => $region->name,
                 'category' => $region->category,
                 'no' => $region->no,

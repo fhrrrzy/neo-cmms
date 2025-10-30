@@ -47,22 +47,22 @@ Route::get('/regions', function () {
     return Inertia::render('regions/RegionalList');
 })->name('regions.index')->middleware('auth');
 
-Route::get('/regions/{id}', function (int $id) {
+Route::get('/regions/{uuid}', function (string $uuid) {
     return Inertia::render('regions/RegionalDetail', [
-        'id' => $id,
+        'uuid' => $uuid,
     ]);
-})->name('regions.show')->middleware('auth');
+})->name('regions.show')->middleware('auth')->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
 // Pabrik (Plant) routes
 Route::get('/pabrik', function () {
     return Inertia::render('pabrik/PabrikList');
 })->name('pabrik.index')->middleware('auth');
 
-Route::get('/pabrik/{id}', function (int $id) {
+Route::get('/pabrik/{uuid}', function (string $uuid) {
     return Inertia::render('pabrik/PabrikDetail', [
-        'id' => $id,
+        'uuid' => $uuid,
     ]);
-})->name('pabrik.show')->middleware('auth');
+})->name('pabrik.show')->middleware('auth')->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
 // Sync Log route
 Route::get('/sync-log', [\App\Http\Controllers\SyncLogController::class, 'index'])

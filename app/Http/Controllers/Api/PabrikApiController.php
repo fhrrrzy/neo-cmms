@@ -14,12 +14,15 @@ class PabrikApiController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Plant::with('regional')
+        $query = Plant::with(['regional'])
             ->withCount('equipment');
 
-        // Filter by region if provided
-        if ($request->has('regional_id')) {
-            $query->where('regional_id', $request->regional_id);
+        // Filter by regional_uuid if provided
+        if ($request->has('regional_uuid')) {
+            $regional = \App\Models\Region::where('uuid', $request->regional_uuid)->first();
+            if ($regional) {
+                $query->where('regional_id', $regional->id);
+            }
         }
 
         // Filter by active status if provided
@@ -40,10 +43,10 @@ class PabrikApiController extends Controller
             ->get()
             ->map(function ($plant) {
                 return [
-                    'id' => $plant->id,
+                    'uuid' => $plant->uuid,
                     'name' => $plant->name,
                     'plant_code' => $plant->plant_code,
-                    'regional_id' => $plant->regional_id,
+                    'regional_uuid' => $plant->regional ? $plant->regional->uuid : null,
                     'regional_name' => $plant->regional->name ?? 'N/A',
                     'is_active' => $plant->is_active,
                     'equipment_count' => $plant->equipment_count,
@@ -58,11 +61,12 @@ class PabrikApiController extends Controller
 
     /**
      * Get detailed plant data with equipment list and statistics
+     * Supports both ID (integer) and UUID (string) lookup
      */
-    public function show(int $id, Request $request): JsonResponse
+    public function show(string $uuid, Request $request): JsonResponse
     {
-        $plant = Plant::with('regional')->find($id);
-
+        // Only support UUID lookup
+        $plant = Plant::with('regional')->where('uuid', $uuid)->first();
         if (!$plant) {
             return response()->json([
                 'message' => 'Plant not found',
@@ -133,10 +137,10 @@ class PabrikApiController extends Controller
 
         return response()->json([
             'plant' => [
-                'id' => $plant->id,
+                'uuid' => $plant->uuid,
                 'name' => $plant->name,
                 'plant_code' => $plant->plant_code,
-                'regional_id' => $plant->regional_id,
+                'regional_uuid' => $plant->regional->uuid ?? null,
                 'regional_name' => $plant->regional->name ?? 'N/A',
                 'is_active' => $plant->is_active,
                 'kaps_terpasang' => $plant->kaps_terpasang,

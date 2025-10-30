@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class Plant extends Model
 {
@@ -17,6 +18,7 @@ class Plant extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'uuid',
         'plant_code',
         'regional_id',
         'name',
@@ -47,6 +49,28 @@ class Plant extends Model
         'hidden_pica_cost' => 'boolean',
         'hidden_pica_cpo' => 'boolean',
     ];
+
+    /**
+     * Boot the model and auto-generate UUID.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
+    }
+
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
 
     /**
      * Get the equipment for the plant.
@@ -118,7 +142,8 @@ class Plant extends Model
     {
         return [
             'plant_code' => 'required|string|max:50|unique:plants,plant_code',
-            'regional_id' => 'required|exists:regions,id',
+            // 'regional_id' => 'required|exists:regions,id',
+            'regional_uuid' => 'required|exists:regions,uuid',
             'name' => 'required|string|max:255',
             'kaps_terpasang' => 'required|integer',
             'faktor_koreksi_kaps' => 'required|integer',

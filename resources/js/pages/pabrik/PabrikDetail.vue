@@ -1,10 +1,11 @@
 <script setup>
 import DataTable from '@/components/tables/monitoring/DataTable.vue';
-import MonitoringFilter from '@/pages/monitoring/components/MonitoringFilter.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/AppLayout.vue';
+import MonitoringFilter from '@/pages/monitoring/components/MonitoringFilter.vue';
+import { useDateRangeStore } from '@/stores/useDateRangeStore';
 import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import {
@@ -16,12 +17,11 @@ import {
     Gauge,
     Wrench,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref, nextTick } from 'vue';
-import { useDateRangeStore } from '@/stores/useDateRangeStore';
+import { computed, nextTick, onMounted, ref } from 'vue';
 
 const props = defineProps({
-    id: {
-        type: Number,
+    uuid: {
+        type: String,
         required: true,
     },
 });
@@ -60,13 +60,15 @@ const dateRangeStore = useDateRangeStore();
 // Initialize filters with plant_id pre-set
 const filters = ref({
     date_range: {
-        start: dateRangeStore.start || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split('T')[0],
+        start:
+            dateRangeStore.start ||
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                .toISOString()
+                .split('T')[0],
         end: dateRangeStore.end || new Date().toISOString().split('T')[0],
     },
-    regional_ids: [],
-    plant_ids: [props.id], // Pre-set to current plant
+    regional_uuids: [],
+    plant_uuids: [props.uuid],
     station_codes: [],
     equipment_types: [],
     search: '',
@@ -92,7 +94,7 @@ const fetchPlantDetail = async () => {
     error.value = null;
     notFound.value = false;
     try {
-        const { data } = await axios.get(`/api/pabrik/${props.id}`);
+        const { data } = await axios.get(`/api/pabrik/${props.uuid}`);
         plant.value = data.plant;
         stats.value = data.stats;
     } catch (e) {
@@ -120,7 +122,7 @@ const fetchEquipment = async (page = 1, pageSize = 15) => {
         params.append('sort_direction', sorting.value.sort_direction);
 
         // Add plant_id filter (always set to current plant)
-        params.append('plant_id', props.id.toString());
+        params.append('plant_uuids[]', props.uuid.toString());
 
         // Add date range
         if (filters.value.date_range?.start) {
@@ -134,7 +136,7 @@ const fetchEquipment = async (page = 1, pageSize = 15) => {
         if (
             filters.value.station_codes &&
             filters.value.station_codes.length > 0 &&
-            filters.value.station_codes.length < 15  // Only send if not all stations (15 total)
+            filters.value.station_codes.length < 15 // Only send if not all stations (15 total)
         ) {
             filters.value.station_codes.forEach((code) => {
                 params.append('station_codes[]', code);
@@ -145,7 +147,7 @@ const fetchEquipment = async (page = 1, pageSize = 15) => {
         if (
             filters.value.equipment_types &&
             filters.value.equipment_types.length > 0 &&
-            filters.value.equipment_types.length < 5  // Only send if not all types (5 total)
+            filters.value.equipment_types.length < 5 // Only send if not all types (5 total)
         ) {
             filters.value.equipment_types.forEach((type) => {
                 params.append('equipment_types[]', type);
@@ -179,8 +181,8 @@ const fetchEquipment = async (page = 1, pageSize = 15) => {
 };
 
 const navigateToRegional = () => {
-    if (plant.value?.regional_id) {
-        router.visit(`/regions/${plant.value.regional_id}`);
+    if (plant.value?.regional_uuid) {
+        router.visit(`/regions/${plant.value.regional_uuid}`);
     }
 };
 
@@ -189,7 +191,7 @@ const handleFilterChange = async (newFilters) => {
     filters.value = {
         ...filters.value,
         ...newFilters,
-        plant_ids: [props.id], // Always lock to current plant
+        plant_uuids: [props.uuid], // Always lock to current plant
     };
     if (newFilters?.date_range?.start && newFilters?.date_range?.end) {
         dateRangeStore.setRange(newFilters.date_range);
@@ -228,27 +230,34 @@ const backButtonLabel = computed(() => 'Back');
 </script>
 
 <template>
-
     <Head :title="plant?.name || 'Plant Detail'" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-6 p-4">
             <!-- Loading State -->
             <div v-if="loading" class="space-y-6">
-                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div
+                    class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+                >
                     <div class="w-full space-y-2">
                         <Skeleton class="h-8 w-2/3" />
                         <Skeleton class="h-4 w-40" />
                         <Skeleton class="h-3 w-56" />
                         <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-                            <Skeleton v-for="i in 6" :key="i" class="h-10 w-full" />
+                            <Skeleton
+                                v-for="i in 6"
+                                :key="i"
+                                class="h-10 w-full"
+                            />
                         </div>
                     </div>
                     <div class="hidden w-72 md:block">
                         <Skeleton class="h-10 w-full" />
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6">
+                <div
+                    class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6"
+                >
                     <Skeleton v-for="i in 6" :key="i" class="h-24 w-full" />
                 </div>
                 <div>
@@ -260,9 +269,14 @@ const backButtonLabel = computed(() => 'Back');
             </div>
 
             <!-- Not Found State -->
-            <div v-else-if="notFound" class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6">
+            <div
+                v-else-if="notFound"
+                class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6"
+            >
                 <div class="space-y-4 text-center">
-                    <p class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl">
+                    <p
+                        class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl"
+                    >
                         Plant not found
                     </p>
                     <Button variant="outline" @click="goBack">
@@ -275,7 +289,9 @@ const backButtonLabel = computed(() => 'Back');
             <!-- Main Content -->
             <template v-else-if="plant && stats">
                 <!-- Header Section -->
-                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div
+                    class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+                >
                     <div>
                         <h1 class="text-3xl font-bold tracking-tight">
                             {{ plant.name }}
@@ -284,13 +300,22 @@ const backButtonLabel = computed(() => 'Back');
                             #{{ plant.plant_code }}
                         </p>
                         <p class="text-xs text-muted-foreground">
-                            <button class="hover:underline" @click="navigateToRegional">
+                            <button
+                                class="hover:underline"
+                                @click="navigateToRegional"
+                            >
                                 {{ plant.regional_name }}
                             </button>
                         </p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
-                        <Button variant="outline" class="w-full md:w-auto" @click="goBack">
+                    <div
+                        class="flex flex-wrap items-center gap-3 md:flex-nowrap"
+                    >
+                        <Button
+                            variant="outline"
+                            class="w-full md:w-auto"
+                            @click="goBack"
+                        >
                             <ArrowLeft class="mr-2 h-4 w-4" />
                             {{ backButtonLabel }}
                         </Button>
@@ -298,12 +323,16 @@ const backButtonLabel = computed(() => 'Back');
                 </div>
 
                 <!-- Statistics Cards Section -->
-                <div class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6">
+                <div
+                    class="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-6"
+                >
                     <!-- Total Equipment -->
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <Wrench class="h-5 w-5" />
-                            <CardTitle class="text-sm">Total Equipment</CardTitle>
+                            <CardTitle class="text-sm"
+                                >Total Equipment</CardTitle
+                            >
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
@@ -323,14 +352,14 @@ const backButtonLabel = computed(() => 'Back');
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <Building2 class="h-5 w-5" />
-                            <CardTitle class="text-sm">Total Stations</CardTitle>
+                            <CardTitle class="text-sm"
+                                >Total Stations</CardTitle
+                            >
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
                                 {{
-                                    stats.total_stations.toLocaleString(
-                                        'id-ID',
-                                    )
+                                    stats.total_stations.toLocaleString('id-ID')
                                 }}
                             </div>
                             <p class="text-xs text-muted-foreground">
@@ -343,7 +372,9 @@ const backButtonLabel = computed(() => 'Back');
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <FileText class="h-5 w-5" />
-                            <CardTitle class="text-sm">Total Work Orders</CardTitle>
+                            <CardTitle class="text-sm"
+                                >Total Work Orders</CardTitle
+                            >
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
@@ -363,7 +394,9 @@ const backButtonLabel = computed(() => 'Back');
                     <Card>
                         <CardHeader class="flex items-center gap-2">
                             <ClipboardCheck class="h-5 w-5" />
-                            <CardTitle class="text-sm">Active Work Orders</CardTitle>
+                            <CardTitle class="text-sm"
+                                >Active Work Orders</CardTitle
+                            >
                         </CardHeader>
                         <CardContent>
                             <div class="text-2xl font-bold">
@@ -390,8 +423,8 @@ const backButtonLabel = computed(() => 'Back');
                                 {{
                                     plant.kaps_terpasang
                                         ? plant.kaps_terpasang.toLocaleString(
-                                            'id-ID',
-                                        )
+                                              'id-ID',
+                                          )
                                         : '—'
                                 }}
                             </div>
@@ -424,20 +457,35 @@ const backButtonLabel = computed(() => 'Back');
                             Equipment List
                         </h2>
                         <p class="text-sm text-muted-foreground">
-                            Browse and filter all equipment in {{ plant.name }}. Use the filters below to narrow down
-                            your search by date range, station, equipment type, or search terms.
+                            Browse and filter all equipment in {{ plant.name }}.
+                            Use the filters below to narrow down your search by
+                            date range, station, equipment type, or search
+                            terms.
                         </p>
                     </div>
 
                     <!-- MonitoringFilter with integrated search and column toggle -->
-                    <MonitoringFilter :filters="filters" :table="dataTableRef?.table" :hide-regional="true"
-                        :hide-plant="true" @filter-change="handleFilterChange" />
+                    <MonitoringFilter
+                        :filters="filters"
+                        :table="dataTableRef?.table"
+                        :hide-regional="true"
+                        :hide-plant="true"
+                        @filter-change="handleFilterChange"
+                    />
 
                     <!-- Equipment Data Table -->
-                    <DataTable ref="dataTableRef" :data="equipment" :loading="loading" :error="error"
-                        :pagination="pagination" :sorting="sorting" :open-sheet-on-row-click="true"
-                        @page-change="handlePageChange" @page-size-change="handlePageSizeChange"
-                        @sort-change="handleSortChange" />
+                    <DataTable
+                        ref="dataTableRef"
+                        :data="equipment"
+                        :loading="loading"
+                        :error="error"
+                        :pagination="pagination"
+                        :sorting="sorting"
+                        :open-sheet-on-row-click="true"
+                        @page-change="handlePageChange"
+                        @page-size-change="handlePageSizeChange"
+                        @sort-change="handleSortChange"
+                    />
                 </div>
             </template>
         </div>
