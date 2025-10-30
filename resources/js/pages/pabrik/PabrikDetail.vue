@@ -1,20 +1,9 @@
 <script setup>
 import DataTable from '@/components/tables/monitoring/DataTable.vue';
-import DataTableViewOptions from '@/components/tables/monitoring/DataTableViewOptions.vue';
-import { Badge } from '@/components/ui/badge';
+import MonitoringFilter from '@/pages/monitoring/components/MonitoringFilter.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RangeCalendar } from '@/components/ui/range-calendar';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -26,17 +15,11 @@ import {
     FileText,
     Gauge,
     Wrench,
-    ChevronsUpDown,
-    MapPin,
-    Search,
-    Filter,
-    X,
-    Calendar as CalendarIcon,
+    ChevronDown,
+    ChevronUp,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch, nextTick } from 'vue';
-import { parseDate, getLocalTimeZone } from '@internationalized/date';
+import { computed, onMounted, ref, nextTick, watch } from 'vue';
 import { useDateRangeStore } from '@/stores/useDateRangeStore';
-import { usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
     id: {
@@ -75,30 +58,35 @@ const sorting = ref({
 
 // Filter state
 const dateRangeStore = useDateRangeStore();
-const isFilterVisible = ref(true);
-const stations = ref([]);
-const equipmentTypes = ref([]);
-const stationOpen = ref(false);
-const typeOpen = ref(false);
-const stationSearch = ref('');
-const typeSearch = ref('');
-const datePopoverOpen = ref(false);
 
+// Filter visibility state for mobile (always visible on desktop)
+const FILTER_VISIBILITY_KEY = 'pabrik_detail_filter_visible_mobile';
+const isFilterVisible = ref(
+    localStorage.getItem(FILTER_VISIBILITY_KEY) !== 'false', // Default to true
+);
+
+// Watch for changes and save to localStorage
+watch(isFilterVisible, (newValue) => {
+    localStorage.setItem(FILTER_VISIBILITY_KEY, String(newValue));
+});
+
+const toggleFilterVisibility = () => {
+    isFilterVisible.value = !isFilterVisible.value;
+};
+
+// Initialize filters with plant_id pre-set
 const filters = ref({
     date_range: {
-        start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        start: dateRangeStore.start || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
             .toISOString()
             .split('T')[0],
-        end: new Date().toISOString().split('T')[0],
+        end: dateRangeStore.end || new Date().toISOString().split('T')[0],
     },
+    regional_ids: [],
+    plant_ids: [props.id], // Pre-set to current plant
     station_codes: [],
     equipment_types: [],
     search: '',
-});
-
-const rangeValue = ref({
-    start: parseDate(filters.value.date_range.start),
-    end: parseDate(filters.value.date_range.end),
 });
 
 const breadcrumbs = computed(() => [
@@ -141,9 +129,15 @@ const fetchEquipment = async (page = 1, pageSize = 15) => {
     error.value = null;
     try {
         const params = new URLSearchParams();
-        params.append('page', page);
-        params.append('per_page', pageSize);
-        params.append('plant_id', props.id);
+        params.append('page', page.toString());
+        params.append('per_page', pageSize.toString());
+
+        // Add sorting parameters
+        params.append('sort_by', sorting.value.sort_by);
+        params.append('sort_direction', sorting.value.sort_direction);
+
+        // Add plant_id filter (always set to current plant)
+        params.append('plant_id', props.id.toString());
 
         // Add date range
         if (filters.value.date_range?.start) {
@@ -154,15 +148,23 @@ const fetchEquipment = async (page = 1, pageSize = 15) => {
         }
 
         // Add station filter (only if not all stations are selected)
-        if (filters.value.station_codes?.length > 0 && filters.value.station_codes.length < stations.value.length) {
-            filters.value.station_codes.forEach(code => {
+        if (
+            filters.value.station_codes &&
+            filters.value.station_codes.length > 0 &&
+            filters.value.station_codes.length < 15  // Only send if not all stations (15 total)
+        ) {
+            filters.value.station_codes.forEach((code) => {
                 params.append('station_codes[]', code);
             });
         }
 
         // Add equipment type filter (only if not all types are selected)
-        if (filters.value.equipment_types?.length > 0 && filters.value.equipment_types.length < equipmentTypes.value.length) {
-            filters.value.equipment_types.forEach(type => {
+        if (
+            filters.value.equipment_types &&
+            filters.value.equipment_types.length > 0 &&
+            filters.value.equipment_types.length < 5  // Only send if not all types (5 total)
+        ) {
+            filters.value.equipment_types.forEach((type) => {
                 params.append('equipment_types[]', type);
             });
         }
@@ -170,14 +172,6 @@ const fetchEquipment = async (page = 1, pageSize = 15) => {
         // Add search
         if (filters.value.search) {
             params.append('search', filters.value.search);
-        }
-
-        // Add sorting
-        if (sorting.value.sort_by) {
-            params.append('sort_by', sorting.value.sort_by);
-        }
-        if (sorting.value.sort_direction) {
-            params.append('sort_direction', sorting.value.sort_direction);
         }
 
         const response = await axios.get(`/api/monitoring/equipment?${params}`);
@@ -207,8 +201,17 @@ const navigateToRegional = () => {
     }
 };
 
-const handleFilterChange = (newFilters) => {
-    filters.value = { ...filters.value, ...newFilters };
+const handleFilterChange = async (newFilters) => {
+    // Ensure plant_ids always includes current plant
+    filters.value = {
+        ...filters.value,
+        ...newFilters,
+        plant_ids: [props.id], // Always lock to current plant
+    };
+    if (newFilters?.date_range?.start && newFilters?.date_range?.end) {
+        dateRangeStore.setRange(newFilters.date_range);
+    }
+    await nextTick();
     fetchEquipment(1, pagination.value.per_page);
 };
 
@@ -228,157 +231,7 @@ const handleSortChange = (sortBy, sortDirection) => {
     fetchEquipment(pagination.value.current_page, pagination.value.per_page);
 };
 
-const toggleFilterVisibility = () => {
-    isFilterVisible.value = !isFilterVisible.value;
-};
-
-const applyFilters = () => {
-    fetchEquipment(1, pagination.value.per_page);
-};
-
-// Station and Equipment Type data
-const stationTypes = [
-    { code: 'STAS01', description: 'Jembatan Timbang' },
-    { code: 'STAS02', description: 'Loading Ramp' },
-    { code: 'STAS03', description: 'Sterilizer' },
-    { code: 'STAS04', description: 'Rail Track' },
-    { code: 'STAS05', description: 'Thresser & Hoisting' },
-    { code: 'STAS06', description: 'Pressan' },
-    { code: 'STAS07', description: 'Klarifikasi' },
-    { code: 'STAS08', description: 'Pengolahan Inti Sawi' },
-    { code: 'STAS09', description: 'Boiler' },
-    { code: 'STAS10', description: 'Pengolahan Air' },
-    { code: 'STAS11', description: 'Kamar Mesin' },
-    { code: 'STAS12', description: 'Tangki Timbun dan Ke' },
-    { code: 'STAS13', description: 'Limbah' },
-    { code: 'STAS14', description: 'Empty Bunch Hopper' },
-    { code: 'STAS19', description: 'Laboratorium' },
-];
-
-const equipmentTypeOptions = [
-    'Mesin Produksi',
-    'Kendaraan',
-    'Alat dan Utilitas',
-    'IT & Telekomunikasi',
-    'Aset PMN',
-];
-
-const toggleStation = (stationCode) => {
-    const index = filters.value.station_codes.indexOf(stationCode);
-    if (index > -1) {
-        filters.value.station_codes.splice(index, 1);
-    } else {
-        filters.value.station_codes.push(stationCode);
-    }
-};
-
-const toggleEquipmentType = (equipmentType) => {
-    const index = filters.value.equipment_types.indexOf(equipmentType);
-    if (index > -1) {
-        filters.value.equipment_types.splice(index, 1);
-    } else {
-        filters.value.equipment_types.push(equipmentType);
-    }
-};
-
-const isStationSelected = (stationCode) => {
-    return filters.value.station_codes.includes(stationCode);
-};
-
-const isEquipmentTypeSelected = (equipmentType) => {
-    return filters.value.equipment_types.includes(equipmentType);
-};
-
-const stationLabel = computed(() => {
-    const count = filters.value.station_codes.length;
-    if (count === 0) return 'Stasiun';
-    if (count === 1) {
-        const station = stations.value.find(s => s.code === filters.value.station_codes[0]);
-        return station?.description || 'Stasiun';
-    }
-    return `${count} Stasiun dipilih`;
-});
-
-const equipmentTypeLabel = computed(() => {
-    const count = filters.value.equipment_types.length;
-    if (count === 0) return 'Tipe';
-    if (count === 1) return filters.value.equipment_types[0];
-    return `${count} Tipe dipilih`;
-});
-
-const filteredStations = computed(() => {
-    const search = stationSearch.value.toLowerCase();
-    return search
-        ? stations.value.filter(s => s.description.toLowerCase().includes(search))
-        : stations.value;
-});
-
-const filteredEquipmentTypes = computed(() => {
-    const search = typeSearch.value.toLowerCase();
-    return search
-        ? equipmentTypes.value.filter(t => t.toLowerCase().includes(search))
-        : equipmentTypes.value;
-});
-
-const selectAllStations = () => {
-    filters.value.station_codes = stations.value.map(s => s.code);
-};
-
-const deselectAllStations = () => {
-    filters.value.station_codes = [];
-};
-
-const selectAllEquipmentTypes = () => {
-    filters.value.equipment_types = [...equipmentTypes.value];
-};
-
-const deselectAllEquipmentTypes = () => {
-    filters.value.equipment_types = [];
-};
-
-const rangeDisplay = computed(() => {
-    if (!rangeValue.value.start && !rangeValue.value.end) return 'Pick a date';
-    if (rangeValue.value.start && rangeValue.value.end) {
-        return `${rangeValue.value.start.toString()} - ${rangeValue.value.end.toString()}`;
-    }
-    if (rangeValue.value.start) return rangeValue.value.start.toString();
-    return 'Pick a date';
-});
-
-watch(
-    rangeValue,
-    (val) => {
-        const startStr = val?.start?.toString?.();
-        const endStr = val?.end?.toString?.();
-        if (startStr && endStr) {
-            filters.value.date_range = { start: startStr, end: endStr };
-            dateRangeStore.setRange({ start: startStr, end: endStr });
-            datePopoverOpen.value = false;
-        }
-    },
-    { deep: true },
-);
-
 onMounted(async () => {
-    stations.value = stationTypes;
-    equipmentTypes.value = equipmentTypeOptions;
-
-    // Select all by default
-    selectAllStations();
-    selectAllEquipmentTypes();
-
-    // Load date range from store
-    if (dateRangeStore.start && dateRangeStore.end) {
-        filters.value.date_range = {
-            start: dateRangeStore.start,
-            end: dateRangeStore.end,
-        };
-        rangeValue.value = {
-            start: parseDate(dateRangeStore.start),
-            end: parseDate(dateRangeStore.end),
-        };
-    }
-
     await fetchPlantDetail();
     await fetchEquipment();
 });
@@ -595,177 +448,24 @@ const backButtonLabel = computed(() => {
                         </p>
                     </div>
 
-                    <!-- Filter Toggle and Controls -->
-                    <div class="flex flex-wrap items-center justify-between gap-4">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <Button variant="outline" size="default" @click="toggleFilterVisibility">
-                                <Filter class="h-4 w-4" />
-                                <span class="ml-2">Filter</span>
-                            </Button>
-                        </div>
-
-                        <!-- View Options -->
-                        <DataTableViewOptions :table="dataTableRef?.table" />
+                    <!-- Mobile Filter Toggle Button -->
+                    <div class="md:hidden">
+                        <Button variant="outline" size="sm" class="w-full justify-between"
+                            @click="toggleFilterVisibility">
+                            <span>{{ isFilterVisible ? 'Hide Filters' : 'Show Filters' }}</span>
+                            <ChevronUp v-if="isFilterVisible" class="h-4 w-4" />
+                            <ChevronDown v-else class="h-4 w-4" />
+                        </Button>
                     </div>
 
-                    <!-- Toggleable Filter Container -->
+                    <!-- MonitoringFilter with integrated search and column toggle -->
                     <transition enter-active-class="transition duration-200 ease-out"
                         enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0"
                         leave-active-class="transition duration-150 ease-in"
                         leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-2">
-                        <div v-show="isFilterVisible" class="space-y-4">
-                            <!-- Filter Row -->
-                            <div class="flex flex-wrap items-end gap-4">
-                                <!-- Date Range Picker -->
-                                <div class="space-y-2">
-                                    <Label>Date Range</Label>
-                                    <Popover v-model:open="datePopoverOpen">
-                                        <PopoverTrigger as-child>
-                                            <Button variant="outline" class="w-full justify-between sm:w-[280px]">
-                                                <div class="flex items-center">
-                                                    <CalendarIcon class="mr-2 h-4 w-4 shrink-0" />
-                                                    <div class="mr-2 h-4 w-px bg-border"></div>
-                                                    <span class="text-sm">{{ rangeDisplay }}</span>
-                                                </div>
-                                                <ChevronsUpDown class="ml-2 h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent class="w-auto p-0" align="start">
-                                            <RangeCalendar v-model="rangeValue" :columns="2"
-                                                class="rounded-md border" />
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-
-                                <!-- Station Filter -->
-                                <div class="space-y-2">
-                                    <Label>Station</Label>
-                                    <Popover v-model:open="stationOpen">
-                                        <PopoverTrigger as-child>
-                                            <Button variant="outline" class="w-full justify-between sm:w-[200px]">
-                                                <div class="flex items-center">
-                                                    <MapPin class="mr-2 h-4 w-4 shrink-0" />
-                                                    <div class="mr-2 h-4 w-px bg-border"></div>
-                                                    {{ stationLabel }}
-                                                </div>
-                                                <ChevronsUpDown class="ml-2 h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent class="w-[280px] p-0" align="start">
-                                            <div class="space-y-2 p-2">
-                                                <div class="relative">
-                                                    <Search
-                                                        class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                                    <Input v-model="stationSearch" placeholder="Search stations..."
-                                                        class="pl-8" />
-                                                </div>
-                                                <div class="flex items-center justify-between border-b pb-2">
-                                                    <span class="text-xs font-medium">Stations</span>
-                                                    <div class="flex gap-1">
-                                                        <Button variant="ghost" size="sm" class="h-6 px-2 text-xs"
-                                                            @click="selectAllStations">
-                                                            All
-                                                        </Button>
-                                                        <Button variant="ghost" size="sm" class="h-6 px-2 text-xs"
-                                                            @click="deselectAllStations">
-                                                            None
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                                <ScrollArea class="h-[200px]">
-                                                    <div class="space-y-1">
-                                                        <div v-for="station in filteredStations" :key="station.code"
-                                                            class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
-                                                            <Checkbox :id="`station-${station.code}`"
-                                                                :checked="isStationSelected(station.code)"
-                                                                @update:checked="toggleStation(station.code)" />
-                                                            <label :for="`station-${station.code}`"
-                                                                class="flex-1 cursor-pointer text-sm">
-                                                                {{ station.description }}
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                </ScrollArea>
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-
-                                <!-- Equipment Type Filter -->
-                                <div class="space-y-2">
-                                    <Label>Equipment Type</Label>
-                                    <Popover v-model:open="typeOpen">
-                                        <PopoverTrigger as-child>
-                                            <Button variant="outline" class="w-full justify-between sm:w-[200px]">
-                                                <div class="flex items-center">
-                                                    <Wrench class="mr-2 h-4 w-4 shrink-0" />
-                                                    <div class="mr-2 h-4 w-px bg-border"></div>
-                                                    {{ equipmentTypeLabel }}
-                                                </div>
-                                                <ChevronsUpDown class="ml-2 h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent class="w-[280px] p-0" align="start">
-                                            <div class="space-y-2 p-2">
-                                                <div class="relative">
-                                                    <Search
-                                                        class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                                    <Input v-model="typeSearch" placeholder="Search types..."
-                                                        class="pl-8" />
-                                                </div>
-                                                <div class="flex items-center justify-between border-b pb-2">
-                                                    <span class="text-xs font-medium">Types</span>
-                                                    <div class="flex gap-1">
-                                                        <Button variant="ghost" size="sm" class="h-6 px-2 text-xs"
-                                                            @click="selectAllEquipmentTypes">
-                                                            All
-                                                        </Button>
-                                                        <Button variant="ghost" size="sm" class="h-6 px-2 text-xs"
-                                                            @click="deselectAllEquipmentTypes">
-                                                            None
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                                <ScrollArea class="h-[200px]">
-                                                    <div class="space-y-1">
-                                                        <div v-for="type in filteredEquipmentTypes" :key="type"
-                                                            class="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
-                                                            <Checkbox :id="`type-${type}`"
-                                                                :checked="isEquipmentTypeSelected(type)"
-                                                                @update:checked="toggleEquipmentType(type)" />
-                                                            <label :for="`type-${type}`"
-                                                                class="flex-1 cursor-pointer text-sm">
-                                                                {{ type }}
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                </ScrollArea>
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
-
-                                <!-- Search Input -->
-                                <div class="flex-1 space-y-2">
-                                    <Label>Search</Label>
-                                    <div class="relative">
-                                        <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input v-model="filters.search" placeholder="Search equipment..."
-                                            class="pl-8" />
-                                        <Button v-if="filters.search" variant="ghost" size="sm"
-                                            class="absolute right-1 top-1 h-7 w-7 p-0" @click="filters.search = ''">
-                                            <X class="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                <!-- Apply Button -->
-                                <div class="flex items-end">
-                                    <Button @click="applyFilters" class="w-full sm:w-auto">
-                                        Apply Filters
-                                    </Button>
-                                </div>
-                            </div>
+                        <div v-show="isFilterVisible" class="md:block">
+                            <MonitoringFilter :filters="filters" :table="dataTableRef?.table" :hide-regional="true"
+                                :hide-plant="true" @filter-change="handleFilterChange" />
                         </div>
                     </transition>
 

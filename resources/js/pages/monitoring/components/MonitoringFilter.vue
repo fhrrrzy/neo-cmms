@@ -1,6 +1,8 @@
 <script setup lang="js">
+import DataTableViewOptions from '@/components/tables/monitoring/DataTableViewOptions.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import {
     Popover,
     PopoverContent,
@@ -31,6 +33,18 @@ const props = defineProps({
     disableStore: {
         type: Boolean,
         default: false,
+    },
+    hideRegional: {
+        type: Boolean,
+        default: false,
+    },
+    hidePlant: {
+        type: Boolean,
+        default: false,
+    },
+    table: {
+        type: Object,
+        default: null,
     },
 });
 
@@ -229,8 +243,9 @@ const applyFilters = async () => {
 const validateAndAutoSelect = () => {
     console.log('validateAndAutoSelect called - checking all filters');
 
-    // Auto-select all regions if none selected
+    // Auto-select all regions if none selected (only if not hidden)
     if (
+        !props.hideRegional &&
         (localFilters.value.regional_ids || []).length === 0 &&
         regions.value.length > 0
     ) {
@@ -238,8 +253,9 @@ const validateAndAutoSelect = () => {
         selectAllRegions();
     }
 
-    // Auto-select all plants if none selected
+    // Auto-select all plants if none selected (only if not hidden)
     if (
+        !props.hidePlant &&
         (localFilters.value.plant_ids || []).length === 0 &&
         plants.value.length > 0
     ) {
@@ -951,10 +967,10 @@ onMounted(async () => {
         props.filters?.equipment_types?.length > 0 ||
         localFilters.value.equipment_types?.length > 0;
 
-    if (!hasRegionalSelection) {
+    if (!props.hideRegional && !hasRegionalSelection) {
         selectAllRegions();
     }
-    if (!hasPlantSelection) {
+    if (!props.hidePlant && !hasPlantSelection) {
         selectAllPlants();
     }
     if (!hasStationSelection) {
@@ -976,7 +992,7 @@ onMounted(async () => {
         <!-- Filters Row (wraps on small screens) -->
         <div class="flex flex-wrap items-end gap-4">
             <!-- Regional Filter -->
-            <div class="w-full space-y-2 sm:w-auto">
+            <div v-if="!hideRegional" class="w-full space-y-2 sm:w-auto">
                 <Popover v-model:open="regionalOpen" @update:open="
                     (open) => {
                         if (!open) {
@@ -1054,7 +1070,7 @@ onMounted(async () => {
             </div>
 
             <!-- Plant Filter -->
-            <div class="w-full space-y-2 sm:w-auto">
+            <div v-if="!hidePlant" class="w-full space-y-2 sm:w-auto">
                 <Popover v-model:open="plantOpen" @update:open="
                     (open) => {
                         if (!open) {
@@ -1309,12 +1325,29 @@ onMounted(async () => {
                     </PopoverContent>
                 </Popover>
             </div>
-            <!-- Apply Button (inline with filters) -->
-            <div class="w-full sm:ml-auto sm:w-auto">
-                <Button variant="default" size="sm" class="w-full sm:w-auto" @click="applyFilters">
-                    <Search class="mr-2 h-4 w-4" />
+
+            <!-- Search Input -->
+            <div class="flex-1 space-y-2">
+                <div class="relative">
+                    <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input v-model="localFilters.search" placeholder="Search equipment..." class="h-9 pl-8 pr-8" />
+                    <Button v-if="localFilters.search" variant="ghost" size="sm"
+                        class="absolute right-1 top-1 h-7 w-7 p-0" @click="localFilters.search = ''">
+                        <X class="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+
+            <!-- Apply Button -->
+            <div class="w-full sm:w-auto">
+                <Button variant="default" class="w-full sm:w-auto" @click="applyFilters">
                     Apply Filters
                 </Button>
+            </div>
+
+            <!-- Column Toggle (icon only) -->
+            <div class="w-full sm:w-auto">
+                <DataTableViewOptions :table="table" />
             </div>
         </div>
     </div>

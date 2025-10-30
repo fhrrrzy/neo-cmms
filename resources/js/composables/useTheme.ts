@@ -1,7 +1,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useAppearance } from './useAppearance';
 
-export type Theme = 'default' | 'amber-minimal' | 'modern-minimal' | 'nature' | 'nothern-lights' | 'ocean-breeze' | 'solar-dusk' | 'supabase' | 'twitter' | 'vintage-paper';
+export type Theme = 'default' | 'amber-minimal' | 'caffeine' | 'modern-minimal' | 'nature' | 'nothern-lights' | 'ocean-breeze' | 'solar-dusk' | 'supabase' | 'twitter' | 'vintage-paper';
 
 const THEME_STORAGE_KEY = 'app-theme';
 const DEFAULT_THEME: Theme = 'default';
@@ -38,6 +38,9 @@ export function useTheme() {
                     break;
                 case 'amber-minimal':
                     themeModule = await import('../../css/theme/amber-minimal.css?url');
+                    break;
+                case 'caffeine':
+                    themeModule = await import('../../css/theme/caffeine.css?url');
                     break;
                 case 'modern-minimal':
                     themeModule = await import('../../css/theme/modern-minimal.css?url');

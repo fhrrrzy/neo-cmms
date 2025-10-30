@@ -9,6 +9,12 @@ import { type BreadcrumbItem } from '@/types';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { edit } from '@/routes/appearance';
+import { useTheme } from '@/composables/useTheme';
+import { useAppearance } from '@/composables/useAppearance';
+import { Palette, Bell, MessageSquare, Settings, TrendingUp, Users, AlertCircle, CheckCircle, XCircle, Clock, Star, ChevronRight } from 'lucide-vue-next';
+
+const { currentTheme } = useTheme();
+const { appearance } = useAppearance();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -26,6 +32,8 @@ const breadcrumbItems: BreadcrumbItem[] = [
         <SettingsLayout>
             <div class="space-y-6">
                 <HeadingSmall title="Appearance settings" description="Update your account's appearance settings" />
+
+
 
                 <!-- Dark Mode Toggle -->
                 <div class="space-y-3">

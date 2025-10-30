@@ -1,6 +1,5 @@
 <script setup lang="js">
 import DataTable from '@/components/tables/monitoring/DataTable.vue';
-import DataTableViewOptions from '@/components/tables/monitoring/DataTableViewOptions.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { monitoring } from '@/routes';
@@ -8,8 +7,8 @@ import { useMonitoringFilterStore } from '@/stores/monitoringFilterStore';
 import { useDateRangeStore } from '@/stores/useDateRangeStore';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
-import { Filter } from 'lucide-vue-next';
-import { nextTick, onMounted, ref, watch } from 'vue';
+import { ChevronDown, ChevronUp } from 'lucide-vue-next';
+import { onMounted, ref, watch } from 'vue';
 import EquipmentDetailSheet from './components/EquipmentDetailSheet.vue';
 import MonitoringFilter from './components/MonitoringFilter.vue';
 
@@ -22,10 +21,10 @@ const dataTableRef = ref();
 const isSheetOpen = ref(false);
 const selectedEquipmentNumber = ref('');
 
-// Filter visibility state - load from localStorage
-const FILTER_VISIBILITY_KEY = 'monitoring_filter_visible';
+// Filter visibility state for mobile (always visible on desktop)
+const FILTER_VISIBILITY_KEY = 'monitoring_filter_visible_mobile';
 const isFilterVisible = ref(
-    localStorage.getItem(FILTER_VISIBILITY_KEY) === 'true' || true,
+    localStorage.getItem(FILTER_VISIBILITY_KEY) !== 'false', // Default to true
 );
 
 // Watch for changes and save to localStorage
@@ -172,19 +171,6 @@ const handleFilterChange = (newFilters) => {
     fetchEquipment(1, pagination.value.per_page);
 };
 
-// Debounced search handler
-let searchTimer;
-const handleSearchInput = (event) => {
-    const value = event?.target?.value ?? '';
-    filters.value.search = value;
-    monitoringFilterStore.setSearch(value);
-    if (searchTimer) clearTimeout(searchTimer);
-    searchTimer = setTimeout(async () => {
-        await nextTick();
-        fetchEquipment(1, pagination.value.per_page);
-    }, 300);
-};
-
 const handlePageChange = (page) => {
     fetchEquipment(page, pagination.value.per_page);
 };
@@ -229,34 +215,23 @@ onMounted(() => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="space-y-4 md:space-y-6">
-            <!-- Controls Row -->
-            <div class="flex items-center gap-3">
-                <!-- Filter Toggle Button -->
-                <Button variant="outline" size="icon" @click="toggleFilterVisibility"
-                    :class="{ 'bg-accent': isFilterVisible }">
-                    <Filter class="h-4 w-4" />
-                    <span class="sr-only">Toggle filters</span>
+            <!-- Mobile Filter Toggle Button -->
+            <div class="md:hidden">
+                <Button variant="outline" size="sm" class="w-full justify-between" @click="toggleFilterVisibility">
+                    <span>{{ isFilterVisible ? 'Hide Filters' : 'Show Filters' }}</span>
+                    <ChevronUp v-if="isFilterVisible" class="h-4 w-4" />
+                    <ChevronDown v-else class="h-4 w-4" />
                 </Button>
-
-                <!-- Search Input -->
-                <div class="flex-1">
-                    <input type="text"
-                        class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
-                        :value="filters.search" @input="handleSearchInput" placeholder="Search equipment..."
-                        aria-label="Search equipment" />
-                </div>
-
-                <!-- View Options -->
-                <DataTableViewOptions :table="dataTableRef?.table" />
             </div>
 
-            <!-- Toggleable Filter Container -->
+            <!-- MonitoringFilter with integrated search and column toggle -->
             <transition enter-active-class="transition duration-200 ease-out"
                 enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0"
                 leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100 translate-y-0"
                 leave-to-class="opacity-0 -translate-y-2">
-                <div v-show="isFilterVisible" class="">
-                    <MonitoringFilter :filters="filters" @filter-change="handleFilterChange" />
+                <div v-show="isFilterVisible" class="md:block">
+                    <MonitoringFilter :filters="filters" :table="dataTableRef?.table"
+                        @filter-change="handleFilterChange" />
                 </div>
             </transition>
 
