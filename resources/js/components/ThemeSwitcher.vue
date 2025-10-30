@@ -35,12 +35,6 @@ const themes: { value: Theme; label: string; description: string; colors: string
         colors: ['hsl(37.6923 92.1260% 50.1961%)', 'hsl(32.1327 94.6188% 43.7255%)', 'hsl(25.9649 90.4762% 37.0588%)', 'hsl(22.7273 82.5000% 31.3725%)'],
     },
     {
-        value: 'caffeine',
-        label: 'Caffeine',
-        description: 'Warm coffee-inspired earth tones',
-        colors: ['hsl(16.6667 21.9512% 32.1569%)', 'hsl(34.0541 100.0000% 85.4902%)', 'hsl(29.5082 100% 88.0392%)', 'hsl(28.2353 17.5258% 19.0196%)'],
-    },
-    {
         value: 'modern-minimal',
         label: 'Modern Minimal',
         description: 'Sleek blue minimalist design',

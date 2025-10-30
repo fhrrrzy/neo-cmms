@@ -15,7 +15,9 @@ import { getLocalTimeZone, parseDate } from '@internationalized/date';
 import axios from 'axios';
 import {
     Building2,
+    ChevronDown,
     ChevronsUpDown,
+    ChevronUp,
     Clock,
     Map,
     MapPin,
@@ -42,6 +44,14 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    hideSearch: {
+        type: Boolean,
+        default: false,
+    },
+    searchPlaceholder: {
+        type: String,
+        default: 'Search equipment...',
+    },
     table: {
         type: Object,
         default: null,
@@ -49,6 +59,21 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['filter-change']);
+
+// Filter visibility state for mobile (always visible on desktop)
+const FILTER_VISIBILITY_KEY = 'monitoring_filter_visible_mobile';
+const isFilterVisible = ref(
+    localStorage.getItem(FILTER_VISIBILITY_KEY) !== 'false', // Default to true
+);
+
+// Watch for changes and save to localStorage
+watch(isFilterVisible, (newValue) => {
+    localStorage.setItem(FILTER_VISIBILITY_KEY, String(newValue));
+});
+
+const toggleMobileFilter = () => {
+    isFilterVisible.value = !isFilterVisible.value;
+};
 
 const regions = ref([]);
 const plants = ref([]);
@@ -989,366 +1014,389 @@ onMounted(async () => {
 
 <template>
     <div class="space-y-4">
-        <!-- Filters Row (wraps on small screens) -->
-        <div class="flex flex-wrap items-end gap-4">
-            <!-- Regional Filter -->
-            <div v-if="!hideRegional" class="w-full space-y-2 sm:w-auto">
-                <Popover v-model:open="regionalOpen" @update:open="
-                    (open) => {
-                        if (!open) {
-                            console.log(
-                                'Regional popover closed - validating selections',
-                            );
-                            validateAndAutoSelect();
-                        }
-                    }
-                ">
-                    <PopoverTrigger as-child>
-                        <Button variant="outline" class="w-full justify-between">
-                            <div class="flex items-center">
-                                <MapPin class="mr-2 h-4 w-4 shrink-0" />
-                                <div class="mr-2 h-4 w-px bg-border"></div>
-                                {{ regionalLabel }}
-                            </div>
-                            <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-[300px] p-0" :side="'bottom'" :align="'start'" :side-offset="4"
-                        :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
-                        <div class="flex flex-col">
-                            <div class="relative flex w-full items-center border-b">
-                                <input v-model="regionalSearch" type="text" placeholder="Cari Regional..."
-                                    class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none" />
-                                <span class="absolute inset-y-0 left-0 flex items-center justify-center px-3">
-                                    <Search class="h-4 w-4 text-muted-foreground" />
-                                </span>
-                                <button v-if="regionalSearch" @click="regionalSearch = ''"
-                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground">
-                                    <X class="h-4 w-4" />
-                                </button>
-                            </div>
-                            <ScrollArea class="h-[200px]">
-                                <div class="p-2">
-                                    <div v-if="filteredRegions.length === 0"
-                                        class="py-6 text-center text-sm text-muted-foreground">
-                                        No regional found.
+        <!-- Mobile Filter Toggle Button (only visible on small screens) -->
+        <div class="flex items-center justify-between sm:hidden">
+            <h3 class="text-sm font-medium">Filters</h3>
+            <Button variant="outline" size="sm" @click="toggleMobileFilter">
+                <span class="mr-2">{{ isFilterVisible ? 'Hide Filters' : 'Show Filters' }}</span>
+                <ChevronUp v-if="isFilterVisible" class="h-4 w-4" />
+                <ChevronDown v-else class="h-4 w-4" />
+            </Button>
+        </div>
+
+        <!-- Filters Row with transition (wraps on small screens) -->
+        <transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-2"
+            enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-2">
+            <div v-show="isFilterVisible" class="sm:block">
+                <div class="flex flex-wrap items-end gap-4">
+                    <!-- Regional Filter -->
+                    <div v-if="!hideRegional" class="w-full space-y-2 sm:w-auto">
+                        <Popover v-model:open="regionalOpen" @update:open="
+                            (open) => {
+                                if (!open) {
+                                    console.log(
+                                        'Regional popover closed - validating selections',
+                                    );
+                                    validateAndAutoSelect();
+                                }
+                            }
+                        ">
+                            <PopoverTrigger as-child>
+                                <Button variant="outline" class="w-full justify-between">
+                                    <div class="flex items-center">
+                                        <MapPin class="mr-2 h-4 w-4 shrink-0" />
+                                        <div class="mr-2 h-4 w-px bg-border"></div>
+                                        {{ regionalLabel }}
                                     </div>
-                                    <div v-for="region in filteredRegions" :key="region.id"
-                                        class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
-                                        <Checkbox :id="`regional-${region.id}`" :model-value="isRegionalSelected(region.id)
-                                            " @update:model-value="
+                                    <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent class="w-[300px] p-0" :side="'bottom'" :align="'start'" :side-offset="4"
+                                :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
+                                <div class="flex flex-col">
+                                    <div class="relative flex w-full items-center border-b">
+                                        <input v-model="regionalSearch" type="text" placeholder="Cari Regional..."
+                                            class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none" />
+                                        <span class="absolute inset-y-0 left-0 flex items-center justify-center px-3">
+                                            <Search class="h-4 w-4 text-muted-foreground" />
+                                        </span>
+                                        <button v-if="regionalSearch" @click="regionalSearch = ''"
+                                            class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground">
+                                            <X class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <ScrollArea class="h-[200px]">
+                                        <div class="p-2">
+                                            <div v-if="filteredRegions.length === 0"
+                                                class="py-6 text-center text-sm text-muted-foreground">
+                                                No regional found.
+                                            </div>
+                                            <div v-for="region in filteredRegions" :key="region.id"
+                                                class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
+                                                <Checkbox :id="`regional-${region.id}`" :model-value="isRegionalSelected(region.id)
+                                                    " @update:model-value="
                                                 (val) =>
                                                     onRegionalChecked(
                                                         region.id,
                                                         val,
                                                     )
                                             " />
-                                        <label :for="`regional-${region.id}`" class="flex-1 cursor-pointer text-sm">
-                                            {{ region.name }}
-                                        </label>
-                                        <button
-                                            class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
-                                            @click="
-                                                selectOnlyRegional(region.id)
-                                                ">
-                                            Only
-                                        </button>
+                                                <label :for="`regional-${region.id}`"
+                                                    class="flex-1 cursor-pointer text-sm">
+                                                    {{ region.name }}
+                                                </label>
+                                                <button
+                                                    class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                                                    @click="
+                                                        selectOnlyRegional(region.id)
+                                                        ">
+                                                    Only
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </ScrollArea>
+                                    <div class="flex gap-2 border-t p-2">
+                                        <Button variant="outline" size="sm" class="flex-1" @click="selectAllRegions">
+                                            Select All
+                                        </Button>
+                                        <Button variant="outline" size="sm" class="flex-1" @click="deselectAllRegions">
+                                            Deselect All
+                                        </Button>
                                     </div>
                                 </div>
-                            </ScrollArea>
-                            <div class="flex gap-2 border-t p-2">
-                                <Button variant="outline" size="sm" class="flex-1" @click="selectAllRegions">
-                                    Select All
-                                </Button>
-                                <Button variant="outline" size="sm" class="flex-1" @click="deselectAllRegions">
-                                    Deselect All
-                                </Button>
-                            </div>
-                        </div>
-                    </PopoverContent>
-                </Popover>
-            </div>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
 
-            <!-- Plant Filter -->
-            <div v-if="!hidePlant" class="w-full space-y-2 sm:w-auto">
-                <Popover v-model:open="plantOpen" @update:open="
-                    (open) => {
-                        if (!open) {
-                            console.log(
-                                'Plant popover closed - validating selections',
-                            );
-                            validateAndAutoSelect();
-                        }
-                    }
-                ">
-                    <PopoverTrigger as-child>
-                        <Button variant="outline" class="w-full justify-between">
-                            <div class="flex items-center">
-                                <Building2 class="mr-2 h-4 w-4 shrink-0" />
-                                <div class="mr-2 h-4 w-px bg-border"></div>
-                                {{ plantLabel }}
-                            </div>
-                            <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-[280px] p-0" :side="'bottom'" :align="'start'" :side-offset="4"
-                        :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
-                        <div class="flex flex-col">
-                            <div class="relative flex w-full items-center border-b">
-                                <input v-model="plantSearch" type="text" placeholder="Cari Pabrik..."
-                                    class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none" />
-                                <span class="absolute inset-y-0 left-0 flex items-center justify-center px-3">
-                                    <Search class="h-4 w-4 text-muted-foreground" />
-                                </span>
-                                <button v-if="plantSearch" @click="plantSearch = ''"
-                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground">
-                                    <X class="h-4 w-4" />
-                                </button>
-                            </div>
-                            <ScrollArea class="h-[200px]">
-                                <div class="p-2">
-                                    <div v-if="filteredPlants.length === 0"
-                                        class="py-6 text-center text-sm text-muted-foreground">
-                                        No plant found.
+                    <!-- Plant Filter -->
+                    <div v-if="!hidePlant" class="w-full space-y-2 sm:w-auto">
+                        <Popover v-model:open="plantOpen" @update:open="
+                            (open) => {
+                                if (!open) {
+                                    console.log(
+                                        'Plant popover closed - validating selections',
+                                    );
+                                    validateAndAutoSelect();
+                                }
+                            }
+                        ">
+                            <PopoverTrigger as-child>
+                                <Button variant="outline" class="w-full justify-between">
+                                    <div class="flex items-center">
+                                        <Building2 class="mr-2 h-4 w-4 shrink-0" />
+                                        <div class="mr-2 h-4 w-px bg-border"></div>
+                                        {{ plantLabel }}
                                     </div>
-                                    <div v-for="plant in filteredPlants" :key="plant.id"
-                                        class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
-                                        <Checkbox :id="`plant-${plant.id}`" :model-value="isPlantSelected(plant.id)
-                                            " @update:model-value="
+                                    <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent class="w-[280px] p-0" :side="'bottom'" :align="'start'" :side-offset="4"
+                                :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
+                                <div class="flex flex-col">
+                                    <div class="relative flex w-full items-center border-b">
+                                        <input v-model="plantSearch" type="text" placeholder="Cari Pabrik..."
+                                            class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none" />
+                                        <span class="absolute inset-y-0 left-0 flex items-center justify-center px-3">
+                                            <Search class="h-4 w-4 text-muted-foreground" />
+                                        </span>
+                                        <button v-if="plantSearch" @click="plantSearch = ''"
+                                            class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground">
+                                            <X class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <ScrollArea class="h-[200px]">
+                                        <div class="p-2">
+                                            <div v-if="filteredPlants.length === 0"
+                                                class="py-6 text-center text-sm text-muted-foreground">
+                                                No plant found.
+                                            </div>
+                                            <div v-for="plant in filteredPlants" :key="plant.id"
+                                                class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
+                                                <Checkbox :id="`plant-${plant.id}`" :model-value="isPlantSelected(plant.id)
+                                                    " @update:model-value="
                                                 (val) =>
                                                     onPlantChecked(
                                                         plant.id,
                                                         val,
                                                     )
                                             " />
-                                        <label :for="`plant-${plant.id}`" class="flex-1 cursor-pointer text-sm">
-                                            {{ plant.name }}
-                                        </label>
-                                        <button
-                                            class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
-                                            @click="selectOnlyPlant(plant.id)">
-                                            Only
-                                        </button>
+                                                <label :for="`plant-${plant.id}`" class="flex-1 cursor-pointer text-sm">
+                                                    {{ plant.name }}
+                                                </label>
+                                                <button
+                                                    class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                                                    @click="selectOnlyPlant(plant.id)">
+                                                    Only
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </ScrollArea>
+                                    <div class="flex gap-2 border-t p-2">
+                                        <Button variant="outline" size="sm" class="flex-1" @click="selectAllPlants">
+                                            Select All
+                                        </Button>
+                                        <Button variant="outline" size="sm" class="flex-1" @click="deselectAllPlants">
+                                            Deselect All
+                                        </Button>
                                     </div>
                                 </div>
-                            </ScrollArea>
-                            <div class="flex gap-2 border-t p-2">
-                                <Button variant="outline" size="sm" class="flex-1" @click="selectAllPlants">
-                                    Select All
-                                </Button>
-                                <Button variant="outline" size="sm" class="flex-1" @click="deselectAllPlants">
-                                    Deselect All
-                                </Button>
-                            </div>
-                        </div>
-                    </PopoverContent>
-                </Popover>
-            </div>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
 
-            <!-- Station Filter -->
-            <div class="w-full space-y-2 sm:w-auto">
-                <Popover v-model:open="stationOpen" @update:open="
-                    (open) => {
-                        if (!open) {
-                            console.log(
-                                'Station popover closed - validating selections',
-                            );
-                            validateAndAutoSelect();
-                        }
-                    }
-                ">
-                    <PopoverTrigger as-child>
-                        <Button variant="outline" class="w-full justify-between">
-                            <div class="flex items-center">
-                                <Map class="mr-2 h-4 w-4 shrink-0" />
-                                <div class="mr-2 h-4 w-px bg-border"></div>
-                                {{ stationLabel }}
-                            </div>
-                            <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-[280px] p-0" :side="'bottom'" :align="'start'" :side-offset="4"
-                        :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
-                        <div class="flex flex-col">
-                            <div class="relative flex w-full items-center border-b">
-                                <input v-model="stationSearch" type="text" placeholder="Cari Stasiun..."
-                                    class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none" />
-                                <span class="absolute inset-y-0 left-0 flex items-center justify-center px-3">
-                                    <Search class="h-4 w-4 text-muted-foreground" />
-                                </span>
-                                <button v-if="stationSearch" @click="stationSearch = ''"
-                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground">
-                                    <X class="h-4 w-4" />
-                                </button>
-                            </div>
-                            <ScrollArea class="h-[200px]">
-                                <div class="p-2">
-                                    <div v-if="filteredStations.length === 0"
-                                        class="py-6 text-center text-sm text-muted-foreground">
-                                        No station found.
+                    <!-- Station Filter -->
+                    <div class="w-full space-y-2 sm:w-auto">
+                        <Popover v-model:open="stationOpen" @update:open="
+                            (open) => {
+                                if (!open) {
+                                    console.log(
+                                        'Station popover closed - validating selections',
+                                    );
+                                    validateAndAutoSelect();
+                                }
+                            }
+                        ">
+                            <PopoverTrigger as-child>
+                                <Button variant="outline" class="w-full justify-between">
+                                    <div class="flex items-center">
+                                        <Map class="mr-2 h-4 w-4 shrink-0" />
+                                        <div class="mr-2 h-4 w-px bg-border"></div>
+                                        {{ stationLabel }}
                                     </div>
-                                    <div v-for="station in filteredStations" :key="station.code"
-                                        class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
-                                        <Checkbox :id="`station-${station.code}`" :model-value="isStationSelected(station.code)
-                                            " @update:model-value="
+                                    <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent class="w-[280px] p-0" :side="'bottom'" :align="'start'" :side-offset="4"
+                                :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
+                                <div class="flex flex-col">
+                                    <div class="relative flex w-full items-center border-b">
+                                        <input v-model="stationSearch" type="text" placeholder="Cari Stasiun..."
+                                            class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none" />
+                                        <span class="absolute inset-y-0 left-0 flex items-center justify-center px-3">
+                                            <Search class="h-4 w-4 text-muted-foreground" />
+                                        </span>
+                                        <button v-if="stationSearch" @click="stationSearch = ''"
+                                            class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground">
+                                            <X class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <ScrollArea class="h-[200px]">
+                                        <div class="p-2">
+                                            <div v-if="filteredStations.length === 0"
+                                                class="py-6 text-center text-sm text-muted-foreground">
+                                                No station found.
+                                            </div>
+                                            <div v-for="station in filteredStations" :key="station.code"
+                                                class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
+                                                <Checkbox :id="`station-${station.code}`" :model-value="isStationSelected(station.code)
+                                                    " @update:model-value="
                                                 (val) =>
                                                     onStationChecked(
                                                         station.code,
                                                         val,
                                                     )
                                             " />
-                                        <label :for="`station-${station.code}`" class="flex-1 cursor-pointer text-sm">
-                                            {{ station.description }}
-                                        </label>
-                                        <button
-                                            class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
-                                            @click="
-                                                selectOnlyStation(station.code)
-                                                ">
-                                            Only
-                                        </button>
+                                                <label :for="`station-${station.code}`"
+                                                    class="flex-1 cursor-pointer text-sm">
+                                                    {{ station.description }}
+                                                </label>
+                                                <button
+                                                    class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                                                    @click="
+                                                        selectOnlyStation(station.code)
+                                                        ">
+                                                    Only
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </ScrollArea>
+                                    <div class="flex gap-2 border-t p-2">
+                                        <Button variant="outline" size="sm" class="flex-1" @click="selectAllStations">
+                                            Select All
+                                        </Button>
+                                        <Button variant="outline" size="sm" class="flex-1" @click="deselectAllStations">
+                                            Deselect All
+                                        </Button>
                                     </div>
                                 </div>
-                            </ScrollArea>
-                            <div class="flex gap-2 border-t p-2">
-                                <Button variant="outline" size="sm" class="flex-1" @click="selectAllStations">
-                                    Select All
-                                </Button>
-                                <Button variant="outline" size="sm" class="flex-1" @click="deselectAllStations">
-                                    Deselect All
-                                </Button>
-                            </div>
-                        </div>
-                    </PopoverContent>
-                </Popover>
-            </div>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
 
-            <!-- Equipment Type Filter -->
-            <div class="w-full space-y-2 sm:w-auto">
-                <Popover v-model:open="typeOpen" @update:open="
-                    (open) => {
-                        if (!open) {
-                            console.log(
-                                'Equipment type popover closed - validating selections',
-                            );
-                            validateAndAutoSelect();
-                        }
-                    }
-                ">
-                    <PopoverTrigger as-child>
-                        <Button variant="outline" class="w-full justify-between">
-                            <div class="flex items-center">
-                                <Tag class="mr-2 h-4 w-4 shrink-0" />
-                                <div class="mr-2 h-4 w-px bg-border"></div>
-                                {{ equipmentTypeLabel }}
-                            </div>
-                            <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-[280px] p-0" :side="'bottom'" :align="'start'" :side-offset="4"
-                        :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
-                        <div class="flex flex-col">
-                            <div class="relative flex w-full items-center border-b">
-                                <input v-model="typeSearch" type="text" placeholder="Cari Tipe..."
-                                    class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none" />
-                                <span class="absolute inset-y-0 left-0 flex items-center justify-center px-3">
-                                    <Search class="h-4 w-4 text-muted-foreground" />
-                                </span>
-                                <button v-if="typeSearch" @click="typeSearch = ''"
-                                    class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground">
-                                    <X class="h-4 w-4" />
-                                </button>
-                            </div>
-                            <ScrollArea class="h-[200px]">
-                                <div class="p-2">
-                                    <div v-if="
-                                        filteredEquipmentTypes.length === 0
-                                    " class="py-6 text-center text-sm text-muted-foreground">
-                                        No tipe found.
+                    <!-- Equipment Type Filter -->
+                    <div class="w-full space-y-2 sm:w-auto">
+                        <Popover v-model:open="typeOpen" @update:open="
+                            (open) => {
+                                if (!open) {
+                                    console.log(
+                                        'Equipment type popover closed - validating selections',
+                                    );
+                                    validateAndAutoSelect();
+                                }
+                            }
+                        ">
+                            <PopoverTrigger as-child>
+                                <Button variant="outline" class="w-full justify-between">
+                                    <div class="flex items-center">
+                                        <Tag class="mr-2 h-4 w-4 shrink-0" />
+                                        <div class="mr-2 h-4 w-px bg-border"></div>
+                                        {{ equipmentTypeLabel }}
                                     </div>
-                                    <div v-for="typeObj in filteredEquipmentTypes" :key="typeObj.id"
-                                        class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
-                                        <Checkbox :id="`type-${typeObj.id}`" :model-value="isEquipmentTypeSelected(
-                                            typeObj.id,
-                                        )
-                                            " @update:model-value="
+                                    <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent class="w-[280px] p-0" :side="'bottom'" :align="'start'" :side-offset="4"
+                                :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
+                                <div class="flex flex-col">
+                                    <div class="relative flex w-full items-center border-b">
+                                        <input v-model="typeSearch" type="text" placeholder="Cari Tipe..."
+                                            class="h-10 w-full border-0 bg-transparent px-10 text-sm focus:ring-0 focus:outline-none" />
+                                        <span class="absolute inset-y-0 left-0 flex items-center justify-center px-3">
+                                            <Search class="h-4 w-4 text-muted-foreground" />
+                                        </span>
+                                        <button v-if="typeSearch" @click="typeSearch = ''"
+                                            class="absolute inset-y-0 right-0 flex items-center justify-center px-3 hover:text-foreground">
+                                            <X class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <ScrollArea class="h-[200px]">
+                                        <div class="p-2">
+                                            <div v-if="
+                                                filteredEquipmentTypes.length === 0
+                                            " class="py-6 text-center text-sm text-muted-foreground">
+                                                No tipe found.
+                                            </div>
+                                            <div v-for="typeObj in filteredEquipmentTypes" :key="typeObj.id"
+                                                class="group flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-accent">
+                                                <Checkbox :id="`type-${typeObj.id}`" :model-value="isEquipmentTypeSelected(
+                                                    typeObj.id,
+                                                )
+                                                    " @update:model-value="
                                                 (val) =>
                                                     onEquipmentTypeChecked(
                                                         typeObj.id,
                                                         val,
                                                     )
                                             " />
-                                        <label :for="`type-${typeObj.id}`" class="flex-1 cursor-pointer text-sm">
-                                            {{ typeObj.label }}
-                                        </label>
-                                        <button
-                                            class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
-                                            @click="
-                                                selectOnlyEquipmentType(
-                                                    typeObj.id,
-                                                )
-                                                ">
-                                            Only
-                                        </button>
+                                                <label :for="`type-${typeObj.id}`"
+                                                    class="flex-1 cursor-pointer text-sm">
+                                                    {{ typeObj.label }}
+                                                </label>
+                                                <button
+                                                    class="px-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                                                    @click="
+                                                        selectOnlyEquipmentType(
+                                                            typeObj.id,
+                                                        )
+                                                        ">
+                                                    Only
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </ScrollArea>
+                                    <div class="flex gap-2 border-t p-2">
+                                        <Button variant="outline" size="sm" class="flex-1"
+                                            @click="selectAllEquipmentTypes">
+                                            Select All
+                                        </Button>
+                                        <Button variant="outline" size="sm" class="flex-1"
+                                            @click="deselectAllEquipmentTypes">
+                                            Deselect All
+                                        </Button>
                                     </div>
                                 </div>
-                            </ScrollArea>
-                            <div class="flex gap-2 border-t p-2">
-                                <Button variant="outline" size="sm" class="flex-1" @click="selectAllEquipmentTypes">
-                                    Select All
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    <!-- Date Range Filter -->
+                    <div class="w-full space-y-2 sm:w-auto">
+                        <Popover v-model:open="datePopoverOpen">
+                            <PopoverTrigger as-child>
+                                <Button variant="outline" :class="[
+                                    'w-full justify-start text-left font-normal',
+                                    isRangeEmpty() ? 'text-muted-foreground' : '',
+                                ]">
+                                    <Clock class="h-4 w-4" />
+                                    <div class="h-4 w-px bg-border"></div>
+                                    <span class="truncate">{{ rangeDisplay() }}</span>
                                 </Button>
-                                <Button variant="outline" size="sm" class="flex-1" @click="deselectAllEquipmentTypes">
-                                    Deselect All
-                                </Button>
-                            </div>
+                            </PopoverTrigger>
+                            <PopoverContent class="w-auto p-0" :side="'bottom'" :align="'start'" :side-offset="4"
+                                :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
+                                <RangeCalendar v-model="rangeValue" :number-of-months="2"
+                                    @update:value="handleRangeUpdate" />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div v-if="!hideSearch" class="flex-1 space-y-2">
+                        <div class="relative">
+                            <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input v-model="localFilters.search" :placeholder="searchPlaceholder"
+                                class="h-9 pl-8 pr-8" />
+                            <Button v-if="localFilters.search" variant="ghost" size="sm"
+                                class="absolute right-1 top-1 h-7 w-7 p-0" @click="localFilters.search = ''">
+                                <X class="h-4 w-4" />
+                            </Button>
                         </div>
-                    </PopoverContent>
-                </Popover>
-            </div>
+                    </div>
 
-            <!-- Date Range Filter -->
-            <div class="w-full space-y-2 sm:w-auto">
-                <Popover v-model:open="datePopoverOpen">
-                    <PopoverTrigger as-child>
-                        <Button variant="outline" :class="[
-                            'w-full justify-start text-left font-normal',
-                            isRangeEmpty() ? 'text-muted-foreground' : '',
-                        ]">
-                            <Clock class="h-4 w-4" />
-                            <div class="h-4 w-px bg-border"></div>
-                            <span class="truncate">{{ rangeDisplay() }}</span>
+                    <!-- Apply Button -->
+                    <div class="w-full sm:w-auto">
+                        <Button variant="default" class="w-full sm:w-auto" @click="applyFilters">
+                            Apply Filters
                         </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-auto p-0" :side="'bottom'" :align="'start'" :side-offset="4"
-                        :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
-                        <RangeCalendar v-model="rangeValue" :number-of-months="2" @update:value="handleRangeUpdate" />
-                    </PopoverContent>
-                </Popover>
-            </div>
+                    </div>
 
-            <!-- Search Input -->
-            <div class="flex-1 space-y-2">
-                <div class="relative">
-                    <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input v-model="localFilters.search" placeholder="Search equipment..." class="h-9 pl-8 pr-8" />
-                    <Button v-if="localFilters.search" variant="ghost" size="sm"
-                        class="absolute right-1 top-1 h-7 w-7 p-0" @click="localFilters.search = ''">
-                        <X class="h-4 w-4" />
-                    </Button>
+                    <!-- Column Toggle (icon only) -->
+                    <div class="w-full sm:w-auto hidden md:block">
+                        <DataTableViewOptions :table="table" />
+                    </div>
                 </div>
             </div>
-
-            <!-- Apply Button -->
-            <div class="w-full sm:w-auto">
-                <Button variant="default" class="w-full sm:w-auto" @click="applyFilters">
-                    Apply Filters
-                </Button>
-            </div>
-
-            <!-- Column Toggle (icon only) -->
-            <div class="w-full sm:w-auto">
-                <DataTableViewOptions :table="table" />
-            </div>
-        </div>
+        </transition>
     </div>
 </template>
