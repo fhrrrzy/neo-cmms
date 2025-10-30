@@ -256,8 +256,16 @@ class MonitoringController extends Controller
                 $query->where('regional_id', $region->id);
             }
         }
-        $plants = $query->get(['uuid', 'name']);
-        return response()->json($plants);
+        $plants = $query->with('region')->get();
+        // Return regional_uuid for each plant
+        $result = $plants->map(function ($plant) {
+            return [
+                'uuid' => $plant->uuid,
+                'name' => $plant->name,
+                'regional_uuid' => optional($plant->region)->uuid,
+            ];
+        });
+        return response()->json($result);
     }
 
     public function stations(Request $request)
@@ -276,95 +284,79 @@ class MonitoringController extends Controller
         return response()->json($stations);
     }
 
-    // equipmentDetail method removed - now handled in web routes with Inertia
-
     public function jamJalanSummary(Request $request)
     {
-        // Get date range from request
         $dateStart = $request->get('date_start', now()->subWeek()->toDateString());
         $dateEnd = $request->get('date_end', now()->toDateString());
 
         // Build query for plants with optional filters
         $plantQuery = Plant::query();
-
-        // Apply regional filter
         if ($request->filled('regional_uuid')) {
             $region = Region::where('uuid', $request->regional_uuid)->first();
             if ($region) {
                 $plantQuery->where('regional_id', $region->id);
             }
         }
-
-        // Apply plant filter
         if ($request->filled('plant_uuids')) {
             $plantUuids = is_array($request->plant_uuids) ? $request->plant_uuids : [$request->plant_uuids];
             $plantQuery->whereIn('uuid', $plantUuids);
         }
-
         $plants = $plantQuery->orderBy('name')->get();
+        $plantIdToUuid = $plants->mapWithKeys(fn($p) => [$p->id => $p->uuid]);
+        $plantUuidToId = $plants->mapWithKeys(fn($p) => [$p->uuid => $p->id]);
 
         // Get all dates in the range
         $dates = collect();
         $currentDate = \Carbon\Carbon::parse($dateStart);
         $endDate = \Carbon\Carbon::parse($dateEnd);
-
         while ($currentDate->lte($endDate)) {
             $dates->push($currentDate->format('Y-m-d'));
             $currentDate->addDay();
         }
 
-        // Get daily plant data for the date range
+        // Get daily plant data for the date range (by plant_id)
         $dailyPlantDataMap = [];
         $dailyPlantDataRecords = DB::table('daily_plant_data')
             ->whereBetween('date', [$dateStart, $dateEnd])
             ->get();
-
         foreach ($dailyPlantDataRecords as $record) {
-            $key = $record->plant_uuid . '_' . $record->date;
+            $key = $record->plant_id . '_' . $record->date;
             $dailyPlantDataMap[$key] = $record;
         }
-
-        // Get equipment counts for each plant-date combination
+        // Get equipment counts -- running_times by plant_id
         $equipmentCounts = DB::table('running_times')
-            ->select('running_times.plant_uuid', 'running_times.date', DB::raw('COUNT(DISTINCT running_times.equipment_number) as equipment_count'))
+            ->select('running_times.plant_id', 'running_times.date', DB::raw('COUNT(DISTINCT running_times.equipment_number) as equipment_count'))
             ->whereBetween('running_times.date', [$dateStart, $dateEnd])
             ->whereRaw('COALESCE(running_times.running_hours, 0) > 0')
-            ->groupBy('running_times.plant_uuid', 'running_times.date')
+            ->groupBy('running_times.plant_id', 'running_times.date')
             ->get()
             ->keyBy(function ($item) {
-                return $item->plant_uuid . '_' . $item->date;
+                return $item->plant_id . '_' . $item->date;
             });
-
-        // Build summary data
+        // Build summary data (return uuid as public key)
         $summaryData = [];
-
         foreach ($plants as $plant) {
             $plantData = [
                 'uuid' => $plant->uuid,
                 'name' => $plant->name,
                 'dates' => [],
             ];
-
             foreach ($dates as $date) {
-                $key = $plant->uuid . '_' . $date;
+                $key = $plant->id . '_' . $date;
                 $equipmentCount = isset($equipmentCounts[$key]) ? $equipmentCounts[$key]->equipment_count : 0;
-
                 // Get is_mengolah status
                 $isMengolah = true;
                 if (isset($dailyPlantDataMap[$key])) {
                     $dailyData = $dailyPlantDataMap[$key];
                     $isMengolah = $dailyData->is_mengolah != 0;
                 }
-
                 $plantData['dates'][$date] = [
                     'count' => $equipmentCount,
                     'is_mengolah' => $isMengolah,
                 ];
             }
-
             $summaryData[] = $plantData;
         }
-
         return response()->json([
             'data' => $summaryData,
             'dates' => $dates->values()->all(),
