@@ -65,60 +65,29 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
 
     try {
         const params = new URLSearchParams();
-
-        // Add pagination parameters
         params.append('page', page.toString());
         params.append('per_page', perPage.toString());
-
-        // Add sorting parameters
         params.append('sort_by', sorting.value.sort_by);
         params.append('sort_direction', sorting.value.sort_direction);
 
-        // Add filter parameters (arrays)
-        if (
-            filters.value.regional_ids &&
-            filters.value.regional_ids.length > 0
-        ) {
-            filters.value.regional_ids.forEach((id) => {
-                params.append('regional_ids[]', id.toString());
-            });
+        if (filters.value.regional_ids?.length) {
+            filters.value.regional_ids.forEach((id) => params.append('regional_ids[]', id.toString()));
         }
-        if (filters.value.plant_ids && filters.value.plant_ids.length > 0) {
-            filters.value.plant_ids.forEach((id) => {
-                params.append('plant_ids[]', id.toString());
-            });
+        if (filters.value.plant_ids?.length) {
+            filters.value.plant_ids.forEach((id) => params.append('plant_ids[]', id.toString()));
         }
-        if (
-            filters.value.station_codes &&
-            filters.value.station_codes.length > 0 &&
-            filters.value.station_codes.length < 15  // Only send if not all stations (15 total)
-        ) {
-            filters.value.station_codes.forEach((code) => {
-                params.append('station_codes[]', code);
-            });
+        if (filters.value.station_codes?.length && filters.value.station_codes.length < 15) {
+            filters.value.station_codes.forEach((code) => params.append('station_codes[]', code));
         }
-        if (
-            filters.value.equipment_types &&
-            filters.value.equipment_types.length > 0 &&
-            filters.value.equipment_types.length < 5  // Only send if not all types (5 total)
-        ) {
-            filters.value.equipment_types.forEach((type) => {
-                params.append('equipment_types[]', type);
-            });
+        if (filters.value.equipment_types?.length && filters.value.equipment_types.length < 5) {
+            filters.value.equipment_types.forEach((type) => params.append('equipment_types[]', type));
         }
-        if (filters.value.date_range.start) {
-            params.append('date_start', filters.value.date_range.start);
-        }
-        if (filters.value.date_range.end) {
-            params.append('date_end', filters.value.date_range.end);
-        }
-        if (filters.value.search) {
-            params.append('search', filters.value.search);
-        }
+        if (filters.value.date_range.start) params.append('date_start', filters.value.date_range.start);
+        if (filters.value.date_range.end) params.append('date_end', filters.value.date_range.end);
+        if (filters.value.search) params.append('search', filters.value.search);
 
         const response = await axios.get(`/api/monitoring/equipment?${params}`);
 
-        // Update equipment data and pagination info
         equipment.value = response.data.data;
         pagination.value = {
             total: response.data.total,
@@ -130,8 +99,7 @@ const fetchEquipment = async (page = 1, perPage = 15) => {
             has_more_pages: response.data.has_more_pages,
         };
     } catch (err) {
-        error.value =
-            err.response?.data?.message || 'Terjadi kesalahan saat memuat data';
+        error.value = err.response?.data?.message || 'Terjadi kesalahan saat memuat data';
         console.error('Error fetching equipment:', err);
     } finally {
         loading.value = false;
@@ -150,13 +118,10 @@ const handleFilterChange = (newFilters) => {
     if (newFilters?.date_range?.start && newFilters?.date_range?.end) {
         dateRangeStore.setRange(newFilters.date_range);
     }
-    // Reset to first page when filters change
     fetchEquipment(1, pagination.value.per_page);
 };
 
-const handlePageChange = (page) => {
-    fetchEquipment(page, pagination.value.per_page);
-};
+const handlePageChange = (page) => fetchEquipment(page, pagination.value.per_page);
 
 const handlePageSizeChange = (perPage) => {
     pagination.value.per_page = perPage;
@@ -168,16 +133,13 @@ const handleSortChange = (sortBy, sortDirection) => {
         sorting.value.sort_by = sortBy;
         sorting.value.sort_direction = sortDirection;
     } else {
-        // Remove sorting - use default
         sorting.value.sort_by = 'equipment_number';
         sorting.value.sort_direction = 'asc';
     }
-    // Reset to first page when sorting changes
     fetchEquipment(1, pagination.value.per_page);
 };
 
 const handleRowClick = (equipment) => {
-    // Open equipment detail in sheet
     selectedEquipmentNumber.value = equipment.uuid;
     isSheetOpen.value = true;
 };
@@ -187,9 +149,7 @@ const handleSheetClose = () => {
     selectedEquipmentNumber.value = '';
 };
 
-onMounted(() => {
-    fetchEquipment();
-});
+onMounted(() => fetchEquipment());
 </script>
 
 <template>
