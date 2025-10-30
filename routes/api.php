@@ -67,9 +67,7 @@ Route::prefix('webhook/sync')->middleware('webhook.key')->group(function () {
     Route::get('/all', [SyncWebhookController::class, 'syncAll']);
 });
 
-// Sync Log API routes (protected by auth)
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/sync-logs', [SyncLogController::class, 'index']);
-    Route::get('/sync-logs/stats', [SyncLogController::class, 'stats']);
-    Route::get('/sync-logs/by-type', [SyncLogController::class, 'byType']);
-});
+// Sync Log API routes
+Route::get('/sync-logs', [SyncLogController::class, 'index']);
+Route::get('/sync-logs/stats', [SyncLogController::class, 'stats']);
+Route::get('/sync-logs/by-type', [SyncLogController::class, 'byType']);

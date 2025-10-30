@@ -140,6 +140,6 @@ class SyncLogController extends Controller
             return null;
         }
 
-        return $log->sync_completed_at->diffInSeconds($log->sync_started_at);
+        return abs($log->sync_completed_at->diffInSeconds($log->sync_started_at));
     }
 }
