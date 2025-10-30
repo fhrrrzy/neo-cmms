@@ -1,18 +1,31 @@
 <template>
     <Sheet v-model:open="isOpenComputed">
-        <SheetContent side="bottom" class="h-[100vh] max-h-[100vh] w-full overflow-hidden p-0" :hide-close="true"
-            @after-enter="onAfterEnter" @before-leave="onBeforeLeave">
+        <SheetContent
+            side="bottom"
+            class="h-[100vh] max-h-[100vh] w-full overflow-hidden p-0"
+            :hide-close="true"
+            @after-enter="onAfterEnter"
+            @before-leave="onBeforeLeave"
+        >
             <!-- Header -->
-            <div class="flex h-16 items-center justify-between flex-row-reverse border-b bg-background px-6">
+            <div
+                class="flex h-16 flex-row-reverse items-center justify-between border-b bg-background px-6"
+            >
                 <div class="flex items-center gap-4">
-                    <Button variant="outline" size="icon" @click="close" class="h-8 w-8">
+                    <Button variant="outline" @click="close" class="h-8 w-auto">
                         <ArrowLeft class="h-4 w-4" />
+                        <span class="">Back to Monitoring</span>
                         <span class="sr-only">Back</span>
                     </Button>
                 </div>
                 <div class="flex items-center gap-2">
-                    <Button variant="outline" size="icon" class="h-8 w-8" @click="isQrOpen = true"
-                        aria-label="Open QR code">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        class="h-8 w-8"
+                        @click="isQrOpen = true"
+                        aria-label="Open QR code"
+                    >
                         <QrCode class="h-4 w-4" />
                     </Button>
                     <Button variant="outline" @click="goToDetailPage">
@@ -24,50 +37,80 @@
 
             <!-- Content -->
             <div class="h-[calc(100vh-4rem)] flex-1 overflow-auto">
-                <div v-if="loading" class="flex h-96 items-center justify-center">
+                <div
+                    v-if="loading"
+                    class="flex h-96 items-center justify-center"
+                >
                     <div class="space-y-4 text-center">
                         <div
-                            class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent">
-                        </div>
+                            class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
+                        ></div>
                         <p class="text-muted-foreground">
                             Loading equipment details...
                         </p>
                     </div>
                 </div>
-                <div v-else-if="error" class="flex h-96 items-center justify-center px-6">
+                <div
+                    v-else-if="error"
+                    class="flex h-96 items-center justify-center px-6"
+                >
                     <div class="space-y-3 text-center">
-                        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                        <div
+                            class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10"
+                        >
                             <AlertCircle class="h-6 w-6 text-destructive" />
                         </div>
                         <p class="text-base font-medium text-destructive">
                             {{ error }}
                         </p>
                         <div class="flex items-center justify-center gap-2">
-                            <Button @click="fetchEquipmentDetail" variant="outline">
+                            <Button
+                                @click="fetchEquipmentDetail"
+                                variant="outline"
+                            >
                                 Try Again
                             </Button>
-                            <Button variant="ghost" @click="close">Close</Button>
+                            <Button variant="ghost" @click="close"
+                                >Close</Button
+                            >
                         </div>
                     </div>
                 </div>
                 <div class="p-6">
                     <!-- Mount heavy content only after sheet finishes entering -->
                     <div v-if="entered">
-                        <EquipmentContent :equipment="equipment" :loading="loading"
-                            :not-found="error === 'Equipment not found'" :uuid="equipmentNumber"
-                            :equipment-number="equipment.equipment_number" :date-range="{
+                        <EquipmentContent
+                            :equipment="equipment"
+                            :loading="loading"
+                            :not-found="error === 'Equipment not found'"
+                            :uuid="equipmentNumber"
+                            :equipment-number="equipment.equipment_number"
+                            :date-range="{
                                 start: dateRangeStore.start,
                                 end: dateRangeStore.end,
-                            }" :range-value="rangeValue" :popover-open="popoverOpen" :show-back-button="false"
-                            :show-qr-button="false" @open-qr="isQrOpen = true" @go-back="close"
-                            @update:range-value="rangeValue = $event" @update:popover-open="popoverOpen = $event" />
+                            }"
+                            :range-value="rangeValue"
+                            :popover-open="popoverOpen"
+                            :show-back-button="false"
+                            :show-qr-button="false"
+                            @open-qr="isQrOpen = true"
+                            @go-back="close"
+                            @update:range-value="rangeValue = $event"
+                            @update:popover-open="popoverOpen = $event"
+                        />
                     </div>
                 </div>
             </div>
 
             <!-- QR Code Modal -->
-            <QrShare :open="isQrOpen" :qrcode="qrcode" :description="equipment.equipment_description"
-                :equipment-url="equipmentUrl" @update:open="(v) => (isQrOpen = v)" @print="printQr" />
+            <QrShare
+                :open="isQrOpen"
+                :qrcode="qrcode"
+                :description="equipment.equipment_description"
+                :equipment-url="equipmentUrl"
+                @update:open="(v) => (isQrOpen = v)"
+                @print="printQr"
+            />
         </SheetContent>
     </Sheet>
 </template>
@@ -183,7 +226,7 @@ const fetchEquipmentDetail = async () => {
         // Defer any heavy reflow work until next tick/idle
         await nextTick();
         if ('requestIdleCallback' in window) {
-            requestIdleCallback(() => { });
+            requestIdleCallback(() => {});
         }
     } catch (err) {
         if (err?.response?.status === 404) {

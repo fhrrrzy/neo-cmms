@@ -2,7 +2,9 @@
     <div class="space-y-6">
         <!-- Loading State (skeletons) -->
         <div v-if="loading" class="space-y-6">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div
+                class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+            >
                 <div class="w-full space-y-2">
                     <Skeleton class="h-8 w-2/3" />
                     <Skeleton class="h-4 w-40" />
@@ -29,10 +31,20 @@
         </div>
 
         <!-- Not Found State: hide everything else -->
-        <div v-else-if="notFound" class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6">
-            <Noise :pattern-size="250" :pattern-scale-x="1" :pattern-scale-y="1" :pattern-alpha="30" />
+        <div
+            v-else-if="notFound"
+            class="flex min-h-[calc(100vh-15rem)] items-center justify-center px-6"
+        >
+            <Noise
+                :pattern-size="250"
+                :pattern-scale-x="1"
+                :pattern-scale-y="1"
+                :pattern-alpha="30"
+            />
             <div class="space-y-4 text-center">
-                <p class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl">
+                <p
+                    class="text-4xl font-semibold text-primary sm:text-2xl md:text-5xl"
+                >
                     Peralatan tidak ditemukan
                 </p>
             </div>
@@ -40,14 +52,22 @@
 
         <template v-else>
             <!-- Header -->
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div
+                class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+            >
                 <div>
                     <div class="flex items-center gap-2">
                         <h1 class="text-3xl font-bold tracking-tight">
                             {{ equipment.equipment_description || 'N/A' }}
                         </h1>
-                        <Button v-if="showQrButton" variant="outline" size="icon" class="h-8 w-8"
-                            @click="$emit('openQr')" aria-label="Open QR code">
+                        <Button
+                            v-if="showQrButton"
+                            variant="outline"
+                            size="icon"
+                            class="h-8 w-8"
+                            @click="$emit('openQr')"
+                            aria-label="Open QR code"
+                        >
                             <QrCode class="h-4 w-4" />
                         </Button>
                     </div>
@@ -61,7 +81,9 @@
                     <!-- Equipment Details Grid -->
                     <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
                         <div class="space-y-1">
-                            <p class="text-xs font-medium text-muted-foreground">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
                                 Year
                             </p>
                             <p class="text-sm font-semibold">
@@ -73,7 +95,9 @@
                             </p>
                         </div>
                         <div class="space-y-1">
-                            <p class="text-xs font-medium text-muted-foreground">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
                                 Capacity
                             </p>
                             <p class="text-sm font-semibold">
@@ -85,7 +109,9 @@
                             </p>
                         </div>
                         <div class="space-y-1">
-                            <p class="text-xs font-medium text-muted-foreground">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
                                 Manufacturer
                             </p>
                             <p class="text-sm font-semibold">
@@ -98,7 +124,9 @@
                         </div>
 
                         <div class="space-y-1">
-                            <p class="text-xs font-medium text-muted-foreground">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
                                 Equipment Type
                             </p>
                             <p class="text-sm font-semibold">
@@ -110,13 +138,15 @@
                             </p>
                         </div>
                         <div class="space-y-1">
-                            <p class="text-xs font-medium text-muted-foreground">
+                            <p
+                                class="text-xs font-medium text-muted-foreground"
+                            >
                                 Functional Location
                             </p>
                             <p class="text-sm font-semibold">
                                 {{
                                     equipment.description_func_location &&
-                                        equipment.description_func_location !== '-'
+                                    equipment.description_func_location !== '-'
                                         ? equipment.description_func_location
                                         : 'N/A'
                                 }}
@@ -125,27 +155,50 @@
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
-                    <Popover :open="popoverOpen" class="w-full md:w-auto"
-                        @update:open="$emit('update:popoverOpen', $event)">
+                    <Popover
+                        :open="popoverOpen"
+                        class="w-full md:w-auto"
+                        @update:open="$emit('update:popoverOpen', $event)"
+                    >
                         <PopoverTrigger as-child>
-                            <Button variant="outline" :class="[
-                                'w-full justify-start text-left font-normal md:w-[280px]',
-                                isRangeEmpty ? 'text-muted-foreground' : '',
-                            ]">
+                            <Button
+                                variant="outline"
+                                :class="[
+                                    'w-full justify-start text-left font-normal md:w-[280px]',
+                                    isRangeEmpty ? 'text-muted-foreground' : '',
+                                ]"
+                            >
                                 <Calendar class="mr-2 h-4 w-4" />
                                 {{ rangeDisplay }}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent class="w-auto p-0" :side="'bottom'" :align="'end'" :side-offset="4"
-                            :avoid-collisions="true" :collision-boundary="'viewport'" :sticky="'partial'">
-                            <RangeCalendar :model-value="rangeValue" @update:model-value="
-                                $emit('update:rangeValue', $event)
-                                " :number-of-months="2" />
+                        <PopoverContent
+                            class="w-auto p-0"
+                            :side="'bottom'"
+                            :align="'end'"
+                            :side-offset="4"
+                            :avoid-collisions="true"
+                            :collision-boundary="'viewport'"
+                            :sticky="'partial'"
+                        >
+                            <RangeCalendar
+                                :model-value="rangeValue"
+                                @update:model-value="
+                                    $emit('update:rangeValue', $event)
+                                "
+                                :number-of-months="2"
+                            />
                         </PopoverContent>
                     </Popover>
-                    <Button v-if="showBackButton" variant="outline" class="w-full md:w-auto" @click="$emit('goBack')">
+                    <Button
+                        v-if="showBackButton"
+                        variant="outline"
+                        class="w-full md:w-auto"
+                        @click="$emit('goBack')"
+                    >
                         <ArrowLeft class="mr-2 h-4 w-4" />
                         Back to Monitoring
+                        <span class="sr-only">Back to Monitoring</span>
                     </Button>
                 </div>
             </div>
@@ -154,24 +207,48 @@
             <Tabs default-value="running" v-model="activeTab">
                 <!-- Wrapper for mobile scrolling -->
                 <div class="scrollbar-hidden w-full overflow-scroll rounded-lg">
-                    <TabsList class="flex gap-2 overflow-x-auto md:grid md:grid-cols-4">
-                        <TabsTrigger value="running" class="min-w-[140px] flex-shrink-0 whitespace-nowrap md:min-w-0">
-                            Running Time</TabsTrigger>
-                        <TabsTrigger value="workorders"
-                            class="min-w-[140px] flex-shrink-0 whitespace-nowrap md:min-w-0">Work Orders</TabsTrigger>
-                        <TabsTrigger value="material" class="min-w-[130px] flex-shrink-0 whitespace-nowrap md:min-w-0">
-                            Material</TabsTrigger>
-                        <TabsTrigger value="biaya" class="min-w-[110px] flex-shrink-0 whitespace-nowrap md:min-w-0">
-                            Biaya</TabsTrigger>
+                    <TabsList
+                        class="flex gap-2 overflow-x-auto md:grid md:grid-cols-4"
+                    >
+                        <TabsTrigger
+                            value="running"
+                            class="min-w-[140px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                        >
+                            Running Time</TabsTrigger
+                        >
+                        <TabsTrigger
+                            value="workorders"
+                            class="min-w-[140px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                            >Work Orders</TabsTrigger
+                        >
+                        <TabsTrigger
+                            value="material"
+                            class="min-w-[130px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                        >
+                            Material</TabsTrigger
+                        >
+                        <TabsTrigger
+                            value="biaya"
+                            class="min-w-[110px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                        >
+                            Biaya</TabsTrigger
+                        >
                     </TabsList>
                 </div>
 
                 <div class="relative overflow-hidden">
-                    <Transition :name="getTransitionName()" mode="out-in"
+                    <Transition
+                        :name="getTransitionName()"
+                        mode="out-in"
                         enter-active-class="transition-all duration-150 ease-out"
-                        leave-active-class="transition-all duration-100 ease-in">
-                        <TabsContent v-if="activeTab === 'running'" key="running" value="running"
-                            class="space-y-6 pt-4">
+                        leave-active-class="transition-all duration-100 ease-in"
+                    >
+                        <TabsContent
+                            v-if="activeTab === 'running'"
+                            key="running"
+                            value="running"
+                            class="space-y-6 pt-4"
+                        >
                             <Card>
                                 <CardHeader>
                                     <CardTitle class="flex items-center gap-2">
@@ -180,15 +257,21 @@
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent class="!px-0 md:px-6">
-                                    <div v-if="isLoadingRunningTime" class="space-y-4">
+                                    <div
+                                        v-if="isLoadingRunningTime"
+                                        class="space-y-4"
+                                    >
                                         <Skeleton class="h-[300px] w-full" />
                                         <div class="flex gap-4">
                                             <Skeleton class="h-4 w-20" />
                                             <Skeleton class="h-4 w-16" />
                                         </div>
                                     </div>
-                                    <RunningTimeChart v-else :data="equipment.recent_running_times"
-                                        :subtitle="`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`" />
+                                    <RunningTimeChart
+                                        v-else
+                                        :data="equipment.recent_running_times"
+                                        :subtitle="`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`"
+                                    />
                                 </CardContent>
                             </Card>
 
@@ -200,74 +283,117 @@
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div v-if="isLoadingRunningTime" class="space-y-3">
+                                    <div
+                                        v-if="isLoadingRunningTime"
+                                        class="space-y-3"
+                                    >
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                     </div>
-                                    <RunningTimeTable v-else :equipment-uuid="equipmentUuid"
-                                        :equipment-number="equipmentNumber" :date-range="dateRange" />
+                                    <RunningTimeTable
+                                        v-else
+                                        :equipment-uuid="equipmentUuid"
+                                        :equipment-number="equipmentNumber"
+                                        :date-range="dateRange"
+                                    />
                                 </CardContent>
                             </Card>
                         </TabsContent>
 
-                        <TabsContent v-else-if="activeTab === 'workorders'" key="workorders" value="workorders"
-                            class="pt-4">
+                        <TabsContent
+                            v-else-if="activeTab === 'workorders'"
+                            key="workorders"
+                            value="workorders"
+                            class="pt-4"
+                        >
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Work Orders</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div v-if="isLoadingWorkOrders" class="space-y-3">
+                                    <div
+                                        v-if="isLoadingWorkOrders"
+                                        class="space-y-3"
+                                    >
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                     </div>
-                                    <WorkOrderTable v-else :equipment-number="equipmentNumber" :date-range="dateRange"
-                                        max-height-class="max-h-[60vh]" />
+                                    <WorkOrderTable
+                                        v-else
+                                        :equipment-number="equipmentNumber"
+                                        :date-range="dateRange"
+                                        max-height-class="max-h-[60vh]"
+                                    />
                                 </CardContent>
                             </Card>
                         </TabsContent>
 
-                        <TabsContent v-else-if="activeTab === 'material'" key="material" value="material" class="pt-4">
+                        <TabsContent
+                            v-else-if="activeTab === 'material'"
+                            key="material"
+                            value="material"
+                            class="pt-4"
+                        >
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Material</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div v-if="isLoadingMaterial" class="space-y-3">
+                                    <div
+                                        v-if="isLoadingMaterial"
+                                        class="space-y-3"
+                                    >
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                     </div>
-                                    <EquipmentWorkOrderTable v-else :equipment-number="equipmentNumber"
-                                        :date-range="dateRange" max-height-class="max-h-[60vh]" />
+                                    <EquipmentWorkOrderTable
+                                        v-else
+                                        :equipment-number="equipmentNumber"
+                                        :date-range="dateRange"
+                                        max-height-class="max-h-[60vh]"
+                                    />
                                 </CardContent>
                             </Card>
                         </TabsContent>
 
-                        <TabsContent v-else-if="activeTab === 'biaya'" key="biaya" value="biaya" class="pt-4">
+                        <TabsContent
+                            v-else-if="activeTab === 'biaya'"
+                            key="biaya"
+                            value="biaya"
+                            class="pt-4"
+                        >
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Biaya</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div v-if="isLoadingBiaya" class="space-y-3">
+                                    <div
+                                        v-if="isLoadingBiaya"
+                                        class="space-y-3"
+                                    >
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                         <Skeleton class="h-10 w-full" />
                                     </div>
-                                    <BiayaTable v-else :equipment="equipment" :equipment-uuid="equipmentUuid"
-                                        :equipment-number="equipmentNumber" :date-range="dateRange"
-                                        max-height-class="max-h-[60vh]" />
+                                    <BiayaTable
+                                        v-else
+                                        :equipment="equipment"
+                                        :equipment-uuid="equipmentUuid"
+                                        :equipment-number="equipmentNumber"
+                                        :date-range="dateRange"
+                                        max-height-class="max-h-[60vh]"
+                                    />
                                 </CardContent>
                             </Card>
                         </TabsContent>

@@ -381,19 +381,27 @@ class MonitoringController extends Controller
             ], 400);
         }
 
+        // Convert plant_uuid → plant_id
+        $plant = \App\Models\Plant::where('uuid', $plantUuid)->first();
+        if (!$plant) {
+            return response()->json([
+                'message' => 'Plant not found',
+                'error' => 'Invalid plant_uuid supplied'
+            ], 404);
+        }
+        $plantId = $plant->id;
+
         // Get is_mengolah status from daily_plant_data
         $dailyPlantData = DB::table('daily_plant_data')
-            ->where('plant_uuid', $plantUuid)
+            ->where('plant_id', $plantId)
             ->where('date', $date)
             ->select('is_mengolah')
             ->first();
-
         $isMengolah = $dailyPlantData ? ($dailyPlantData->is_mengolah != 0) : true;
-
         // Get equipment with running times for that date
         $equipmentWithRunningTime = DB::table('running_times')
             ->join('equipment', 'running_times.equipment_number', '=', 'equipment.equipment_number')
-            ->where('running_times.plant_uuid', $plantUuid)
+            ->where('running_times.plant_id', $plantId)
             ->where('running_times.date', $date)
             ->whereRaw('COALESCE(running_times.running_hours, 0) > 0')
             ->select([
@@ -405,15 +413,14 @@ class MonitoringController extends Controller
             ])
             ->orderBy('equipment.equipment_number')
             ->get();
-
         // Get equipment without running times (0 or null)
         $equipmentWithoutRunningTime = DB::table('equipment')
-            ->where('plant_uuid', $plantUuid)
-            ->whereNotExists(function ($query) use ($plantUuid, $date) {
+            ->where('plant_id', $plantId)
+            ->whereNotExists(function ($query) use ($plantId, $date) {
                 $query->select(DB::raw(1))
                     ->from('running_times')
                     ->whereRaw('running_times.equipment_number = equipment.equipment_number')
-                    ->where('running_times.plant_uuid', $plantUuid)
+                    ->where('running_times.plant_id', $plantId)
                     ->where('running_times.date', $date)
                     ->whereRaw('COALESCE(running_times.running_hours, 0) > 0');
             })
@@ -424,7 +431,6 @@ class MonitoringController extends Controller
             ])
             ->orderBy('equipment.equipment_number')
             ->get();
-
         return response()->json([
             'is_mengolah' => $isMengolah,
             'with_running_time' => $equipmentWithRunningTime,
@@ -472,7 +478,7 @@ class MonitoringController extends Controller
                 'plants.name as plant_name',
             ])
             ->leftJoin('work_orders', 'equipment_work_orders.order_number', '=', 'work_orders.order')
-            ->leftJoin('plants', 'equipment_work_orders.plant_uuid', '=', 'plants.uuid')
+            ->leftJoin('plants', 'equipment_work_orders.plant_id', '=', 'plants.id')
             ->where('equipment_work_orders.equipment_number', $equipmentNumber)
             ->whereBetween('equipment_work_orders.requirements_date', [$dateStart, $dateEnd])
             ->where('equipment_work_orders.value_withdrawn', '>', 0) // Only show records with actual value
