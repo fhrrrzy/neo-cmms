@@ -157,52 +157,52 @@ onMounted(() => {
             <!-- Stats Cards -->
             <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Total Syncs (7d)</CardTitle>
-                        <Database class="h-4 w-4 text-muted-foreground" />
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle class="text-xs font-medium">Total Syncs (7d)</CardTitle>
+                        <Database class="h-3.5 w-3.5 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                        <div v-if="stats" class="text-2xl font-bold">{{ stats.total_syncs || 0 }}</div>
-                        <Skeleton v-else class="h-8 w-20" />
+                    <CardContent class="pb-3">
+                        <div v-if="stats" class="text-xl font-bold">{{ stats.total_syncs || 0 }}</div>
+                        <Skeleton v-else class="h-6 w-16" />
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Success Rate</CardTitle>
-                        <TrendingUp class="h-4 w-4 text-muted-foreground" />
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle class="text-xs font-medium">Success Rate</CardTitle>
+                        <TrendingUp class="h-3.5 w-3.5 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                        <div v-if="stats" class="text-2xl font-bold text-green-600">
+                    <CardContent class="pb-3">
+                        <div v-if="stats" class="text-xl font-bold text-green-600">
                             {{ stats.success_rate || '0%' }}
                         </div>
-                        <Skeleton v-else class="h-8 w-20" />
+                        <Skeleton v-else class="h-6 w-16" />
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Running Now</CardTitle>
-                        <Activity class="h-4 w-4 text-muted-foreground" />
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle class="text-xs font-medium">Running Now</CardTitle>
+                        <Activity class="h-3.5 w-3.5 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                        <div v-if="stats" class="text-2xl font-bold text-blue-600">
+                    <CardContent class="pb-3">
+                        <div v-if="stats" class="text-xl font-bold text-blue-600">
                             {{ stats.running_syncs || 0 }}
                         </div>
-                        <Skeleton v-else class="h-8 w-20" />
+                        <Skeleton v-else class="h-6 w-16" />
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Failed (7d)</CardTitle>
-                        <XCircle class="h-4 w-4 text-muted-foreground" />
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle class="text-xs font-medium">Failed (7d)</CardTitle>
+                        <XCircle class="h-3.5 w-3.5 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                        <div v-if="stats" class="text-2xl font-bold text-red-600">
+                    <CardContent class="pb-3">
+                        <div v-if="stats" class="text-xl font-bold text-red-600">
                             {{ stats.failed_syncs || 0 }}
                         </div>
-                        <Skeleton v-else class="h-8 w-20" />
+                        <Skeleton v-else class="h-6 w-16" />
                     </CardContent>
                 </Card>
             </div>

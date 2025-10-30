@@ -1,7 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap');
-
 :root {
     --background: hsl(40.0000 60.0000% 98.0392%);
     --foreground: hsl(20.8696 18.4000% 24.5098%);

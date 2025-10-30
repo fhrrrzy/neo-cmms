@@ -41,6 +41,12 @@ const themes: { value: Theme; label: string; description: string; colors: string
         colors: ['hsl(16.6667 21.9512% 32.1569%)', 'hsl(34.0541 100.0000% 85.4902%)', 'hsl(29.5082 100% 88.0392%)', 'hsl(28.2353 17.5258% 19.0196%)'],
     },
     {
+        value: 'claymorphism',
+        label: 'Claymorphism',
+        description: 'Soft clay-like textures with rounded edges',
+        colors: ['hsl(238.7324 83.5294% 66.6667%)', 'hsl(292.5000 44.4444% 92.9412%)', 'hsl(24.0000 5.7471% 82.9412%)', 'hsl(20 5.8824% 90%)'],
+    },
+    {
         value: 'modern-minimal',
         label: 'Modern Minimal',
         description: 'Sleek blue minimalist design',

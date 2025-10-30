@@ -1,10 +1,57 @@
 import { ref, onMounted, watch } from 'vue';
 import { useAppearance } from './useAppearance';
 
-export type Theme = 'default' | 'amber-minimal' | 'caffeine' | 'modern-minimal' | 'nature' | 'nothern-lights' | 'ocean-breeze' | 'solar-dusk' | 'supabase' | 'twitter' | 'vintage-paper';
+export type Theme = 'default' | 'amber-minimal' | 'caffeine' | 'claymorphism' | 'modern-minimal' | 'nature' | 'nothern-lights' | 'ocean-breeze' | 'solar-dusk' | 'supabase' | 'twitter' | 'vintage-paper';
 
 const THEME_STORAGE_KEY = 'app-theme';
 const DEFAULT_THEME: Theme = 'default';
+
+// Font families required by each theme
+const THEME_FONTS: Record<Theme, string[]> = {
+    'default': [],
+    'amber-minimal': ['Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900', 'Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900', 'JetBrains+Mono:ital,wght@0,100..800;1,100..800'],
+    'caffeine': ['Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900'],
+    'claymorphism': ['Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800', 'Lora:ital,wght@0,400..700;1,400..700', 'Roboto+Mono:ital,wght@0,100..700;1,100..700'],
+    'modern-minimal': ['Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900', 'Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900', 'JetBrains+Mono:ital,wght@0,100..800;1,100..800'],
+    'nature': ['DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000', 'Lora:ital,wght@0,400..700;1,400..700', 'IBM+Plex+Mono:ital,wght@0,300..700;1,300..700'],
+    'nothern-lights': ['Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800', 'Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900', 'JetBrains+Mono:ital,wght@0,100..800;1,100..800'],
+    'ocean-breeze': ['DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000', 'Lora:ital,wght@0,400..700;1,400..700', 'IBM+Plex+Mono:ital,wght@0,300..700;1,300..700'],
+    'solar-dusk': ['Oxanium:wght@300..700', 'Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700', 'Fira+Code:wght@300..700'],
+    'supabase': ['Outfit:wght@300..700'],
+    'twitter': ['Open+Sans:ital,wght@0,300..700;1,300..700'],
+    'vintage-paper': ['Libre+Baskerville:ital,wght@0,400;0,700;1,400', 'Lora:ital,wght@0,400..700;1,400..700', 'IBM+Plex+Mono:ital,wght@0,300..700;1,300..700'],
+};
+
+// Track loaded fonts to avoid duplicates
+const loadedFonts = new Set<string>();
+
+// Load fonts for a specific theme
+const loadThemeFonts = (theme: Theme) => {
+    const fonts = THEME_FONTS[theme];
+    if (!fonts || fonts.length === 0) return;
+
+    // Check if fonts are already loaded
+    const allLoaded = fonts.every(font => loadedFonts.has(font));
+    if (allLoaded) return;
+
+    // Build Google Fonts URL
+    const fontParams = fonts.map(f => `family=${f}`).join('&');
+    const fontUrl = `https://fonts.googleapis.com/css2?${fontParams}&display=swap`;
+
+    // Check if link already exists
+    const existingLink = document.querySelector(`link[href="${fontUrl}"]`);
+    if (existingLink) return;
+
+    // Create and append font link
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = fontUrl;
+    link.setAttribute('data-theme-fonts', theme);
+    document.head.appendChild(link);
+
+    // Mark fonts as loaded
+    fonts.forEach(font => loadedFonts.add(font));
+};
 
 // Get initial theme from storage immediately
 const getInitialTheme = (): Theme => {
@@ -42,6 +89,9 @@ export function useTheme() {
                 case 'caffeine':
                     themeModule = await import('../../css/theme/caffeine.css?url');
                     break;
+                case 'claymorphism':
+                    themeModule = await import('../../css/theme/claymorphism.css?url');
+                    break;
                 case 'modern-minimal':
                     themeModule = await import('../../css/theme/modern-minimal.css?url');
                     break;
@@ -74,6 +124,11 @@ export function useTheme() {
             link.href = themeModule.default;
             link.setAttribute('data-theme', theme);
             document.head.appendChild(link);
+            
+            // Wait for theme CSS to load, then load fonts
+            link.onload = () => {
+                loadThemeFonts(theme);
+            };
         } catch (error) {
             console.error(`Failed to load theme: ${theme}`, error);
         }
