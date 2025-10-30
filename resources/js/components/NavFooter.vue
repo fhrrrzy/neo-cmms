@@ -8,34 +8,37 @@ import {
 } from '@/components/ui/sidebar';
 import { toUrl } from '@/lib/utils';
 import { type NavItem } from '@/types';
+import { Link } from '@inertiajs/vue3';
 
 interface Props {
     items: NavItem[];
     class?: string;
+    external?: boolean;
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+    external: false,
+});
 </script>
 
 <template>
-    <SidebarGroup
-        :class="`group-data-[collapsible=icon]:p-0 ${$props.class || ''}`"
-    >
+    <SidebarGroup :class="`group-data-[collapsible=icon]:p-0 ${$props.class || ''}`">
         <SidebarGroupContent>
             <SidebarMenu>
                 <SidebarMenuItem v-for="item in items" :key="item.title">
                     <SidebarMenuButton
                         class="text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-100"
-                        as-child
-                    >
-                        <a
-                            :href="toUrl(item.href)"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
+                        as-child>
+                        <!-- External link (opens in new tab) -->
+                        <a v-if="external" :href="toUrl(item.href)" target="_blank" rel="noopener noreferrer">
                             <component :is="item.icon" />
                             <span>{{ item.title }}</span>
                         </a>
+                        <!-- Internal Inertia link -->
+                        <Link v-else :href="toUrl(item.href)">
+                        <component :is="item.icon" />
+                        <span>{{ item.title }}</span>
+                        </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>

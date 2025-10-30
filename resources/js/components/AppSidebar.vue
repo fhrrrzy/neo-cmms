@@ -14,7 +14,7 @@ import {
 import { dashboard, jamJalanSummary, monitoring } from '@/routes';
 import syncLog from '@/routes/sync-log';
 import { Link } from '@inertiajs/vue3';
-import { Activity, LayoutGrid, Monitor, RefreshCw } from 'lucide-vue-next';
+import { Activity, LayoutGrid, Monitor, Logs } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems = [
@@ -39,7 +39,7 @@ const footerNavItems = [
     {
         title: 'Sync Log',
         href: syncLog.index(),
-        icon: RefreshCw,
+        icon: Logs,
     },
 ];
 </script>

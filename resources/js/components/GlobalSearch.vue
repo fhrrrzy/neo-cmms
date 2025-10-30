@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 import { dashboard, jamJalanSummary, monitoring } from '@/routes';
+import syncLog from '@/routes/sync-log';
 import { router } from '@inertiajs/vue3';
 import { useMagicKeys, useDebounceFn } from '@vueuse/core';
 import {
@@ -30,6 +31,7 @@ import {
     SearchX,
     MapPin,
     Factory,
+    Logs,
 } from 'lucide-vue-next';
 import { onUnmounted, ref, watch, computed } from 'vue';
 import axios from 'axios';
@@ -59,6 +61,11 @@ const pages = [
         name: 'Jam Jalan Summary',
         route: jamJalanSummary(),
         icon: Activity,
+    },
+    {
+        name: 'Sync Log',
+        route: syncLog.index(),
+        icon: Logs,
     },
 ];
 
@@ -401,7 +408,7 @@ defineExpose({
                                 </div>
                                 <span class="text-xs text-muted-foreground line-clamp-1">{{
                                     equipment.equipment_description
-                                }}</span>
+                                    }}</span>
                             </div>
                         </CommandItem>
                     </CommandGroup>
