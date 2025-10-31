@@ -31,19 +31,19 @@ const getTheme = () => {
     const dark = isDarkMode();
     return dark
         ? {
-            text: '#e5e7eb',
-            mutedText: '#9ca3af',
-            grid: '#374151',
-            primary: '#60a5fa',
-            secondary: '#f59e0b',
-        }
+              text: '#e5e7eb',
+              mutedText: '#9ca3af',
+              grid: '#374151',
+              primary: '#60a5fa',
+              secondary: '#f59e0b',
+          }
         : {
-            text: '#111827',
-            mutedText: '#6b7280',
-            grid: '#e5e7eb',
-            primary: '#2563eb',
-            secondary: '#f59e0b',
-        };
+              text: '#111827',
+              mutedText: '#6b7280',
+              grid: '#e5e7eb',
+              primary: '#2563eb',
+              secondary: '#f59e0b',
+          };
 };
 
 // Transform data
@@ -78,10 +78,9 @@ const createChart = () => {
             useGPUTranslations: true,
             enabled: dataLength > 250,
         },
-        // title: {
-        //     text: 'Running Time Analysis',
-        //     style: { color: theme.text, fontSize: '16px', fontWeight: '600' },
-        // },
+        title: {
+            text: null, // or undefined
+        },
         // subtitle: {
         //     text: props.subtitle,
         //     style: { color: theme.mutedText, fontSize: '14px' },
@@ -121,10 +120,18 @@ const createChart = () => {
             style: { color: theme.text },
             formatter: function () {
                 const date = Highcharts.dateFormat('%e %b %Y', this.x);
-                const rhPoint = this.points?.find((p) => p.series.name === 'Running Hours');
-                const crPoint = this.points?.find((p) => p.series.name === 'Counter Reading');
-                const rhVal = rhPoint ? Highcharts.numberFormat(rhPoint.y, 2) : '-';
-                const crVal = crPoint ? Highcharts.numberFormat(crPoint.y, 2) : '-';
+                const rhPoint = this.points?.find(
+                    (p) => p.series.name === 'Running Hours',
+                );
+                const crPoint = this.points?.find(
+                    (p) => p.series.name === 'Counter Reading',
+                );
+                const rhVal = rhPoint
+                    ? Highcharts.numberFormat(rhPoint.y, 2)
+                    : '-';
+                const crVal = crPoint
+                    ? Highcharts.numberFormat(crPoint.y, 2)
+                    : '-';
                 return `<b>${date}</b><br/>Running Hours: ${rhVal} Jam<br/>Counter Reading: ${crVal}`;
             },
         },
@@ -197,9 +204,12 @@ onBeforeUnmount(() => {
 });
 
 // Watch for data changes
-watch(() => props.data, () => {
-    createChart();
-});
+watch(
+    () => props.data,
+    () => {
+        createChart();
+    },
+);
 </script>
 
 <template>

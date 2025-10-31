@@ -1,4 +1,5 @@
 <script setup>
+import EquipmentImagesDialog from '@/components/EquipmentImagesDialog.vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     ContextMenu,
@@ -32,7 +33,14 @@ import {
     useVueTable,
 } from '@tanstack/vue-table';
 import { useQRCode } from '@vueuse/integrations/useQRCode';
-import { AlertCircle, Database } from 'lucide-vue-next';
+import {
+    AlertCircle,
+    Database,
+    ExternalLink,
+    Eye,
+    Images,
+    QrCode,
+} from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import { columns } from './columns';
 import DataTablePagination from './DataTablePagination.vue';
@@ -90,7 +98,9 @@ const selectedEquipment = ref(null);
 
 // QR Modal state
 const isQrOpen = ref(false);
+const isImagesOpen = ref(false);
 const qrEquipment = ref(null);
+const selectedEquipmentUuid = ref('');
 const qrEquipmentUrl = computed(() => {
     if (!qrEquipment.value?.uuid) return '';
     return `${window.location.origin}/equipment/${encodeURIComponent(qrEquipment.value.uuid)}`;
@@ -241,6 +251,13 @@ const handleOpenNewTab = (equipment) => {
     emit('open-new-tab', equipment);
 };
 
+const handleOpenImagesDialog = (equipment) => {
+    selectedEquipmentUuid.value = equipment?.uuid || '';
+    if (selectedEquipmentUuid.value) {
+        isImagesOpen.value = true;
+    }
+};
+
 // Watch for sorting changes from parent and update table sorting
 watch(
     () => props.sorting,
@@ -360,23 +377,38 @@ defineExpose({
                                 <ContextMenuContent class="w-56">
                                     <ContextMenuItem
                                         @click.stop="handleShowQr(row.original)"
+                                        class="flex items-center gap-2"
                                     >
-                                        Show QR
+                                        <QrCode class="h-4 w-4" />
+                                        <span>Show QR</span>
                                     </ContextMenuItem>
                                     <ContextMenuItem
                                         @click.stop="
                                             handleOpenNewTab(row.original)
                                         "
+                                        class="flex items-center gap-2"
                                     >
-                                        Open in new tab
+                                        <ExternalLink class="h-4 w-4" />
+                                        <span>Open in new tab</span>
                                     </ContextMenuItem>
                                     <ContextMenuSeparator />
                                     <ContextMenuItem
                                         @click.stop="
                                             handleRowClick(row.original)
                                         "
+                                        class="flex items-center gap-2"
                                     >
-                                        Open details
+                                        <Eye class="h-4 w-4" />
+                                        <span>Open details</span>
+                                    </ContextMenuItem>
+                                    <ContextMenuItem
+                                        @click.stop="
+                                            handleOpenImagesDialog(row.original)
+                                        "
+                                        class="flex items-center gap-2"
+                                    >
+                                        <Images class="h-4 w-4" />
+                                        <span>Equipment images</span>
                                     </ContextMenuItem>
                                 </ContextMenuContent>
                             </ContextMenu>
@@ -637,6 +669,12 @@ defineExpose({
             :equipment-url="qrEquipmentUrl"
             @update:open="isQrOpen = $event"
             @print="printQr"
+        />
+
+        <!-- Images Lightbox Dialog -->
+        <EquipmentImagesDialog
+            v-model="isImagesOpen"
+            :equipment-uuid="selectedEquipmentUuid"
         />
     </div>
 </template>

@@ -141,6 +141,15 @@ class Equipment extends Model
 
 
     /**
+     * Get images for the equipment.
+     */
+    public function images(): HasMany
+    {
+        return $this->hasMany(EquipmentImage::class, 'equipment_number', 'equipment_number');
+    }
+
+
+    /**
      * Scope a query to filter by plant.
      */
     public function scopeByPlant($query, $plantId)

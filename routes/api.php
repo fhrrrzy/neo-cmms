@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\MonitoringController;
 use App\Http\Controllers\Api\EquipmentApiController;
 use App\Http\Controllers\Api\WorkOrderApiController;
 use App\Http\Controllers\Api\EquipmentWorkOrderApiController;
+use App\Http\Controllers\EquipmentController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -46,6 +47,8 @@ Route::get('/equipment/search', [EquipmentSearchApiController::class, 'search'])
 
 // Equipment detail CSR API
 Route::get('/equipment/{equipmentNumber}', [EquipmentApiController::class, 'show']);
+// Equipment images by equipment UUID (masking by uuid)
+Route::get('/equipment/{uuid}/images', [EquipmentController::class, 'images']);
 
 // Work Orders by plant and date range
 Route::get('/workorders', [WorkOrderApiController::class, 'index']);

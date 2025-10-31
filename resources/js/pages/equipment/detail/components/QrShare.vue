@@ -78,7 +78,7 @@ onBeforeUnmount(() => {
                     v-if="props.qrcode"
                     :src="props.qrcode"
                     alt="QR Code"
-                    class="h-64 w-64"
+                    class="h-64 w-64 rounded-lg"
                 />
                 <p
                     v-if="props.description"
@@ -172,7 +172,7 @@ onBeforeUnmount(() => {
                     v-if="props.qrcode"
                     :src="props.qrcode"
                     alt="QR Code"
-                    class="h-60 w-60"
+                    class="h-60 w-60 rounded-lg"
                 />
                 <p
                     v-if="props.description"

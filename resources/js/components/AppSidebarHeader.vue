@@ -4,8 +4,9 @@ import GlobalSearch from '@/components/GlobalSearch.vue';
 import { Button } from '@/components/ui/button';
 import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Search } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { useFullscreenStore } from '@/stores/useFullscreenStore';
+import { Maximize, Minimize, Search } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     breadcrumbs: {
@@ -21,6 +22,14 @@ const handleSearchClick = () => {
         globalSearchRef.value.open();
     }
 };
+
+// Fullscreen state
+const fullscreen = useFullscreenStore();
+const isFullscreen = computed(() => fullscreen.isFullscreen);
+
+async function toggleFullscreen() {
+    await fullscreen.toggle(document.documentElement);
+}
 
 // Detect platform for shortcut hint
 const isMac =
@@ -65,6 +74,17 @@ const modKeyLabel = isMac ? '⌘' : 'Ctrl';
                         <Kbd>{{ modKeyLabel }}</Kbd>
                         <Kbd>K</Kbd>
                     </KbdGroup>
+                </Button>
+
+                <!-- Fullscreen toggle -->
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    class="h-9 w-9"
+                    @click="toggleFullscreen"
+                >
+                    <Maximize v-if="!isFullscreen" class="h-4 w-4" />
+                    <Minimize v-else class="h-4 w-4" />
                 </Button>
             </div>
         </div>

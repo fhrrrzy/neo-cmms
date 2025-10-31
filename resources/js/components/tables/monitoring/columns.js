@@ -35,6 +35,7 @@ export const columns = [
             );
         },
     },
+    
     {
         accessorKey: 'equipment_number',
         header: ({ column, table }) => {
@@ -58,7 +59,7 @@ export const columns = [
                         }
                         table.options.meta?.onSortChange?.('equipment_number', newDirection);
                     },
-                    class: 'h-8 px-2 lg:px-3',
+                    class: 'h-8 px-2',
                 },
                 () => [
                     'Nomor Equipment',
@@ -69,10 +70,22 @@ export const columns = [
             );
         },
         cell: ({ row }) => {
+            const images = row?.original?.images || [];
+            const url = images.length > 0 ? images[0]?.url : null;
+            const name = row?.original?.equipment_description || row?.original?.equipment_number || '';
+            const initial = String(name).trim().charAt(0).toUpperCase() || '?';
+
+            const avatar = url
+                ? h('img', { src: url, alt: 'Equipment image', class: 'h-9 w-9 rounded object-cover', loading: 'lazy', referrerpolicy: 'no-referrer' })
+                : h('div', { class: 'h-9 w-9 rounded bg-muted text-muted-foreground flex items-center justify-center font-medium select-none' }, initial);
+
             return h(
                 'div',
-                { class: 'font-medium font-mono text-left px-4' },
-                row.getValue('equipment_number'),
+                { class: 'flex items-center gap-3 pl-2' },
+                [
+                    avatar,
+                    h('div', { class: 'font-medium font-mono text-left' }, row.getValue('equipment_number')),
+                ],
             );
         },
     },

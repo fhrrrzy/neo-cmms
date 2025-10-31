@@ -21,7 +21,7 @@ class EquipmentPolicy
     }
     public function update(User $user, Equipment $equipment): bool
     {
-        return false;
+        return true;
     }
     public function delete(User $user, Equipment $equipment): bool
     {
@@ -36,19 +36,3 @@ class EquipmentPolicy
         return false;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

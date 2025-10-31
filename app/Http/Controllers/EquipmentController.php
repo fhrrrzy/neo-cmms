@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Equipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class EquipmentController extends Controller
 {
     public function show(string $uuid, Request $request)
     {
-        $equipment = Equipment::with(['plant.regional', 'station'])
+        $equipment = Equipment::with(['plant.regional', 'station', 'images'])
             ->select([
                 'equipment.*',
                 'plants.name as plant_name',
@@ -67,11 +68,41 @@ class EquipmentController extends Controller
                 'start' => $dateStart,
                 'end' => $dateEnd,
             ],
+            'images' => $equipment->images->map(function ($image) {
+                return [
+                    'id' => $image->id,
+                    'name' => $image->name,
+                    'filepath' => $image->filepath,
+                    'url' => asset('storage/' . ltrim($image->filepath, '/')),
+                ];
+            }),
         ];
 
         return Inertia::render('equipment/detail/detail', [
             'uuid' => $uuid,
             'equipment' => $equipmentData,
         ]);
+    }
+
+    public function images(string $uuid)
+    {
+        $equipment = Equipment::with('images')
+            ->where('uuid', $uuid)
+            ->first();
+
+        if (!$equipment) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        $images = $equipment->images->map(function ($image) {
+            return [
+                'id' => $image->id,
+                'name' => $image->name,
+                'filepath' => $image->filepath,
+                'url' => asset('storage/' . ltrim($image->filepath, '/')),
+            ];
+        });
+
+        return response()->json(['data' => $images]);
     }
 }
