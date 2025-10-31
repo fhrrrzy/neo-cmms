@@ -14,7 +14,7 @@
                 <div class="flex items-center gap-4">
                     <Button variant="outline" @click="close" class="h-8 w-auto">
                         <ArrowLeft class="h-4 w-4" />
-                        <span class="">Back to Monitoring</span>
+                        <span class="">Back</span>
                         <span class="sr-only">Back</span>
                     </Button>
                 </div>
