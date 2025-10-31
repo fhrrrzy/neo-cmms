@@ -155,41 +155,6 @@
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
-                    <Popover
-                        :open="popoverOpen"
-                        class="w-full md:w-auto"
-                        @update:open="$emit('update:popoverOpen', $event)"
-                    >
-                        <PopoverTrigger as-child>
-                            <Button
-                                variant="outline"
-                                :class="[
-                                    'w-full justify-start text-left font-normal md:w-[280px]',
-                                    isRangeEmpty ? 'text-muted-foreground' : '',
-                                ]"
-                            >
-                                <Calendar class="mr-2 h-4 w-4" />
-                                {{ rangeDisplay }}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                            class="w-auto p-0"
-                            :side="'bottom'"
-                            :align="'end'"
-                            :side-offset="4"
-                            :avoid-collisions="true"
-                            :collision-boundary="'viewport'"
-                            :sticky="'partial'"
-                        >
-                            <RangeCalendar
-                                :model-value="rangeValue"
-                                @update:model-value="
-                                    $emit('update:rangeValue', $event)
-                                "
-                                :number-of-months="2"
-                            />
-                        </PopoverContent>
-                    </Popover>
                     <Button
                         v-if="showBackButton"
                         variant="outline"
@@ -206,34 +171,79 @@
             <!-- Tabs Content -->
             <Tabs default-value="running" v-model="activeTab">
                 <!-- Wrapper for mobile scrolling -->
-                <div class="scrollbar-hidden w-full overflow-scroll rounded-lg">
-                    <TabsList
-                        class="flex gap-2 overflow-x-auto md:grid md:grid-cols-4"
+                <div
+                    class="flex flex-wrap justify-between gap-2 md:flex-nowrap"
+                >
+                    <div
+                        class="scrollbar-hidden w-full overflow-scroll rounded-lg"
                     >
-                        <TabsTrigger
-                            value="running"
-                            class="min-w-[140px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                        <TabsList
+                            class="flex gap-2 overflow-x-auto md:grid md:grid-cols-4"
                         >
-                            Running Time</TabsTrigger
+                            <TabsTrigger
+                                value="running"
+                                class="min-w-[140px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                            >
+                                Running Time</TabsTrigger
+                            >
+                            <TabsTrigger
+                                value="workorders"
+                                class="min-w-[140px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                                >Work Orders</TabsTrigger
+                            >
+                            <TabsTrigger
+                                value="material"
+                                class="min-w-[130px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                            >
+                                Material</TabsTrigger
+                            >
+                            <TabsTrigger
+                                value="biaya"
+                                class="min-w-[110px] flex-shrink-0 whitespace-nowrap md:min-w-0"
+                            >
+                                Biaya</TabsTrigger
+                            >
+                        </TabsList>
+                    </div>
+                    <div class="w-full md:w-auto">
+                        <Popover
+                            :open="popoverOpen"
+                            class="w-full md:w-auto"
+                            @update:open="$emit('update:popoverOpen', $event)"
                         >
-                        <TabsTrigger
-                            value="workorders"
-                            class="min-w-[140px] flex-shrink-0 whitespace-nowrap md:min-w-0"
-                            >Work Orders</TabsTrigger
-                        >
-                        <TabsTrigger
-                            value="material"
-                            class="min-w-[130px] flex-shrink-0 whitespace-nowrap md:min-w-0"
-                        >
-                            Material</TabsTrigger
-                        >
-                        <TabsTrigger
-                            value="biaya"
-                            class="min-w-[110px] flex-shrink-0 whitespace-nowrap md:min-w-0"
-                        >
-                            Biaya</TabsTrigger
-                        >
-                    </TabsList>
+                            <PopoverTrigger as-child>
+                                <Button
+                                    variant="outline"
+                                    :class="[
+                                        'w-full justify-center text-left font-normal md:w-[280px] md:justify-start',
+                                        isRangeEmpty
+                                            ? 'text-muted-foreground'
+                                            : '',
+                                    ]"
+                                >
+                                    <Calendar class="mr-2 h-4 w-4" />
+                                    {{ rangeDisplay }}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                                class="w-auto p-0"
+                                :side="'bottom'"
+                                :align="'end'"
+                                :side-offset="4"
+                                :avoid-collisions="true"
+                                :collision-boundary="'viewport'"
+                                :sticky="'partial'"
+                            >
+                                <RangeCalendar
+                                    :model-value="rangeValue"
+                                    @update:model-value="
+                                        $emit('update:rangeValue', $event)
+                                    "
+                                    :number-of-months="2"
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </div>
 
                 <div class="relative overflow-hidden">
