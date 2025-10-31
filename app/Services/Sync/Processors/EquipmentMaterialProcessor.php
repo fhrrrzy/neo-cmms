@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Log;
 class EquipmentMaterialProcessor
 {
     private const BATCH_SIZE = 2000;
+    // Any material numbers that start with these prefixes will be ignored for insert/update
+    private const EXCLUDED_MATERIAL_PREFIXES = ['11', '12', '31'];
 
     /**
      * Process a single equipment material item
@@ -46,6 +48,7 @@ class EquipmentMaterialProcessor
             $lookupData = $this->preloadLookupData($chunk, $allowedPlantCodes);
             $equipmentMaterialData = [];
             $deletions = [];
+            $retainByPlantAndOrder = [];
 
             foreach ($chunk as $item) {
                 $plantCode = Arr::get($item, 'plant');
@@ -72,7 +75,27 @@ class EquipmentMaterialProcessor
                     continue; // skip insert/upsert for deletion flagged records
                 }
 
-                $equipmentMaterialData[] = $this->prepareEquipmentMaterialData($item, $plant, $lookupData);
+                // Skip inserts/updates for excluded material number prefixes
+                $materialNumber = Arr::get($item, 'material_number') ?? Arr::get($item, 'material');
+                if ($this->isExcludedMaterialNumber($materialNumber)) {
+                    continue;
+                }
+
+                $prepared = $this->prepareEquipmentMaterialData($item, $plant, $lookupData);
+                $equipmentMaterialData[] = $prepared;
+
+                // Track materials to retain for delete-sync per (plant_id, production_order)
+                if (!empty($prepared['production_order'])) {
+                    $key = $prepared['plant_id'] . '|' . $prepared['production_order'];
+                    if (!isset($retainByPlantAndOrder[$key])) {
+                        $retainByPlantAndOrder[$key] = [
+                            'plant_id' => $prepared['plant_id'],
+                            'production_order' => $prepared['production_order'],
+                            'materials' => [],
+                        ];
+                    }
+                    $retainByPlantAndOrder[$key]['materials'][] = (string) $prepared['material_number'];
+                }
             }
 
             // Perform deletions for items flagged with deletion_flag = 'X'
@@ -89,8 +112,38 @@ class EquipmentMaterialProcessor
                 }
             }
 
+            // Delete-sync: remove rows not present in incoming payload for each (plant_id, production_order)
+            if (!empty($retainByPlantAndOrder)) {
+                foreach ($retainByPlantAndOrder as $group) {
+                    $materials = array_values(array_unique(array_filter($group['materials'])));
+                    if (!empty($materials)) {
+                        EquipmentMaterial::where('plant_id', $group['plant_id'])
+                            ->where('production_order', $group['production_order'])
+                            ->whereNotIn('material_number', $materials)
+                            ->delete();
+                    }
+                }
+            }
+
             $this->bulkUpsertEquipmentMaterials($equipmentMaterialData);
         });
+    }
+
+    /**
+     * Determine if a material number should be excluded based on prefixes
+     */
+    private function isExcludedMaterialNumber($materialNumber): bool
+    {
+        if ($materialNumber === null || $materialNumber === '') {
+            return false;
+        }
+        $materialString = (string) $materialNumber;
+        foreach (self::EXCLUDED_MATERIAL_PREFIXES as $prefix) {
+            if (str_starts_with($materialString, $prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -225,7 +278,7 @@ class EquipmentMaterialProcessor
         foreach ($chunks as $chunk) {
             EquipmentMaterial::upsert(
                 $chunk,
-                ['plant_id', 'material_number', 'reservation_number'], // unique keys
+                ['plant_id', 'material_number', 'production_order'], // unique keys per request
                 [
                     'reservation_item',
                     'reservation_type',

@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Log;
 class EquipmentWorkOrderProcessor
 {
     private const BATCH_SIZE = 2000;
+    // Any material numbers that start with these prefixes will be ignored for insert/update
+    private const EXCLUDED_MATERIAL_PREFIXES = ['11', '12', '31'];
 
     /**
      * Process a single equipment work order item
@@ -73,11 +75,34 @@ class EquipmentWorkOrderProcessor
                     continue;
                 }
 
+                // Skip inserts/updates for excluded material number prefixes
+                $materialNumber = Arr::get($item, 'material');
+                if ($this->isExcludedMaterialNumber($materialNumber)) {
+                    continue;
+                }
+
                 $equipmentWorkOrderData[] = $this->prepareEquipmentWorkOrderData($item, $plant, $lookupData);
             }
 
             $this->bulkUpsertEquipmentWorkOrders($equipmentWorkOrderData);
         });
+    }
+
+    /**
+     * Determine if a material number should be excluded based on prefixes
+     */
+    private function isExcludedMaterialNumber($materialNumber): bool
+    {
+        if ($materialNumber === null || $materialNumber === '') {
+            return false;
+        }
+        $materialString = (string) $materialNumber;
+        foreach (self::EXCLUDED_MATERIAL_PREFIXES as $prefix) {
+            if (str_starts_with($materialString, $prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
