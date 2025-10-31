@@ -175,7 +175,7 @@
                     class="flex flex-wrap justify-between gap-2 md:flex-nowrap"
                 >
                     <div
-                        class="scrollbar-hidden w-full overflow-scroll rounded-lg"
+                        class="scrollbar-hidden w-full overflow-scroll rounded-lg md:w-auto"
                     >
                         <TabsList
                             class="flex gap-2 overflow-x-auto md:grid md:grid-cols-4"
