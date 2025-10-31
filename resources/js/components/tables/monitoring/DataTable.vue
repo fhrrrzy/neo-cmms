@@ -37,7 +37,6 @@ import {
     AlertCircle,
     Database,
     ExternalLink,
-    Eye,
     Images,
     QrCode,
 } from 'lucide-vue-next';
@@ -145,6 +144,8 @@ const getInitialColumnVisibility = () => {
 };
 const columnVisibility = ref(getInitialColumnVisibility());
 const rowSelection = ref({});
+const suppressNextRowClick = ref(false);
+const contextMenuOpen = ref(false);
 
 const table = useVueTable({
     get data() {
@@ -220,6 +221,12 @@ const hasError = computed(() => props.error);
 const hasData = computed(() => props.data.length > 0);
 
 const handleRowClick = (equipment) => {
+    const nextUuid = equipment?.uuid || '';
+    const currentUuid = selectedEquipment.value?.uuid || '';
+    // Idempotent: if already open for the same equipment, do nothing
+    if (isSheetOpen.value && currentUuid && currentUuid === nextUuid) {
+        return;
+    }
     selectedEquipment.value = equipment;
     isSheetOpen.value = true;
     // Still emit for backward compatibility if needed
@@ -227,6 +234,10 @@ const handleRowClick = (equipment) => {
 };
 
 const handlePrimaryClick = (equipment, evt) => {
+    if (contextMenuOpen.value || suppressNextRowClick.value) {
+        suppressNextRowClick.value = false;
+        return;
+    }
     // Only respond to left-clicks
     if (evt && typeof evt.button === 'number' && evt.button !== 0) return;
     if (props.openSheetOnRowClick) {
@@ -256,6 +267,24 @@ const handleOpenImagesDialog = (equipment) => {
     if (selectedEquipmentUuid.value) {
         isImagesOpen.value = true;
     }
+};
+
+// Context menu wrappers to suppress the subsequent row click
+const onMenuShowQr = (equipment) => {
+    suppressNextRowClick.value = true;
+    handleShowQr(equipment);
+};
+const onMenuOpenNewTab = (equipment) => {
+    suppressNextRowClick.value = true;
+    handleOpenNewTab(equipment);
+};
+const onMenuOpenDetails = (equipment) => {
+    suppressNextRowClick.value = true;
+    handleRowClick(equipment);
+};
+const onMenuOpenImages = (equipment) => {
+    suppressNextRowClick.value = true;
+    handleOpenImagesDialog(equipment);
 };
 
 // Watch for sorting changes from parent and update table sorting
@@ -347,6 +376,8 @@ defineExpose({
                         </template>
                         <template v-else>
                             <ContextMenu
+                                :open="contextMenuOpen"
+                                @update:open="(v) => (contextMenuOpen = v)"
                                 v-for="row in table.getRowModel().rows"
                                 :key="row.id"
                             >
@@ -376,16 +407,14 @@ defineExpose({
                                 </ContextMenuTrigger>
                                 <ContextMenuContent class="w-56">
                                     <ContextMenuItem
-                                        @click.stop="handleShowQr(row.original)"
+                                        @select="onMenuShowQr(row.original)"
                                         class="flex items-center gap-2"
                                     >
                                         <QrCode class="h-4 w-4" />
                                         <span>Show QR</span>
                                     </ContextMenuItem>
                                     <ContextMenuItem
-                                        @click.stop="
-                                            handleOpenNewTab(row.original)
-                                        "
+                                        @select="onMenuOpenNewTab(row.original)"
                                         class="flex items-center gap-2"
                                     >
                                         <ExternalLink class="h-4 w-4" />
@@ -393,18 +422,7 @@ defineExpose({
                                     </ContextMenuItem>
                                     <ContextMenuSeparator />
                                     <ContextMenuItem
-                                        @click.stop="
-                                            handleRowClick(row.original)
-                                        "
-                                        class="flex items-center gap-2"
-                                    >
-                                        <Eye class="h-4 w-4" />
-                                        <span>Open details</span>
-                                    </ContextMenuItem>
-                                    <ContextMenuItem
-                                        @click.stop="
-                                            handleOpenImagesDialog(row.original)
-                                        "
+                                        @select="onMenuOpenImages(row.original)"
                                         class="flex items-center gap-2"
                                     >
                                         <Images class="h-4 w-4" />
@@ -445,6 +463,8 @@ defineExpose({
                 </template>
                 <template v-else>
                     <ContextMenu
+                        :open="contextMenuOpen"
+                        @update:open="(v) => (contextMenuOpen = v)"
                         v-for="row in table.getRowModel().rows"
                         :key="row.id"
                     >
@@ -625,20 +645,20 @@ defineExpose({
                         </ContextMenuTrigger>
                         <ContextMenuContent class="w-56">
                             <ContextMenuItem
-                                @click.stop="handleShowQr(row.original)"
+                                @select="onMenuShowQr(row.original)"
                             >
                                 Show QR
                             </ContextMenuItem>
                             <ContextMenuItem
-                                @click.stop="handleOpenNewTab(row.original)"
+                                @select="onMenuOpenNewTab(row.original)"
                             >
                                 Open in new tab
                             </ContextMenuItem>
                             <ContextMenuSeparator />
                             <ContextMenuItem
-                                @click.stop="handleRowClick(row.original)"
+                                @select="onMenuOpenImages(row.original)"
                             >
-                                Open details
+                                Equipment images
                             </ContextMenuItem>
                         </ContextMenuContent>
                     </ContextMenu>
@@ -656,7 +676,7 @@ defineExpose({
         <!-- Equipment Detail Sheet -->
         <EquipmentDetailSheet
             :is-open="isSheetOpen"
-            :equipment-number="selectedEquipment?.equipment_number || ''"
+            :equipment-number="selectedEquipment?.uuid || ''"
             @close="isSheetOpen = false"
         />
 

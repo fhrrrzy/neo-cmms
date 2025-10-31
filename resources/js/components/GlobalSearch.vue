@@ -33,7 +33,7 @@ import {
     Settings,
     User,
 } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 const props = defineProps({ open: { type: Boolean, required: true } });
 const emit = defineEmits(['update:open', 'close']);
@@ -62,11 +62,13 @@ const settingsPages = [
     },
 ];
 
-const handleNavigate = (route) => {
+const closeAndVisit = (route) => {
+    if (!route) return;
     emit('update:open', false);
     emit('close');
     router.visit(route);
 };
+const handleNavigate = (route) => closeAndVisit(route);
 
 const searchEquipment = async (query) => {
     if (!query || query.length < 2) {
@@ -75,11 +77,11 @@ const searchEquipment = async (query) => {
     }
     isLoadingEquipment.value = true;
     try {
-        const response = await axios.get('/api/equipment/search', {
+        const { data } = await axios.get('/api/equipment/search', {
             params: { query, limit: 5 },
         });
-        equipmentResults.value = [...(response.data.data || [])];
-    } catch (error) {
+        equipmentResults.value = [...(data?.data ?? [])];
+    } catch {
         equipmentResults.value = [];
     } finally {
         isLoadingEquipment.value = false;
@@ -92,11 +94,11 @@ const searchRegional = async (query) => {
     }
     isLoadingRegional.value = true;
     try {
-        const response = await axios.get('/api/regions', {
+        const { data } = await axios.get('/api/regions', {
             params: { search: query },
         });
-        regionalResults.value = (response.data || []).slice(0, 5);
-    } catch (error) {
+        regionalResults.value = (data ?? []).slice(0, 5);
+    } catch {
         regionalResults.value = [];
     } finally {
         isLoadingRegional.value = false;
@@ -109,11 +111,11 @@ const searchPabrik = async (query) => {
     }
     isLoadingPabrik.value = true;
     try {
-        const response = await axios.get('/api/pabrik', {
+        const { data } = await axios.get('/api/pabrik', {
             params: { search: query },
         });
-        pabrikResults.value = (response.data.data || []).slice(0, 5);
-    } catch (error) {
+        pabrikResults.value = (data?.data ?? []).slice(0, 5);
+    } catch {
         pabrikResults.value = [];
     } finally {
         isLoadingPabrik.value = false;
@@ -125,26 +127,41 @@ const debouncedSearch = useDebounceFn((query) => {
     searchPabrik(query);
 }, 300);
 const handleSearchInput = (value) => {
-    searchQuery.value = value;
-    debouncedSearch(value);
+    const next = (value ?? '').trim();
+    searchQuery.value = next;
+    debouncedSearch(next);
+};
+const triggerImmediateSearch = (query) => {
+    const q = (query ?? '').trim();
+    searchQuery.value = q;
+    searchEquipment(q);
+    searchRegional(q);
+    searchPabrik(q);
+};
+const handleEnter = () => {
+    triggerImmediateSearch(searchQuery.value);
+};
+const handlePaste = async (e) => {
+    // Allow the native paste to update the input and Command internal state
+    // Then trigger immediate searches on the next tick with the updated value
+    await nextTick();
+    const value = (e?.target?.value ?? searchQuery.value ?? '').trim();
+    if (value) triggerImmediateSearch(value);
 };
 watch(searchQuery, (newQuery) => {
     debouncedSearch(newQuery);
 });
 const navigateToEquipment = (uuid) => {
-    emit('update:open', false);
-    emit('close');
-    router.visit(`/equipment/${uuid}`);
+    if (!uuid) return;
+    closeAndVisit(`/equipment/${uuid}`);
 };
-const navigateToRegional = (id) => {
-    emit('update:open', false);
-    emit('close');
-    router.visit(`/regions/${id}`);
+const navigateToRegional = (uuidOrId) => {
+    if (!uuidOrId) return;
+    closeAndVisit(`/regions/${uuidOrId}`);
 };
-const navigateToPabrik = (id) => {
-    emit('update:open', false);
-    emit('close');
-    router.visit(`/pabrik/${id}`);
+const navigateToPabrik = (uuidOrId) => {
+    if (!uuidOrId) return;
+    closeAndVisit(`/pabrik/${uuidOrId}`);
 };
 const filteredPages = computed(() => {
     if (!searchQuery.value) return pages;
@@ -166,32 +183,30 @@ const hasAnyResults = computed(() => {
         isLoadingPabrik.value
     )
         return true;
-    return (
-        filteredPages.value.length > 0 ||
-        filteredSettings.value.length > 0 ||
-        (searchQuery.value.length >= 2 &&
-            (equipmentResults.value.length > 0 ||
-                regionalResults.value.length > 0 ||
-                pabrikResults.value.length > 0))
-    );
+    const hasTypedQuery = searchQuery.value.length >= 2;
+    const hasPageHits =
+        filteredPages.value.length > 0 || filteredSettings.value.length > 0;
+    const hasEntityHits =
+        equipmentResults.value.length > 0 ||
+        regionalResults.value.length > 0 ||
+        pabrikResults.value.length > 0;
+    return hasPageHits || (hasTypedQuery && hasEntityHits);
 });
 // Always close modal with Escape key
 const keys = useMagicKeys();
 watch(keys.Escape, (pressed) => {
-    if (pressed && props.open) {
-        emit('update:open', false);
-        emit('close');
-    }
+    if (!pressed || !props.open) return;
+    emit('update:open', false);
+    emit('close');
 });
 watch(
     () => props.open,
     (isOpen) => {
-        if (!isOpen) {
-            searchQuery.value = '';
-            equipmentResults.value = [];
-            regionalResults.value = [];
-            pabrikResults.value = [];
-        }
+        if (isOpen) return;
+        searchQuery.value = '';
+        equipmentResults.value = [];
+        regionalResults.value = [];
+        pabrikResults.value = [];
     },
 );
 </script>
@@ -206,6 +221,8 @@ watch(
             placeholder="Type to search..."
             v-model="searchQuery"
             @update:model-value="handleSearchInput"
+            @keyup.enter="handleEnter"
+            @paste="handlePaste"
         />
         <CommandList>
             <!-- Global Empty State - Show when nothing found anywhere -->
@@ -291,9 +308,11 @@ watch(
                         <CommandItem
                             v-else
                             v-for="regional in regionalResults"
-                            :key="regional.id"
-                            :value="`regional-${regional.id}-${regional.name}`"
-                            @select="navigateToRegional(regional.id)"
+                            :key="regional.uuid || regional.id"
+                            :value="`regional-${regional.uuid || regional.id}-${regional.name}`"
+                            @select="
+                                navigateToRegional(regional.uuid || regional.id)
+                            "
                         >
                             <MapPin class="mr-2 h-4 w-4 shrink-0" />
                             <div class="flex min-w-0 flex-1 flex-col gap-1">
@@ -342,9 +361,9 @@ watch(
                         <CommandItem
                             v-else
                             v-for="pabrik in pabrikResults"
-                            :key="pabrik.id"
-                            :value="`pabrik-${pabrik.id}-${pabrik.name}`"
-                            @select="navigateToPabrik(pabrik.id)"
+                            :key="pabrik.uuid || pabrik.id"
+                            :value="`pabrik-${pabrik.uuid || pabrik.id}-${pabrik.name}`"
+                            @select="navigateToPabrik(pabrik.uuid || pabrik.id)"
                         >
                             <Factory class="mr-2 h-4 w-4 shrink-0" />
                             <div class="flex min-w-0 flex-1 flex-col gap-1">
