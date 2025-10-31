@@ -187,7 +187,7 @@ watch(open, async (v) => {
                         <img
                             :src="active?.url"
                             :alt="active?.name || 'image'"
-                            class="max-h-[75svh] max-w-full object-contain transition-transform duration-300 ease-out select-none"
+                            class="max-h-[75dvh] max-w-full object-contain transition-transform duration-300 ease-out select-none"
                             :class="
                                 zoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
                             "

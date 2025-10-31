@@ -121,7 +121,7 @@ defineExpose({
         <!-- Table -->
         <div class="rounded-md border">
             <!-- Table -->
-            <div class="max-h-[80svh] overflow-auto">
+            <div class="max-h-[80dvh] overflow-auto">
                 <table
                     class="w-full table-auto caption-bottom border-collapse text-sm"
                 >

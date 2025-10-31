@@ -2,7 +2,7 @@
     <Sheet v-model:open="isOpenComputed">
         <SheetContent
             side="bottom"
-            class="h-[100svh] max-h-[100svh] w-full overflow-hidden p-0"
+            class="h-[100dvh] max-h-[100dvh] w-full overflow-hidden p-0"
             :hide-close="true"
             @after-enter="onAfterEnter"
             @before-leave="onBeforeLeave"

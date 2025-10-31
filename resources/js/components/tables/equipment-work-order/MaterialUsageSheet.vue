@@ -212,7 +212,7 @@ watch(
     <Sheet v-model:open="isOpenComputed" class="sheet-above-modal">
         <SheetContent
             side="left"
-            class="!z-[150] h-[100svh] max-h-[100svh] w-full overflow-hidden p-0 sm:max-w-lg"
+            class="!z-[150] h-[100dvh] max-h-[100dvh] w-full overflow-hidden p-0 sm:max-w-lg"
             :hide-close="true"
         >
             <!-- Header -->
