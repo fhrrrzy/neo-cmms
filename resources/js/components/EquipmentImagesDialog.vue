@@ -182,7 +182,7 @@ watch(open, async (v) => {
                 <div v-else class="flex flex-1 flex-col space-y-4">
                     <!-- Focus image -->
                     <div
-                        class="relative flex w-full flex-1 items-center justify-center overflow-hidden rounded-md bg-black"
+                        class="relative flex w-full flex-1 items-center justify-center overflow-hidden rounded-md bg-transparent"
                     >
                         <img
                             :src="active?.url"

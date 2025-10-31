@@ -52,32 +52,53 @@
 
         <template v-else>
             <!-- Header -->
-            <div
-                class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
-            >
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-3xl font-bold tracking-tight">
-                            {{ equipment.equipment_description || 'N/A' }}
-                        </h1>
+            <div class="">
+                <div
+                    class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+                >
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-3xl font-bold tracking-tight">
+                                {{ equipment.equipment_description || 'N/A' }}
+                            </h1>
+                            <Button
+                                v-if="showQrButton"
+                                variant="outline"
+                                size="icon"
+                                class="h-8 w-8"
+                                @click="$emit('openQr')"
+                                aria-label="Open QR code"
+                            >
+                                <QrCode class="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <p class="text-muted-foreground">
+                            #{{ equipment.equipment_number }}
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            {{ regionalName }} - {{ plantName }} -
+                            {{ stationName }}
+                        </p>
+                    </div>
+                    <div
+                        class="hidden flex-wrap items-center gap-3 md:flex md:flex-nowrap"
+                    >
                         <Button
-                            v-if="showQrButton"
+                            v-if="showBackButton"
                             variant="outline"
-                            size="icon"
-                            class="h-8 w-8"
-                            @click="$emit('openQr')"
-                            aria-label="Open QR code"
+                            class="w-full md:w-auto"
+                            @click="$emit('goBack')"
                         >
-                            <QrCode class="h-4 w-4" />
+                            <ArrowLeft class="mr-2 h-4 w-4" />
+                            Back to Monitoring
+                            <span class="sr-only">Back to Monitoring</span>
                         </Button>
                     </div>
-                    <p class="text-muted-foreground">
-                        #{{ equipment.equipment_number }}
-                    </p>
-                    <p class="text-xs text-muted-foreground">
-                        {{ regionalName }} - {{ plantName }} - {{ stationName }}
-                    </p>
+                </div>
 
+                <div
+                    class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"
+                >
                     <!-- Equipment Details Grid -->
                     <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
                         <div class="space-y-1">
@@ -153,18 +174,67 @@
                             </p>
                         </div>
                     </div>
-                </div>
-                <div class="flex flex-wrap items-center gap-3 md:flex-nowrap">
-                    <Button
-                        v-if="showBackButton"
-                        variant="outline"
-                        class="w-full md:w-auto"
-                        @click="$emit('goBack')"
+
+                    <!-- image-thumbnails -->
+                    <div
+                        class="grid cursor-pointer grid-cols-4 gap-1 sm:gap-1.5 md:aspect-square md:max-w-32 md:grid-cols-2 md:gap-2"
+                        @click="isImagesOpen = true"
                     >
-                        <ArrowLeft class="mr-2 h-4 w-4" />
-                        Back to Monitoring
-                        <span class="sr-only">Back to Monitoring</span>
-                    </Button>
+                        <template v-if="thumbsLoading">
+                            <div
+                                v-for="i in 4"
+                                :key="i"
+                                class="aspect-square w-full animate-pulse rounded bg-muted"
+                            ></div>
+                        </template>
+                        <template v-else>
+                            <template v-if="thumbnails.length === 0">
+                                <div
+                                    class="col-span-4 flex items-center justify-center rounded border p-3 py-6 text-xs text-muted-foreground"
+                                >
+                                    No images yet
+                                </div>
+                            </template>
+                            <template v-else>
+                                <template
+                                    v-for="(img, i) in displayedThumbs"
+                                    :key="img.id || i"
+                                >
+                                    <div
+                                        v-if="i < 3 || extraThumbsCount === 0"
+                                        class="aspect-square w-full overflow-hidden rounded-lg border p-0.5"
+                                    >
+                                        <img
+                                            :src="img.url"
+                                            :alt="img.name || 'equipment image'"
+                                            class="h-full w-full rounded-lg object-cover dark:brightness-75"
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                    <div
+                                        v-else
+                                        class="relative aspect-square w-full overflow-hidden rounded-lg border p-0.5"
+                                    >
+                                        <img
+                                            :src="img.url"
+                                            :alt="img.name || 'equipment image'"
+                                            class="h-full w-full rounded-lg object-cover dark:brightness-50"
+                                            loading="lazy"
+                                        />
+                                        <div
+                                            class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40 text-xs font-semibold text-white"
+                                        >
+                                            +{{ extraThumbsCount }}
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                        </template>
+                    </div>
+                    <EquipmentImagesDialog
+                        v-model="isImagesOpen"
+                        :equipment-uuid="props.uuid"
+                    />
                 </div>
             </div>
 
@@ -416,6 +486,7 @@
 
 <script setup>
 import Noise from '@/components/blocks/Animations/Noise/Noise.vue';
+import EquipmentImagesDialog from '@/components/EquipmentImagesDialog.vue';
 import BiayaTable from '@/components/tables/biaya/BiayaTable.vue';
 import EquipmentWorkOrderTable from '@/components/tables/equipment-work-order/EquipmentWorkOrderTable.vue';
 import RunningTimeTable from '@/components/tables/running-time/RunningTimeTable.vue';
@@ -430,8 +501,9 @@ import {
 import { RangeCalendar } from '@/components/ui/range-calendar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import axios from 'axios';
 import { ArrowLeft, BarChart3, Calendar, Clock, QrCode } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import RunningTimeChart from './RunningTimeChart.vue';
 
 const props = defineProps({
@@ -572,6 +644,34 @@ watch(activeTab, (newTab, oldTab) => {
         }, 200);
     }
 });
+
+const isImagesOpen = ref(false);
+const thumbnails = ref([]);
+const displayedThumbs = computed(() => thumbnails.value.slice(0, 4));
+const extraThumbsCount = computed(() =>
+    Math.max(0, thumbnails.value.length - 3),
+);
+const thumbsLoading = ref(false);
+
+async function fetchThumbnails() {
+    if (!props?.uuid) return;
+    thumbsLoading.value = true;
+    try {
+        const { data } = await axios.get(`/api/equipment/${props.uuid}/images`);
+        const images = Array.isArray(data?.data) ? data.data : [];
+        thumbnails.value = images.slice(0, 8);
+    } catch (e) {
+        thumbnails.value = [];
+    } finally {
+        thumbsLoading.value = false;
+    }
+}
+
+onMounted(fetchThumbnails);
+watch(
+    () => props?.uuid,
+    () => fetchThumbnails(),
+);
 </script>
 
 <style scoped>
