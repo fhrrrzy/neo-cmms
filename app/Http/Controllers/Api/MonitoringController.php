@@ -10,12 +10,21 @@ use App\Models\Station;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class MonitoringController extends Controller
 {
     public function equipment(Request $request)
     {
-        $query = Equipment::with(['plant', 'station'])
+        $query = Equipment::with([
+                'plant',
+                'station',
+                'images' => function ($q) {
+                    $q->select('id', 'equipment_number', 'filepath', 'name')
+                        ->latest('id')
+                        ->limit(1);
+                },
+            ])
             ->select([
                 'equipment.*',
                 'plants.name as plant_name',
@@ -210,6 +219,12 @@ class MonitoringController extends Controller
                     'id' => $item->station->id,
                     'description' => $item->station->description,
                 ] : null,
+                'images' => $item->images ? $item->images->map(function ($img) {
+                    return [
+                        'url' => $img->filepath ? Storage::url($img->filepath) : null,
+                        'name' => $img->name,
+                    ];
+                })->filter(fn($i) => !empty($i['url']))->values() : [],
                 'running_times_count' => (int) ($item->running_times_count ?? 0),
                 'cumulative_jam_jalan' => (float) ($item->cumulative_jam_jalan ?? 0),
                 'functional_location' => $item->description_func_location,
