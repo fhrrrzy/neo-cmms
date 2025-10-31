@@ -219,16 +219,7 @@ watch(
             <div
                 class="flex h-auto min-h-14 flex-col border-b bg-background px-4 py-3"
             >
-                <div class="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        class="h-8 w-8"
-                        @click="isOpenComputed = false"
-                    >
-                        <ArrowLeft class="h-4 w-4" />
-                        <span class="sr-only">Kembali</span>
-                    </Button>
+                <div class="flex items-center justify-between gap-2">
                     <div class="text-left">
                         <p class="text-sm leading-none font-semibold">
                             History Maintenance
@@ -241,6 +232,15 @@ watch(
                             {{ formatDate(actualDateRange.end) }}
                         </p>
                     </div>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        class="h-8 w-8"
+                        @click="isOpenComputed = false"
+                    >
+                        <ArrowLeft class="h-4 w-4" />
+                        <span class="sr-only">Kembali</span>
+                    </Button>
                 </div>
             </div>
 
