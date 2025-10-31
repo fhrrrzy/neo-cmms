@@ -80,7 +80,7 @@ const modKeyLabel = isMac ? '⌘' : 'Ctrl';
                 <Button
                     variant="ghost"
                     size="icon"
-                    class="h-9 w-9"
+                    class="hidden h-9 w-9 md:block"
                     @click="toggleFullscreen"
                 >
                     <Maximize v-if="!isFullscreen" class="h-4 w-4" />
